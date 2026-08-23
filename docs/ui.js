@@ -235,6 +235,9 @@
   el('themeBtn').onclick = () => { window.MF_THEME.renderSwatches(); el('themeModal').classList.remove('hidden'); };
   el('themeClose').onclick = () => el('themeModal').classList.add('hidden');
   el('themeModal').onclick = e => { if (e.target.id === 'themeModal') el('themeModal').classList.add('hidden'); };
+  el('linksBtn').onclick = () => el('linksModal').classList.remove('hidden');
+  el('linksClose').onclick = () => el('linksModal').classList.add('hidden');
+  el('linksModal').onclick = e => { if (e.target.id === 'linksModal') el('linksModal').classList.add('hidden'); };
 
   window.MF_UI = { show, modal, refresh, renderHeader };
 

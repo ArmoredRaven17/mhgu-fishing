@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MHGU Fishing</title>
-<link rel="stylesheet" href="styles.css?v=96">
+<link rel="stylesheet" href="styles.css?v=97">
 </head>
 <body>
 
@@ -20,6 +20,7 @@
       <button id="openBtn"   class="btn tiny">Open&hellip;</button>
     </span>
     <input type="file" id="importFile" accept=".json,application/json" class="hidden">
+    <button id="linksBtn" class="icon-btn" title="Other MHGU apps" aria-label="Other MHGU apps">&#128279;</button>
     <button id="themeBtn" class="icon-btn" title="Theme" aria-label="Theme">&#9881;</button>
     <div class="stats">
       <span class="stat" title="Hunter Rank"><b id="hrValue">1</b><i>HR</i></span>
@@ -223,6 +224,66 @@
 
 <div id="toast" class="toast hidden"></div>
 
+<div id="linksModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>Other MHGU Apps</h2>
+    <p class="muted">Companion fan tools by the same author. Each opens in a new tab.</p>
+    <ul class="app-links">
+      <li>
+        <a href="https://armoredraven17.github.io/MHGU-Quest-Randomizer/" target="_blank" rel="noopener">Quest Randomizer</a>
+        <span class="app-desc">Rolls random quests when you can't decide what to hunt.</span>
+      </li>
+      <li>
+        <a href="https://armoredraven17.github.io/mhgu-collection-tracker/" target="_blank" rel="noopener">Collection Tracker</a>
+        <span class="app-desc">Tracks which weapons, armor and Palico gear you own, and what it costs to finish them.</span>
+      </li>
+      <li>
+        <a href="https://armoredraven17.github.io/mhgu-equipment-box/" target="_blank" rel="noopener">Equipment Box</a>
+        <span class="app-desc">Mirrors the in-game box — 2000 hunter slots and 1000 Palico — so you can plan where things sit.</span>
+      </li>
+      <li>
+        <a href="https://armoredraven17.github.io/MHGU-Bingo/" target="_blank" rel="noopener">Bingo</a>
+        <span class="app-desc">Builds a bingo card of hunting goals, with a shareable seed so a group can race the same board.</span>
+      </li>
+      <li>
+        <a href="https://armoredraven17.github.io/MHGU-Hunting-Log/" target="_blank" rel="noopener">Hunting Log</a>
+        <span class="app-desc">Keeps a running record of your hunts — what you were after, what you wore, who came along.</span>
+      </li>
+      <li>
+        <a href="https://armoredraven17.github.io/MHGU-Zenny-Gauntlet/" target="_blank" rel="noopener">Zenny Gauntlet</a>
+        <span class="app-desc">A scored challenge run — fail a hunt or get carted and you lose that weapon/style combo for the rest of the run.</span>
+      </li>
+      <li>
+        <a href="https://armoredraven17.github.io/mhgu-set-builder/" target="_blank" rel="noopener">Set Builder</a>
+        <span class="app-desc">Assemble a full set by hand and see exactly which skills it activates.</span>
+      </li>
+      <li>
+        <a href="https://armoredraven17.github.io/mhgu-weapon-trees/" target="_blank" rel="noopener">Weapon Trees</a>
+        <span class="app-desc">Browse every weapon upgrade tree, with full stats on any node you click.</span>
+      </li>
+      <li>
+        <a href="https://armoredraven17.github.io/MHGU-Challenge-Run/" target="_blank" rel="noopener">Challenge Run</a>
+        <span class="app-desc">A permadeath challenge run — start from a root weapon, lose it on any quest failure, clear every Key Quest.</span>
+      </li>
+      <li>
+        <a href="https://armoredraven17.github.io/mhgu-charm-farm/" target="_blank" rel="noopener">Charm Farm</a>
+        <span class="app-desc">A Clicker/Idle game about beating up various Brachydios until you finally get the desired God Charms you always wanted.</span>
+      </li>
+      <li>
+        <a href="https://armoredraven17.github.io/mhgu-talisman-bingo/" target="_blank" rel="noopener">Talisman Bingo</a>
+        <span class="app-desc">A bingo card of talisman conditions — keep drawing charms until one finally fills the line you needed.</span>
+      </li>
+      <li class="current">
+        <span class="app-name">Fishing <span class="app-here">you are here</span></span>
+        <span class="app-desc">A fishing sim on the game's own tables — prepare at camp, travel to a locale, come home with the catch.</span>
+      </li>
+    </ul>
+    <div class="row end gap">
+      <button id="linksClose" class="btn">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Theme modal ─────────────────────────────────────────────────────── -->
 <div id="themeModal" class="modal hidden">
   <div class="modal-box theme-box">
@@ -232,21 +293,21 @@
   </div>
 </div>
 
-<script src="data/ores.js?v=96"></script>
-<script src="data/fish.js?v=96"></script>
-<script src="data/locales.js?v=96"></script>
-<script src="data/meals.js?v=96"></script>
-<script src="data/canteen.js?v=96"></script>
-<script src="data/themes.js?v=96"></script>
-<script src="theme.js?v=96"></script>
-<script src="game.js?v=96"></script>
-<script src="roll.js?v=96"></script>
-<script src="app.js?v=96"></script>
-<script src="guide.js?v=96"></script>
-<script src="prep.js?v=96"></script>
-<script src="fishing.js?v=96"></script>
-<script src="quest.js?v=96"></script>
-<script src="ui.js?v=96"></script>
-<script src="savefile.js?v=96"></script>
+<script src="data/ores.js?v=97"></script>
+<script src="data/fish.js?v=97"></script>
+<script src="data/locales.js?v=97"></script>
+<script src="data/meals.js?v=97"></script>
+<script src="data/canteen.js?v=97"></script>
+<script src="data/themes.js?v=97"></script>
+<script src="theme.js?v=97"></script>
+<script src="game.js?v=97"></script>
+<script src="roll.js?v=97"></script>
+<script src="app.js?v=97"></script>
+<script src="guide.js?v=97"></script>
+<script src="prep.js?v=97"></script>
+<script src="fishing.js?v=97"></script>
+<script src="quest.js?v=97"></script>
+<script src="ui.js?v=97"></script>
+<script src="savefile.js?v=97"></script>
 </body>
 </html>
