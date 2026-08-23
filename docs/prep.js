@@ -83,23 +83,21 @@
 
     el('tackleCount').textContent = `${kinds} / ${G.TACKLE_SLOTS}`;
     el('tackleList').innerHTML = owned.length ? owned.map(b => {
-      const take = A.tackled(b.id), own = A.baitStock(b.id);
+      const take = A.tackled(b.id), cap = Math.min(A.baitStock(b.id), G.BAIT_CARRY);
       const full = kinds >= G.TACKLE_SLOTS && !take;
-      return `<li data-id="${b.id}">
+      return `<li data-id="${b.id}" class="${full ? 'nofit' : ''}">
         <img src="${b.icon}" alt="">
         <div><b>${b.name}</b><span class="role">${b.family === 'ore' ? 'variety' : 'species'}</span></div>
-        <span class="qty">${take} / ${Math.min(own, G.BAIT_CARRY)}</span>
-        <span class="stepper">
-          <button class="btn tiny" data-d="-1" ${take <= 0 ? 'disabled' : ''}>&minus;</button>
-          <button class="btn tiny" data-d="1" ${full || take >= Math.min(own, G.BAIT_CARRY) ? 'disabled' : ''}>+</button>
-        </span>
+        <span class="qty">${take} / ${cap}</span>
+        <button class="btn tiny" data-toggle="${b.id}" ${!take && (full || !cap) ? 'disabled' : ''}>
+          ${take ? 'Remove' : 'Add'}</button>
       </li>`;
     }).join('') : '<li class="empty">No bait yet. The shop sells it.</li>';
 
-    el('tackleList').querySelectorAll('button[data-d]').forEach(btn => {
+    el('tackleList').querySelectorAll('button[data-toggle]').forEach(btn => {
       btn.onclick = () => {
-        const id = btn.closest('li').dataset.id;
-        A.setTackle(id, A.tackled(id) + Number(btn.dataset.d));
+        const id = btn.dataset.toggle;
+        A.setTackle(id, A.tackled(id) ? 0 : Infinity);   // setTackle clamps to the most you can take
         A.save(); renderTackle(); renderDepart();
       };
     });
@@ -169,6 +167,11 @@
   }
 
   // ── Pouch ─────────────────────────────────────────────────────────────────
+  //
+  // Adding an item takes as many as you can carry, not one. A slot is claimed by
+  // the item TYPE, so there was never a reason to take fewer than the limit —
+  // clicking + ten times only ever cost the player time. You are not forced to
+  // drink them; the quest screen still uses one at a time.
   function renderPouch() {
     const S = A.state;
     const items = window.MF_FISH.prep.filter(p => p.buy && S.hr >= G.itemUnlockHR(p));
@@ -176,24 +179,22 @@
 
     el('pouchCount').textContent = `${used} / ${G.POUCH_SLOTS}`;
     el('pouchList').innerHTML = items.map(p => {
-      const own = A.itemStock(p.id), take = A.planned(p.id);
-      const cap = Math.min(own, G.carryLimit(p.id));
+      const take = A.planned(p.id);
+      const cap = Math.min(A.itemStock(p.id), G.carryLimit(p.id));
       const noSlot = used >= G.POUCH_SLOTS && !take;
       return `<li data-id="${p.id}" class="${noSlot ? 'nofit' : ''}">
         <img src="assets/ItemIcons/${p.icon}" alt="">
         <div><b>${p.name}</b><span class="role">${G.effectOf(p.id).label}</span></div>
         <span class="qty">${take} / ${cap}</span>
-        <span class="stepper">
-          <button class="btn tiny" data-d="-1" ${take <= 0 ? 'disabled' : ''}>&minus;</button>
-          <button class="btn tiny" data-d="1" ${noSlot || take >= cap ? 'disabled' : ''}>+</button>
-        </span>
+        <button class="btn tiny" data-toggle="${p.id}" ${!take && (noSlot || !cap) ? 'disabled' : ''}>
+          ${take ? 'Remove' : 'Add'}</button>
       </li>`;
     }).join('');
 
-    el('pouchList').querySelectorAll('button[data-d]').forEach(btn => {
+    el('pouchList').querySelectorAll('button[data-toggle]').forEach(btn => {
       btn.onclick = () => {
-        const id = btn.closest('li').dataset.id;
-        A.setPlan(id, A.planned(id) + Number(btn.dataset.d));
+        const id = btn.dataset.toggle;
+        A.setPlan(id, A.planned(id) ? 0 : Infinity);     // setPlan clamps to the most you can take
         A.save(); renderPouch(); renderDepart();
       };
     });
