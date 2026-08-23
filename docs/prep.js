@@ -24,7 +24,8 @@
   function renderLocales() {
     const S = A.state;
     const open = window.MF_LOCALES.filter(l => A.localeOpen(l.id));
-    const done = A.visitedAt(S.hr);
+    const done = A.everVisited();          // the mark is a record, not a rung
+    const thisRung = A.visitedAt(S.hr);     // ...but the count below still is
 
     const byRung = new Map();
     for (const l of open) {
@@ -37,7 +38,7 @@
     el('localeList').innerHTML = rungs.map(h => {
       const list = byRung.get(h);
       const isCurrent = h === S.hr;
-      const doneHere = list.filter(l => done[l.id]).length;
+      const doneHere = list.filter(l => thisRung[l.id]).length;
       const head = `<li class="rung ${isCurrent ? 'current' : ''}">
         <span>HR ${h}</span>
         <span class="rmeta">${isCurrent ? `${doneHere} / ${list.length} to reach ${nextLabel(S.hr)}` : ''}</span>

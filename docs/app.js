@@ -41,6 +41,13 @@
     for (const k of ['caught', 'pantry', 'pouch', 'owned', 'upgrades', 'plan', 'tackle', 'stats'])
       S[k] = { ...defaults()[k], ...(saved[k] || {}) };
     S.owned.no_bait = Infinity;
+    // Departing used to subtract from counts that were never there, which wrote
+    // NaN — and JSON turns NaN into null. Scrub anything that is not a real
+    // count so an already-damaged save comes back clean.
+    for (const bag of [S.pouch, S.owned, S.plan, S.tackle])
+      for (const [k, v] of Object.entries(bag))
+        if (v !== Infinity && !Number.isFinite(v)) delete bag[k];
+    S.owned.no_bait = Infinity;
     S.visited = saved.visited || {};
     syncHR();
   }
@@ -97,6 +104,15 @@
   });
 
   const visitedAt = hr => S.visited[hr] || {};
+  // Promotion counts the CURRENT rung only — that is what makes you climb. But
+  // the Completed mark is a record of what you have done, so it reads across
+  // every rung: a locale cleared at HR4 is still cleared when you reach HR7, and
+  // its mark should not vanish the moment you are promoted.
+  const everVisited = () => {
+    const all = {};
+    for (const seen of Object.values(S.visited)) Object.assign(all, seen);
+    return all;
+  };
   const visitedCount = hr => localesForHR(hr).filter(id => visitedAt(hr)[id]).length;
   const hrTotal = hr => localesForHR(hr).length;
   const hrComplete = hr => visitedCount(hr) >= hrTotal(hr);
@@ -239,7 +255,7 @@
     load, save, defaults, snapshot, loadFrom, SAVE_KEY,
     rank, meal, maxHP, maxStamina, xpNeeded, addXP, syncHR,
     localesForHR, visitedAt, visitedCount, hrTotal, hrComplete,
-    markVisited, checkPromotion,
+    markVisited, checkPromotion, everVisited,
     record, guideTotal, guideFound, recordIngredient, pantryCount,
     spend, earn, buyBait, buyItem, buyUpgrade, upgradeCost, canBuyBait, canBuyItem,
     baitStock, itemStock, planned, setPlan, slotsUsed, localeOpen,

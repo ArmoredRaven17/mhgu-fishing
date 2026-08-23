@@ -31,9 +31,14 @@
       bait: A.baitBy.get('no_bait'),
       maxHP: A.maxHP(), maxSta: A.maxStamina(),
       hp: A.maxHP(), sta: A.maxStamina(),
-      // Consumables are taken out of the pouch now; whatever is left over comes
-      // home again at the end, but anything used is gone.
-      carried: Object.fromEntries(window.MF_FISH.prep.map(p => [p.id, A.planned(p.id)])),
+      // What you set out with. Your STOCK is not touched until the trip actually
+      // ends — deducting at departure meant a reload mid-trip silently destroyed
+      // everything you were carrying, because the trip itself is not persisted.
+      // Nothing leaves the pouch until finish() or cartOut() says what you spent.
+      carried: Object.fromEntries(window.MF_FISH.prep
+        .map(p => [p.id, A.planned(p.id)]).filter(([, n]) => n > 0)),
+      packed: Object.fromEntries(window.MF_FISH.prep
+        .map(p => [p.id, A.planned(p.id)]).filter(([, n]) => n > 0)),
       // Supply items (buy 0) are not sold anywhere. Camp hands them out at Low
       // Rank only — see below.
       supplied: S.rank === G.SUPPLY_RANK,
@@ -46,8 +51,7 @@
       notes: [],          // things to tack onto the cast message once it is written
       busy: false,
     };
-    for (const [id, n] of Object.entries(trip.carried)) S.pouch[id] -= n;
-    for (const [id, n] of Object.entries(trip.tackle)) S.owned[id] -= n;
+    trip.packedTackle = { ...trip.tackle };
     if (S.rank === G.SUPPLY_RANK)
       for (const p of window.MF_FISH.prep)
         if (!p.buy) trip.carried[p.id] = (trip.carried[p.id] || 0) + G.SUPPLY_EACH;
@@ -337,7 +341,16 @@
   // A cart takes the haul, not the collection. Guide entries and pantry finds are
   // already banked the moment they happen, same as before — what you learned on
   // the trip stays learned; what you were carrying does not.
+  // A cart costs you everything you set out with, used or not — that is the
+  // price, and it is the same price it has always been. It is charged here
+  // rather than at departure so that a reload mid-trip costs nothing.
   function cartOut(boss) {
+    for (const [id, n] of Object.entries(trip.packed)) {
+      const item = window.MF_FISH.prep.find(p => p.id === id);
+      if (item && item.buy) A.state.pouch[id] = Math.max(0, (A.state.pouch[id] || 0) - n);
+    }
+    for (const [id, n] of Object.entries(trip.packedTackle || {}))
+      A.state.owned[id] = Math.max(0, (A.state.owned[id] || 0) - n);
     A.state.stats.carts++;
     const lost = trip.value;
     const n = trip.haul.length;
@@ -354,6 +367,22 @@
     });
   }
 
+  // Packed minus what came back = what you used. Supply items are excluded
+  // because they were handed out at camp and were never in your stock.
+  function spendCarried() {
+    const S = A.state;
+    for (const [id, packed] of Object.entries(trip.packed)) {
+      const item = window.MF_FISH.prep.find(p => p.id === id);
+      if (!item || !item.buy) continue;
+      const used = Math.max(0, packed - (trip.carried[id] || 0));
+      if (used) S.pouch[id] = Math.max(0, (S.pouch[id] || 0) - used);
+    }
+    for (const [id, packed] of Object.entries(trip.packedTackle || {})) {
+      const used = Math.max(0, packed - (trip.tackle[id] || 0));
+      if (used) S.owned[id] = Math.max(0, (S.owned[id] || 0) - used);
+    }
+  }
+
   function finish(why) {
     const S = A.state;
     const found = trip.found;
@@ -368,14 +397,10 @@
       .concat(found.map(f => [f.name, 'ingredient']));
     const gained = trip.value;
     A.earn(gained);
-    // Unused consumables come home — except supply items, which were never yours.
-    for (const [id, n] of Object.entries(trip.carried)) {
-      if (n <= 0) continue;
-      const item = window.MF_FISH.prep.find(p => p.id === id);
-      if (item && item.buy) S.pouch[id] += n;
-    }
-    for (const [id, n] of Object.entries(trip.tackle)) if (n > 0) S.owned[id] = (S.owned[id] || 0) + n;
-    for (const id of Object.keys(trip.carried)) A.setPlan(id, A.planned(id));
+    // Only what you actually SPENT leaves your stock; the rest never left it.
+    // Supply items are not yours to keep, so they are simply not counted.
+    spendCarried();
+    for (const id of Object.keys(trip.packed)) A.setPlan(id, A.planned(id));
     const n = trip.haul.length;
     trip = null;
     const promoted = completed ? A.checkPromotion() : null;
