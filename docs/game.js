@@ -494,17 +494,74 @@
 
   const INGREDIENT_CHANCE = 0.06;
 
+  // ── Fresh ingredients ─────────────────────────────────────────────────────
+  //
+  // The canteen hands out a lot of meals that differ only in name, because the
+  // real game separates them with effects this app does not model. Freshness is
+  // what pulls them apart: a meal cooked from a fresh ingredient carries a small
+  // bonus set by what KIND of ingredient it is, so two meals with the same HP and
+  // Stamina stop being interchangeable.
+  //
+  // A meal uses two ingredients, so bonuses stack — and two fresh Meats really do
+  // stack twice, which is the point of chasing them.
+  const FRESH_CHANCE = 0.25;
+  const FRESH = {
+    Meat:       { hp: 8 },        // even a stamina-only dish comes with HP on it
+    Vegetables: { stamina: 8 },
+    Fish:       { zenny: 0.06 },  // a fraction of every catch's value
+    Alcohol:    { guard: 0.10 },  // a fraction off what monsters take from you
+  };
+  const FRESH_LABEL = {
+    hp: n => `+${n} HP`,
+    stamina: n => `+${n} Stamina`,
+    zenny: n => `+${Math.round(n * 100)}% zenny per catch`,
+    guard: n => `-${Math.round(n * 100)}% monster damage`,
+  };
+
   const ingredientById = new Map(CANTEEN.ingredients.map(i => [i.id, i]));
 
+  // Held as `true` when found and `'fresh'` when found fresh. Both are truthy, so
+  // every recipe check still reads the same and saves from before freshness load
+  // unchanged — they simply have no fresh ingredients yet.
+  const isFresh = (held, id) => held[id] === 'fresh';
+
+  // Anything you have not found, plus anything you have found but not FRESH.
+  // A find is therefore always worth something: a new ingredient early on, and a
+  // freshness upgrade once the pantry fills up.
   const ingredientPool = (hr, held) => CANTEEN.ingredients
-    .filter(i => hr >= RANK_HR[i.rank] && !held[i.id]);
+    .filter(i => hr >= RANK_HR[i.rank] && !isFresh(held, i.id));
 
   function rollIngredient(hr, held, rng = Math.random) {
     if (rng() >= INGREDIENT_CHANCE) return null;
     const pool = ingredientPool(hr, held);
     if (!pool.length) return null;
-    return pool[Math.floor(rng() * pool.length)];
+    const found = pool[Math.floor(rng() * pool.length)];
+    // Already in the pantry? Then the only reason it came up is to be upgraded.
+    const fresh = held[found.id] ? true : rng() < FRESH_CHANCE;
+    return { ...found, fresh, upgrade: !!held[found.id] };
   }
+
+  // What a meal's fresh ingredients are worth. Baseline meals have no recipe and
+  // so no ingredients — nothing to be fresh, which is its own reason to graduate
+  // onto cooked food.
+  function freshBonus(meal, held) {
+    const out = { hp: 0, stamina: 0, zenny: 0, guard: 0 };
+    if (!meal || meal.id === 'none') return out;
+    const r = recipeFor.get(meal.name);
+    if (!r) return out;
+    for (const id of [r.a, r.b]) {
+      if (!isFresh(held, id)) continue;
+      const ing = ingredientById.get(id);
+      const gain = ing && FRESH[ing.group];
+      if (gain) for (const [k, v] of Object.entries(gain)) out[k] += v;
+    }
+    return out;
+  }
+
+  // The same thing said in words, for the camp screen.
+  const freshLines = bonus => Object.entries(bonus)
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => FRESH_LABEL[k](v));
 
   // ── Which meals you can order ─────────────────────────────────────────────
   //
@@ -684,6 +741,7 @@
     MEALS, mealCost, MEAL_SCALE, UPGRADES, ITEM_PRICE, priceOf,
     CANTEEN, INGREDIENT_CHANCE, ingredientById, ingredientPool, rollIngredient,
     recipeFor, mealAvailable, mealsAvailable,
+    FRESH, FRESH_CHANCE, FRESH_LABEL, isFresh, freshBonus, freshLines,
     POND, REEL_START, fightFor, BOSS, PEST, HIRE, ENCOUNTER_CHANCE, STOCK_CAP,
     BOSS_LOSS, bossLossDamage,
   };

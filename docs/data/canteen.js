@@ -438,7 +438,7 @@ window.MF_CANTEEN = {
   },
   {
    "a": "loc_lac_peanut",
-   "b": "cather_flying_fish",
+   "b": "cathar_flying_fish",
    "dish": "Fried Flying Fish",
    "effect": "Water Res (M)"
   },

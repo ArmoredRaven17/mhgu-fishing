@@ -30,6 +30,9 @@
       tackle: Object.fromEntries(A.tackleKinds().map(id => [id, A.tackled(id)])),
       bait: A.baitBy.get('no_bait'),
       maxHP: A.maxHP(), maxSta: A.maxStamina(),
+      // Locked in with the meal. A fresh Fish pays out on every catch and a fresh
+      // Alcohol takes the edge off what monsters do to you.
+      fresh: A.fresh(),
       hp: A.maxHP(), sta: A.maxStamina(),
       // What you set out with. Your STOCK is not touched until the trip actually
       // ends — deducting at departure meant a reload mid-trip silently destroyed
@@ -67,6 +70,10 @@
     if (!trip) return;
     el('hpFill').style.width = Math.max(0, 100 * trip.hp / trip.maxHP) + '%';
     el('staFill').style.width = Math.max(0, 100 * trip.sta / trip.maxSta) + '%';
+    // The bar the climate is eating pulses while nothing is holding it off.
+    const exposed = trip.climate !== 'temperate' && trip.drinkLeft <= 0;
+    el('staFill').classList.toggle('chill', exposed && trip.climate === 'cold');
+    el('hpFill').classList.toggle('scorch', exposed && trip.climate === 'hot');
     el('hpText').textContent = `${Math.max(0, Math.ceil(trip.hp))} / ${trip.maxHP}`;
     el('staText').textContent = `${Math.max(0, Math.ceil(trip.sta))} / ${trip.maxSta}`;
     el('questLocale').textContent = trip.loc.name;
@@ -84,7 +91,8 @@
     el('haulList').innerHTML = trip.haul.map(c =>
       `<li>${c.icon}<span>${c.name}</span><span class="v">${z(c.value)}</span></li>`
     ).join('') + trip.found.map(f =>
-      `<li class="ingr"><span class="dot"></span><span>${f.name}</span><span class="v">pantry</span></li>`
+      `<li class="ingr ${f.fresh ? 'fresh' : ''}"><span class="dot"></span>` +
+      `<span>${f.name}</span><span class="v">${f.fresh ? 'fresh' : 'pantry'}</span></li>`
     ).join('');
 
     el('castBtn').disabled = trip.busy || trip.sta <= 0 || trip.hp <= 0;
@@ -180,7 +188,8 @@
       // Losing costs HP, scaled by the rung this locale sits on. It only ends the
       // trip if it empties the bar — and then it is a cart like any other.
       if (!res.landed) {
-        const hurt = G.bossLossDamage(G.openedAtHR(trip.localeId, S.hr));
+        const hurt = Math.max(1, Math.round(
+          G.bossLossDamage(G.openedAtHR(trip.localeId, S.hr)) * (1 - trip.fresh.guard)));
         trip.hp -= hurt;
         el('castPrompt').textContent =
           `${boss.name} throws you off and is gone — ${hurt} HP.`;
@@ -210,6 +219,7 @@
     // makes HP worth carrying potions for away from the two hot locales.
     const pest = R.rollPest(trip.localeId, S.hr, trip.hired);
     if (pest) {
+      pest.damage = Math.max(1, Math.round(pest.damage * (1 - trip.fresh.guard)));
       trip.hp -= pest.damage;
       S.stats.pests = (S.stats.pests || 0) + 1;
       trip.notes.push(`A ${pest.name} goes for you — ${pest.damage} HP.`);
@@ -218,8 +228,9 @@
     if (res.landed) {
       S.stats.landed++;
       const isNew = A.record(c.id);
-      trip.haul.push({ name: c.name, value: c.value, icon: window.MF_GUIDE.fishImg(c.ore, 22, c.name) });
-      trip.value += c.value;
+      const paid = Math.round(c.value * (1 + trip.fresh.zenny));
+      trip.haul.push({ name: c.name, value: paid, icon: window.MF_GUIDE.fishImg(c.ore, 22, c.name) });
+      trip.value += paid;
       A.addXP(c.xp);
       el('castPrompt').textContent = isNew
         ? `${c.name} — new to the guide.`
@@ -228,9 +239,14 @@
       // Something else comes up with it now and then. Drawn from what you have
       // not found yet at or below your rank, so nothing gets stranded behind you.
       const found = G.rollIngredient(S.hr, S.pantry);
-      if (found && A.recordIngredient(found.id)) {
-        trip.found.push(found);
-        el('castPrompt').textContent += ` Something came up with it — ${found.name}.`;
+      const got = found && A.recordIngredient(found.id, found.fresh);
+      if (got) {
+        trip.found.push({ ...found, got });
+        el('castPrompt').textContent += got === 'fresh'
+          ? ` And a fresh ${found.name} with it.`
+          : got === 'new-fresh'
+            ? ` Something came up with it — ${found.name}, and a fresh one.`
+            : ` Something came up with it — ${found.name}.`;
       }
     } else {
       S.stats.lost++;

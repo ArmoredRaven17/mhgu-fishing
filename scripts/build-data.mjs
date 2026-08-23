@@ -271,15 +271,51 @@ function parseCanteen() {
   }
 
   const gone = new Set(dropped.map(d => d.name));
+  const known = new Set(ingredients.map(i => i.id));
+
+  // The recipe table and the ingredient table are typed out separately on the
+  // wiki, so a name can be spelled one way in one and another way in the other.
+  // "Cather Flying Fish" appears once against "Cathar Flying Fish" twice, and
+  // slugging both literally left a recipe pointing at an ingredient that does not
+  // exist — which silently made that dish impossible to ever cook. Resolve by
+  // slug, and where that misses, fall back to the closest ingredient by edit
+  // distance so a one-character typo repairs itself.
+  const dist = (a, b) => {
+    const m = a.length, n = b.length;
+    let prev = Array.from({ length: n + 1 }, (_, j) => j);
+    for (let i = 1; i <= m; i++) {
+      const cur = [i];
+      for (let j = 1; j <= n; j++)
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = cur;
+    }
+    return prev[n];
+  };
+  const repaired = [];
+  const resolve = (name, dish) => {
+    const id = slug(name);
+    if (known.has(id)) return id;
+    let best = null, bestD = Infinity;
+    for (const k of known) { const d = dist(id, k); if (d < bestD) { bestD = d; best = k; } }
+    if (best && bestD <= 2) { repaired.push(`${dish}: "${name}" -> ${best}`); return best; }
+    return id;                       // leave it; the check below will shout
+  };
+
   const recipes = [];
   const lostRecipes = [];
   for (const r of parseTable(tables[2])) {
     if (r.length < 4 || r[0] === 'Ingredient 1') continue;
     const [a, b, dish, effect] = r;
     if (gone.has(a) || gone.has(b)) { lostRecipes.push(dish); continue; }
-    recipes.push({ a: slug(a), b: slug(b), dish, effect });
+    recipes.push({ a: resolve(a, dish), b: resolve(b, dish), dish, effect });
   }
-  return { ingredients, recipes, dropped, lostRecipes };
+  // A recipe pointing at nothing is a dish no player can ever cook, so it is a
+  // build error rather than a curiosity.
+  for (const r of recipes)
+    for (const side of ['a', 'b'])
+      if (!known.has(r[side])) warn(`recipe "${r.dish}" wants unknown ingredient "${r[side]}"`);
+
+  return { ingredients, recipes, dropped, lostRecipes, repaired };
 }
 
 // ── Hub quest gating ────────────────────────────────────────────────────────
@@ -603,6 +639,7 @@ if (canteen) {
     `(Low ${byRank.Low || 0} / High ${byRank.High || 0} / G ${byRank.G || 0})`);
   console.log(`  dropped         ${canteen.dropped.length}: ${canteen.dropped.map(d => d.name).join(', ')}`);
   console.log(`recipes           ${canteen.recipes.length} kept, ${canteen.lostRecipes.length} lost with them`);
+  for (const r of canteen.repaired) console.log(`  name repaired   ${r}`);
   const baseline = meals.filter(m => m.baseline);
   console.log(`baseline meals    ${baseline.length}: ` +
     baseline.map(m => `${m.name} (${m.rank})`).join(', '));

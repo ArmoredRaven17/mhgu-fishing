@@ -84,13 +84,14 @@
     wrap.innerHTML = GROUP_ORDER.filter(g => byGroup.has(g)).map(g => {
       const list = byGroup.get(g);
       const have = list.filter(i => held[i.id]).length;
+      const fresh = list.filter(i => G.isFresh(held, i.id)).length;
       return `<section class="panel">
         <h3 class="panel-head">${g}
-          <span class="cnt">${have} / ${list.length}</span></h3>
+          <span class="cnt">${fresh ? `${fresh} fresh &middot; ` : ''}${have} / ${list.length}</span></h3>
         <div class="panel-body"><ul class="ingr-list">${
-          list.map(i => `<li class="${held[i.id] ? 'have' : ''}">
+          list.map(i => `<li class="${held[i.id] ? 'have' : ''} ${G.isFresh(held, i.id) ? 'fresh' : ''}">
             <span class="dot"></span>
-            <span class="nm">${i.name}</span>
+            <span class="nm">${i.name}${G.isFresh(held, i.id) ? ' <span class="fresh-tag">Fresh</span>' : ''}</span>
             <span class="rk">${RANK_LABEL[i.rank] || i.rank}</span>
           </li>`).join('')
         }</ul></div>

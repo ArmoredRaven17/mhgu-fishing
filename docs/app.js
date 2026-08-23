@@ -84,9 +84,9 @@
   // ── Derived ───────────────────────────────────────────────────────────────
   const rank = () => G.rankAt(S.hr);
   const maxHP = mealId =>
-    G.BASE_MAX_HP + meal(mealId).hp + S.upgrades.vitality * 5;
+    G.BASE_MAX_HP + meal(mealId).hp + fresh(mealId).hp + S.upgrades.vitality * 5;
   const maxStamina = mealId =>
-    G.BASE_MAX_STAMINA + meal(mealId).stamina + S.upgrades.endurance * 8;
+    G.BASE_MAX_STAMINA + meal(mealId).stamina + fresh(mealId).stamina + S.upgrades.endurance * 8;
   const meal = id => G.MEALS.find(m => m.id === (id ?? S.mealId)) || G.MEALS[0];
 
   const xpNeeded = () => G.hrThreshold(S.hr);
@@ -156,12 +156,21 @@
     return gained;
   }
 
-  function recordIngredient(id) {
-    if (S.pantry[id]) return false;
-    S.pantry[id] = true;
-    return true;
+  // Returns what actually happened, so the trip can say the right thing: a new
+  // ingredient, the same one now found fresh, or nothing worth mentioning.
+  function recordIngredient(id, fresh) {
+    const had = S.pantry[id];
+    if (had === 'fresh') return null;
+    S.pantry[id] = fresh ? 'fresh' : true;
+    if (!had) return fresh ? 'new-fresh' : 'new';
+    return fresh ? 'fresh' : null;
   }
   const pantryCount = () => Object.keys(S.pantry).length;
+  const freshCount = () => Object.values(S.pantry).filter(v => v === 'fresh').length;
+
+  // A fresh Meat puts HP on the meal and a fresh Vegetable puts Stamina on it, so
+  // the two gauges have to read the bonus, not just the meal's own numbers.
+  const fresh = mealId => G.freshBonus(meal(mealId), S.pantry);
 
   function record(variantId) {
     S.caught[variantId] = (S.caught[variantId] || 0) + 1;
@@ -256,7 +265,7 @@
     rank, meal, maxHP, maxStamina, xpNeeded, addXP, syncHR,
     localesForHR, visitedAt, visitedCount, hrTotal, hrComplete,
     markVisited, checkPromotion, everVisited,
-    record, guideTotal, guideFound, recordIngredient, pantryCount,
+    record, guideTotal, guideFound, recordIngredient, pantryCount, freshCount, fresh,
     spend, earn, buyBait, buyItem, buyUpgrade, upgradeCost, canBuyBait, canBuyItem,
     baitStock, itemStock, planned, setPlan, slotsUsed, localeOpen,
     tackled, tackleKinds, setTackle,
