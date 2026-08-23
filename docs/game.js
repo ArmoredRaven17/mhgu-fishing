@@ -30,7 +30,7 @@
   // XP does nothing until G Rank+, which is the only band where HR climbs.
   const RANKS = [
     { id: 'Low',   name: 'Low Rank',  baseHR: 1,  oreRank: 0, next: 'High' },
-    { id: 'High',  name: 'High Rank', baseHR: 5,  oreRank: 1, next: 'G' },
+    { id: 'High',  name: 'High Rank', baseHR: 4,  oreRank: 1, next: 'G' },
     { id: 'G',     name: 'G Rank',    baseHR: 9,  oreRank: 2, next: 'Gplus' },
     { id: 'Gplus', name: 'G Rank+',   baseHR: 13, oreRank: 2, plus: true },
   ];
@@ -39,8 +39,8 @@
 
   // The HR each table rank opens at. Everything that unlocks does so on one of
   // these three, so a bait, a fish and an ore all speak the same language.
-  const RANK_HR = { Low: 1, High: 5, G: 9 };
-  const ORE_RANK_HR = [1, 5, 9];            // by ores.js rank 0/1/2
+  const RANK_HR = { Low: 1, High: 4, G: 9 };
+  const ORE_RANK_HR = [1, 4, 9];            // by ores.js rank 0/1/2
 
   // Fish and varieties take their unlock from the data — the rank a fish first
   // swims at, and an ore's own rank. Provisions are hand-set item by item in
@@ -66,11 +66,13 @@
 
   // Still keyed off HR because every unlock in the app is, and HR is now derived
   // from the rank rather than the other way round.
+  // Read off RANKS rather than repeating its numbers. The thresholds used to be
+  // written out again here, so moving a rank's baseHR silently did nothing and
+  // the two disagreed — which is how HR4 ended up labelled Low Rank while the
+  // table said High.
+  const RANK_DESC = [...RANKS].sort((a, b) => b.baseHR - a.baseHR);
   function rankAt(hr) {
-    if (hr >= 13) return RANK_BY_ID.get('Gplus');
-    if (hr >= 9) return RANK_BY_ID.get('G');
-    if (hr >= 5) return RANK_BY_ID.get('High');
-    return RANK_BY_ID.get('Low');
+    return RANK_DESC.find(r => hr >= r.baseHR) || RANKS[0];
   }
 
   // The HR a rank sits at. Only G Rank+ moves, and only on XP.
@@ -246,15 +248,17 @@
   // Hand-set, because "which locales open at HR6" is a pacing decision that no
   // data can answer. HR8 is deliberately empty and is passed straight through.
   const LADDER = {
-    // Low Rank
+    // Low Rank — three rungs, and the last takes the remaining three locales.
     1:  ['jurassic_frontier', 'verdant_hills'],
     2:  ['marshlands', 'arctic_ridge'],
-    3:  ['dunes', 'deserted_island'],
-    4:  ['misty_peaks'],
-    // High Rank — the Low seven return at High tables, plus four new
-    5:  ['jurassic_frontier', 'marshlands', 'ancestral_steppe', 'primal_forest'],
-    6:  ['verdant_hills', 'arctic_ridge', 'frozen_seaway', 'deserted_island'],
-    7:  ['dunes', 'misty_peaks', 'volcanic_hollow'],
+    3:  ['dunes', 'deserted_island', 'misty_peaks'],
+    // High Rank opens at HR4 — the Low seven return at High tables, plus four new
+    4:  ['jurassic_frontier', 'marshlands', 'ancestral_steppe', 'primal_forest'],
+    5:  ['verdant_hills', 'arctic_ridge', 'frozen_seaway', 'deserted_island'],
+    6:  ['dunes', 'misty_peaks', 'volcanic_hollow'],
+    // Two empty rungs close out High. checkPromotion steps straight over them, so
+    // clearing HR6 lands you on HR9 and G Rank.
+    7:  [],
     8:  [],
     // G Rank — all eleven return at G tables, plus three new
     9:  ['jurassic_frontier', 'marshlands', 'ancestral_steppe', 'primal_forest'],
@@ -265,7 +269,7 @@
 
   // Which HRs belong to the same rank, so a rank's rungs accumulate but do not
   // spill across a promotion.
-  const BAND = [[1, 4], [5, 8], [9, 12]];
+  const BAND = [[1, 3], [4, 8], [9, 12]];
   const bandOf = hr => BAND.find(([a, b]) => hr >= a && hr <= b);
 
   const localesAtHR = hr => LADDER[hr] || [];

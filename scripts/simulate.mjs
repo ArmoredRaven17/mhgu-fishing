@@ -42,7 +42,9 @@ console.log(`baits ${baits.length}: ` +
 
 // ── Rank widening ───────────────────────────────────────────────────────────
 line('What each rank opens up');
-for (const hr of [1, 5, 9, 13]) {
+// The LAST rung of each rank, so the figures show what a rank fully opens rather
+// than what its first rung happens to have.
+for (const hr of [3, 6, 12, 13]) {
   const rank = G.rankAt(hr);
   const ores = G.oresAt(hr);
   const fish = new Set();
@@ -162,7 +164,7 @@ function runTrip(localeId, lo, hr) {
   // out made the sim measure a harsher game than the one that ships: 3 free
   // First-aid Med is 60 HP, which is most of a Volcano trip's heat damage.
   // Only Low Rank is handed a supply box, so above HR4 there is none.
-  const supplied = hr < 5;
+  const supplied = G.rankAt(hr).id === G.SUPPLY_RANK;   // not a hardcoded HR
   let supplyHeals = supplied ? SUPPLY_EACH : 0;
   let supplyRations = supplied ? SUPPLY_EACH : 0;
   let drinks = climate === 'hot' ? lo.coolDrinks : climate === 'cold' ? lo.hotDrinks : 0;
