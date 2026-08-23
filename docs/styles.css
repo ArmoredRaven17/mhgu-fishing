@@ -1,0 +1,513 @@
+/* styles.css — MHGU Fishing
+ *
+ * Visual language is the MHGU family's: the same CSS variable names the Quest
+ * Randomizer and Charm Farm use, the same texture plates layered under a
+ * color-mix tint, and the same button/panel vocabulary. Every colour comes from
+ * the theme at runtime (see theme.js) — nothing is hardcoded except the status
+ * colours, which have to stay readable against every swatch in the palette.
+ */
+
+/* MHFU game font (falls back to sans-serif for glyphs it lacks) */
+@font-face{
+  font-family:'MHFU';
+  src:url('fonts/mhfu_font.ttf') format('truetype');
+  font-display:swap;
+}
+
+/* Theme variables are set at runtime from the chosen colour (see theme.js). */
+:root{
+  --bg:#3e3e3e; --bg1:#000000; --bg2:#333; --hover:#2f2f2f; --accent:#7a7a7a; --accent-hover:#9a9a9a;
+  --text:#f3f3f3; --text-dim:#ffffff; --line:#ffffff1f; --card:#ffffff0d;
+  --titlebar-overlay:rgba(0,0,0,0.18);
+  /* Fixed status colours — these read against every swatch, so they deliberately
+     do not follow the theme. --gold is now only the catch gauge needle; money figures
+     use --money, which theme.js derives from the chosen colour. */
+  --hp:#d64a4a; --sta:#6fc98a;
+  --gauge-hp:#5bb85f; --gauge-sta:#e3c545; --gold:#e3c545; --danger:#e0603c;
+  --money:#e3c545;
+}
+
+*{box-sizing:border-box;scrollbar-color:var(--accent) var(--bg2);scrollbar-width:thin}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent-hover)}
+input,select,button,textarea{font-family:inherit}
+
+html,body{margin:0;height:100%;overflow:hidden}
+body{
+  font-family:'MHFU',"Segoe UI",system-ui,sans-serif;
+  background:var(--bg); color:var(--text); font-size:14px;
+  user-select:none; -webkit-user-select:none;
+}
+#app{display:flex;flex-direction:column;height:100vh}
+.hidden{display:none !important}
+
+/* ── Title bar ─────────────────────────────────────────────────────────── */
+.titlebar{display:flex;align-items:center;gap:10px;padding:8px 14px;flex-wrap:wrap}
+.titlebar-header{
+  background-image:
+    linear-gradient(color-mix(in srgb,var(--accent) 90%,transparent),color-mix(in srgb,var(--accent) 90%,transparent)),
+    url('assets/titlebar-background.png');
+  background-size:auto 100%;
+  background-position:left center;
+  background-repeat:repeat;
+}
+.title-icon{width:32px;height:32px;object-fit:contain}
+.titlebar h1{font-size:15px;font-weight:600;margin:0}
+.icon-btn{
+  background:transparent;border:none;color:var(--text);font-size:18px;
+  cursor:pointer;padding:6px 9px;border-radius:6px;line-height:1;
+}
+.icon-btn:hover{background:#ffffff1a}
+
+.stats{display:flex;gap:14px;align-items:center;margin-left:auto;font-size:13px}
+.stat{display:flex;align-items:baseline;gap:4px}
+.stat b{font-size:15px;font-weight:700}
+.stat i{font-style:normal;opacity:.75;font-size:11px}
+.stat.zenny b{color:var(--money)}
+.xpbar{display:inline-block;width:90px;height:6px;background:var(--bg1);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.xpbar i{display:block;height:100%;background:var(--accent-hover);width:0}
+
+/* Tabs get the rough stone rather than the banner strip — the banner is the
+   buttons' surface, and the tabbar sitting on it made the two read as one piece
+   of chrome. Irregular grain, so it also stays clear of the titlebar's regular
+   brick above it. Tiled at native size and held under a heavier wash, because
+   this is the darkest texture in the set and the tab labels sit on top of it. */
+.tabbar{
+  display:flex;gap:4px;padding:6px 14px;
+  background-image:
+    linear-gradient(color-mix(in srgb,var(--bg2) 88%,transparent),color-mix(in srgb,var(--bg2) 88%,transparent)),
+    url('assets/rockyTextureDark2.png');
+  background-size:auto,auto;background-position:left center;background-repeat:repeat;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+.tab{
+  background:transparent;border:1px solid transparent;color:var(--text);
+  opacity:.7;padding:5px 14px;border-radius:7px;cursor:pointer;font-size:14px;
+}
+.tab:hover:not(:disabled){opacity:1;background:#ffffff14}
+.tab.active{opacity:1;background:var(--bg1);border-color:var(--line);font-weight:600}
+.tab:disabled{opacity:.3;cursor:not-allowed}
+
+/* ── Content ───────────────────────────────────────────────────────────── */
+.content{
+  flex:1;min-height:0;overflow-y:auto;padding:16px;
+  background-color:var(--bg1);
+}
+.inner{max-width:1400px;margin:0 auto}
+.screen{display:none}
+.screen.active{display:block}
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+.btn{
+  background:#ffffff14;color:var(--text);border:1px solid var(--line);
+  border-radius:7px;padding:8px 14px;cursor:pointer;font-size:14px;
+}
+.btn:hover:not(:disabled){background:#ffffff24}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.block{width:100%}
+.btn.tiny{padding:3px 10px;font-size:12px}
+.btn.block,.btn.tiny{
+  background-image:
+    linear-gradient(color-mix(in srgb,var(--bg2) 80%,transparent),color-mix(in srgb,var(--bg2) 80%,transparent)),
+    url('assets/banner-background.png');
+  background-position:right;
+}
+/* --text flips to black on the near-white swatch, which would vanish against
+   --bg1 (always dark) — hardcode white, exactly as the Randomizer does. */
+.btn.accent{background:var(--bg1);border-color:#000;color:#fff;font-weight:600;
+  text-shadow:-1px 0 rgba(0,0,0,.55),1px 0 rgba(0,0,0,.55),0 -1px rgba(0,0,0,.55),0 1px rgba(0,0,0,.55)}
+.btn.accent:hover:not(:disabled){background:var(--bg2)}
+.btn.accent:disabled{opacity:.8;cursor:not-allowed}
+.btn.secondary{background:var(--bg1);border:1px solid var(--line);color:#fff}
+.btn.secondary:hover:not(:disabled){background:var(--hover)}
+.btn.big{font-size:16px;padding:12px 30px}
+
+/* Save bar: the file controls sit with the title, the way the other apps do. */
+/* The four file controls wrap as ONE block, so a narrow window never strands
+   Open on a line of its own away from the rest. */
+.filebar{display:flex;gap:6px;align-items:center}
+.dirty-dot{color:var(--money);font-size:10px;vertical-align:middle}
+.titlebar .btn.tiny{white-space:nowrap}
+
+/* A quiet line that says what just happened and gets out of the way. */
+.toast{
+  position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  background:var(--bg1);color:var(--text);
+  border:1px solid var(--line);border-radius:8px;padding:9px 16px;font-size:13px;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+}
+
+/* ── Panels ────────────────────────────────────────────────────────────── */
+.panel{border:1px solid var(--line);border-radius:8px;overflow:clip;background:var(--bg2)}
+/* Panel heads take the stone plate, NOT the banner strip the tabbar wears — two
+   different pieces of chrome should not read as the same one. Left at its native
+   size rather than stretched to the head's height, so it stays a broad mottle
+   instead of tiling into a visible pattern. */
+.panel-head{
+  padding:8px 16px;font-size:21px;font-weight:600;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  background-image:
+    linear-gradient(color-mix(in srgb,var(--bg2) 82%,transparent),color-mix(in srgb,var(--bg2) 82%,transparent)),
+    url('assets/sidebar-background-texture1.png');
+  background-size:auto,auto;background-position:left center;background-repeat:repeat;
+}
+.panel-head .sub{font-size:12px;font-weight:400;opacity:.85}
+.panel-body{
+  padding:10px 12px 12px;
+  background-image:
+    linear-gradient(color-mix(in srgb,var(--bg1) 60%,transparent),color-mix(in srgb,var(--bg1) 60%,transparent)),
+    url('assets/panel-body-bg.png');
+  background-size:contain 100%;background-position:left center;background-repeat:repeat;
+}
+.hint{color:var(--text-dim);opacity:.75;font-size:12px;margin:4px 0 10px}
+
+/* ── Camp ──────────────────────────────────────────────────────────────── */
+.camp-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:900px){.camp-grid{grid-template-columns:minmax(0,1fr)}}
+
+.locale-list{list-style:none;margin:0;padding:0;display:grid;gap:5px;max-height:58vh;overflow-y:auto;padding-right:4px}
+.locale-list li{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;
+  padding:7px 10px;border:1px solid var(--line);border-radius:7px;
+  background:var(--card);cursor:pointer;
+}
+.linfo{min-width:0}
+.ltags{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.locale-list li:hover{border-color:var(--accent-hover)}
+.locale-list li.sel{border-color:var(--accent-hover);background:var(--hover)}
+.locale-list li.locked{opacity:.4;cursor:not-allowed}
+.locale-list li.rung{
+  display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  background:transparent;border:none;padding:8px 2px 3px;cursor:default;
+  font-size:11px;text-transform:uppercase;letter-spacing:.8px;opacity:.6;
+}
+.locale-list li.rung:first-child{padding-top:0}
+.locale-list li.rung.current{opacity:1;color:var(--accent-hover)}
+.locale-list li.rung .rmeta{text-transform:none;letter-spacing:0;font-size:11px;opacity:.85}
+.locale-list li.done .lname{opacity:.75}
+.tag.done{color:var(--sta);border-color:var(--line)}
+.lname{font-weight:600}
+.lmeta{font-size:11px;opacity:.75;display:block;margin-top:1px}
+.tag{font-size:10px;padding:1px 6px;border-radius:4px;border:1px solid var(--line);white-space:nowrap;background:#0000004d}
+/* Cold, Hot and Danger were three fixed hexes that took no notice of the theme —
+   the same problem the quest summary had. All three now read in --money, so they
+   match the summary lines they are warning about and stay legible on every
+   swatch, including the light one where --money flips to dark ink. */
+.tag.hot,.tag.cold,.tag.boss{color:var(--money);font-weight:600}
+
+.field{display:flex;flex-direction:column;gap:4px;font-size:12px;margin-bottom:10px}
+.field>span{text-transform:uppercase;letter-spacing:.5px;opacity:.75}
+select{
+  background:var(--bg2);color:var(--text);border:1px solid var(--line);
+  border-radius:7px;padding:8px 10px;font-size:14px;line-height:1.4;width:100%;
+}
+.desc{font-size:12px;opacity:.8;margin:0 0 12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.desc img{width:22px;height:22px;object-fit:contain;image-rendering:pixelated}
+
+.pouch{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.pouch li{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;align-items:center;gap:8px;
+  padding:5px 8px;background:var(--card);border:1px solid var(--line);border-radius:6px;font-size:13px}
+.pouch li.nofit{opacity:.45}
+.pouch li.empty{display:block;opacity:.6;font-size:12px;padding:7px}
+.slotrow{flex-direction:row;align-items:baseline;justify-content:space-between;margin-bottom:5px}
+.slots{font-size:12px;font-variant-numeric:tabular-nums;opacity:.85}
+.pouch img{width:24px;height:24px;object-fit:contain;image-rendering:pixelated}
+.pouch .role{font-size:10px;opacity:.7;text-transform:uppercase;letter-spacing:.4px;display:block}
+.pouch .qty{font-variant-numeric:tabular-nums;min-width:44px;text-align:right;opacity:.9}
+.pouch .stepper{display:flex;gap:3px}
+.pouch .stepper .btn{padding:1px 8px;font-size:14px;line-height:1.3}
+
+.depart{margin-top:12px;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:8px}
+/* Leads the panel, so it reads at a size that matches its importance rather than
+   the footnote size it had when it sat above the Depart button. */
+.depart-summary{
+  font-size:14.5px;line-height:1.45;display:grid;gap:4px;align-content:start;
+  margin:0 0 14px;padding-bottom:12px;border-bottom:1px solid var(--line);
+}
+/* The headline is the only part whose length varies enough to wrap, and a locale
+   name that wraps was the last thing making the block change height. Reserve the
+   two lines it can take, so every quest reads at exactly the same size. */
+.depart-summary .head{min-height:2.9em}
+/* Fixed label column, so the readings line up down the block instead of each
+   starting wherever its own label happens to end. */
+.depart-summary .line{display:grid;grid-template-columns:126px minmax(0,1fr);gap:8px;align-items:baseline}
+.depart-summary .k{opacity:.65}
+/* --danger is a fixed hex, so on some swatches it sat too close to the ground to
+   read. --money is derived from the chosen colour the same way every other shade
+   is — bright on dark themes, dark ink on the light one — so these readings stay
+   legible whatever the theme. Covers all three: monster, small monsters, temps. */
+.depart-summary .warn{color:var(--money);font-weight:600}
+
+/* ── Quest ─────────────────────────────────────────────────────────────── */
+.quest-head{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:14px}
+.gauges{display:grid;gap:5px;min-width:270px;flex:1}
+.gauge{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:8px;font-size:12px}
+.gauge label{text-transform:uppercase;letter-spacing:.5px;opacity:.75}
+.gauge span{font-variant-numeric:tabular-nums;opacity:.85}
+.bar{height:11px;background:var(--bg1);border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.bar.wide{width:220px}
+.bar i{display:block;height:100%;width:100%;transition:width .18s}
+.hp .bar i{background:var(--gauge-hp)}
+.sta .bar i{background:var(--gauge-sta)}
+.quest-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}
+.climate{font-size:11px;padding:1px 7px;border-radius:4px;border:1px solid var(--line);background:#0000004d}
+.climate.hot{color:#f0a070}.climate.cold{color:#8fd0e8}
+
+.quest-body{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
+@media (max-width:900px){.quest-body{grid-template-columns:minmax(0,1fr)}}
+
+.water{
+  border:1px solid var(--line);border-radius:8px;min-height:390px;
+  display:grid;place-items:center;padding:24px;
+  background-image:
+    linear-gradient(color-mix(in srgb,var(--bg1) 55%,transparent),color-mix(in srgb,var(--bg2) 75%,transparent)),
+    url('assets/panel-body-bg.png');
+  background-size:contain 100%;background-position:left center;background-repeat:repeat;
+}
+.cast-area{text-align:center;display:grid;gap:16px;place-items:center}
+.cast-prompt{opacity:.85;margin:0;min-height:1.4em}
+
+.reel{width:100%;display:grid;gap:10px;justify-items:center}
+
+.mealstats{margin:6px 0 4px;font-size:12.5px;opacity:.9;font-variant-numeric:tabular-nums}
+.mealstats b{font-weight:600}
+.field.hire{align-items:center;cursor:pointer;margin-bottom:4px}
+/* .field>span uppercases the label, which was also shouting the fee's "z".
+   Matched at the same specificity to actually win it back. */
+.hire-right{display:flex;align-items:center;gap:10px}
+.field>span.hire-right{text-transform:none}
+.hire-right .money{color:var(--money);font-variant-numeric:tabular-nums}
+.hire-right input{width:16px;height:16px;accent-color:var(--money);cursor:pointer}
+.field.hire.cant .money{color:var(--danger)}
+
+/* ── The pond ─────────────────────────────────────────────────────────────
+   Bird's-eye water. Everything inside is positioned by percentage, so the
+   surface can be any size and the fishing maths stays in pond-fractions. */
+.pond{
+  position:relative;width:100%;aspect-ratio:16/10;max-height:52vh;
+  border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  background:
+    radial-gradient(120% 90% at 50% 12%, color-mix(in srgb,var(--accent-hover) 16%,transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb,var(--bg2) 92%,transparent), var(--bg1));
+  cursor:crosshair;
+}
+/* A few still ripples so the water is not a flat plate. */
+.pond::after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.16;
+  background-image:
+    radial-gradient(circle at 22% 30%, var(--accent-hover) 0 1px, transparent 2px),
+    radial-gradient(circle at 71% 66%, var(--accent-hover) 0 1px, transparent 2px),
+    radial-gradient(circle at 43% 82%, var(--accent-hover) 0 1px, transparent 2px);
+  background-size:180px 180px,220px 220px,260px 260px;
+}
+
+.swimmer{
+  position:absolute;transform:translate(-50%,-50%);
+  transition:opacity .25s;pointer-events:none;line-height:0;
+}
+.swimmer img{image-rendering:pixelated;display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
+.swimmer.flip img{transform:scaleX(-1)}
+.swimmer.nibble{animation:nibble .22s ease-in-out}
+@keyframes nibble{50%{transform:translate(-50%,-50%) scale(1.28)}}
+.swimmer.gone{opacity:0}
+.swimmer.biting img{filter:drop-shadow(0 0 6px var(--money))}
+.swimmer.monster img{width:64px;height:64px}
+
+/* The bobber is the theme's own money colour, and goes grey when it dips. */
+.bobber{
+  position:absolute;width:16px;height:16px;border-radius:50%;
+  transform:translate(-50%,-50%);background:var(--money);
+  border:2px solid rgba(0,0,0,.45);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--money) 25%,transparent);
+  transition:background .12s, box-shadow .12s, width .1s, height .1s;
+}
+.bobber.nudged{width:20px;height:20px}
+.bobber.under{
+  background:#8b9299;
+  box-shadow:0 0 0 6px rgba(139,146,153,.22);
+  animation:dip .3s ease-in-out infinite alternate;
+}
+@keyframes dip{to{width:11px;height:11px}}
+.bobber.pulling{width:22px;height:22px}
+
+.tension{width:100%;max-width:520px;display:grid;gap:8px}
+
+/* The strike window: one bar that empties. Only on screen while the fish is on
+   the hook and you have not pulled yet. */
+.strike-bar{height:14px;background:var(--bg1);border:1px solid var(--money);border-radius:999px;overflow:hidden}
+.strike-bar i{display:block;height:100%;width:0;background:var(--money)}
+.tension:not(.strike) .strike-bar{display:none}
+.tension.strike .tension-track,.tension.strike .progress{display:none}
+
+/* The line: a pill that starts half full and falls on its own. Both ends lose,
+   so the track reads red at either end and clear through the middle, and the
+   marker is the thing you are steering. */
+.tension-track{
+  position:relative;height:22px;border:1px solid var(--line);border-radius:999px;overflow:hidden;
+  background:linear-gradient(90deg,
+    var(--danger) 0%, color-mix(in srgb,var(--danger) 35%,var(--bg1)) 14%,
+    var(--bg1) 34%, var(--bg1) 66%,
+    color-mix(in srgb,var(--danger) 35%,var(--bg1)) 86%, var(--danger) 100%);
+}
+/* The stretch where the line actually holds. */
+.tension-track .band{
+  position:absolute;top:0;bottom:0;left:34%;width:32%;
+  background:color-mix(in srgb,var(--gauge-hp) 26%,transparent);
+  border-left:1px solid color-mix(in srgb,var(--gauge-hp) 70%,transparent);
+  border-right:1px solid color-mix(in srgb,var(--gauge-hp) 70%,transparent);
+}
+.tension-track .pill{
+  position:absolute;top:2px;bottom:2px;left:50%;width:13px;margin-left:-6.5px;
+  border-radius:999px;background:var(--money);border:1px solid rgba(0,0,0,.5);
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--money) 30%,transparent);
+}
+/* Outside the stretch you are gaining nothing and heading for a loss. */
+.tension-track.out .pill{background:var(--danger);box-shadow:0 0 0 3px color-mix(in srgb,var(--danger) 35%,transparent)}
+.tension-track.out{border-color:var(--danger)}
+
+.progress{height:12px;background:var(--bg1);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--gauge-hp)}
+.reel-name{font-size:15px;min-height:1.2em}
+.reel-hint{font-size:12px;opacity:.75;margin:0;text-align:center;min-height:1.2em}
+
+.haul ul{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:32vh;overflow-y:auto}
+.haul li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:8px;
+  font-size:12.5px;padding:4px 6px;background:var(--card);border-radius:5px}
+.haul li img{width:24px;height:24px;object-fit:contain;image-rendering:pixelated}
+.haul-value{color:var(--money)}
+.haul-meta{display:flex;align-items:baseline;gap:10px;font-size:13px;font-weight:400}
+#haulGoal{font-variant-numeric:tabular-nums;opacity:.75}
+#haulGoal.met{color:var(--sta);opacity:1;font-weight:600}
+
+/* The quest-side lists. These had NO rules of their own, so every row rendered
+   at the icon's native size and the two pouches pushed the Haul off the bottom
+   of the screen. Tighter than the camp pouch on purpose: out on the water these
+   are a reference you glance at between casts, not something you are editing. */
+.qpouch{list-style:none;margin:0;padding:0;display:grid;gap:3px}
+.qpouch li{
+  display:grid;grid-template-columns:20px minmax(0,1fr) auto auto;
+  align-items:center;gap:7px;padding:3px 6px;font-size:12px;
+  background:var(--card);border:1px solid var(--line);border-radius:5px;
+}
+.qpouch li.empty{display:block;opacity:.6;padding:5px 6px}
+.qpouch img{width:20px;height:20px;object-fit:contain;image-rendering:pixelated;display:block}
+.qpouch b{font-weight:600}
+.qpouch .eff{font-size:10px;opacity:.65;display:block;line-height:1.25}
+.qpouch .qty{font-variant-numeric:tabular-nums;opacity:.85;min-width:26px;text-align:right}
+.qpouch li.on{border-color:var(--money)}
+.qpouch .btn.tiny{padding:2px 8px;font-size:11px}
+
+/* ── Guide ─────────────────────────────────────────────────────────────── */
+.subtabs{display:flex;gap:4px;margin-bottom:14px}
+.subtab{background:transparent;border:1px solid transparent;color:var(--text);opacity:.65;
+  padding:4px 14px;border-radius:7px;cursor:pointer;font-size:13px}
+.subtab:hover{opacity:1;background:#ffffff14}
+.subtab.active{opacity:1;background:var(--bg2);border-color:var(--line);font-weight:600}
+.subview{display:none}
+.subview.active{display:block}
+
+.guide-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.guide-progress{display:flex;align-items:center;gap:8px;font-size:13px}
+.guide-progress .bar i{background:var(--accent-hover)}
+.reach{font-size:11.5px;opacity:.65}
+.ingr-list{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.ingr-list li{display:grid;grid-template-columns:10px minmax(0,1fr) auto;align-items:center;gap:10px;
+  padding:4px 8px;border-radius:5px;font-size:12.5px;opacity:.4}
+.ingr-list li:nth-child(odd){background:var(--card)}
+.ingr-list li.have{opacity:1}
+.ingr-list .dot{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.ingr-list li.have .dot{background:var(--sta)}
+.ingr-list .rk{font-size:10.5px;opacity:.7;white-space:nowrap}
+.haul li.ingr{grid-template-columns:24px minmax(0,1fr) auto}
+.haul li.ingr .dot{width:8px;height:8px;border-radius:50%;background:var(--sta);margin-left:8px}
+.haul li.ingr .v{color:var(--sta);font-size:11px;opacity:.8}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
+.chk input{accent-color:var(--accent);width:16px;height:16px;cursor:pointer}
+.chk:hover{color:var(--accent-hover)}
+
+.guide-grid{display:grid;gap:10px}
+/* Collectables sections are rows in a list, not panels in their own right — at
+   21px the heading overpowers the texture band it sits on. One rule for both
+   grids: the fish rows had an override and the ingredient ones did not, so they
+   were the only headings in the app still at full panel size. */
+.guide-grid .panel-head{
+  margin:0;display:flex;align-items:baseline;gap:8px;
+  font-size:15px;font-weight:600;padding:5px 12px;
+}
+.guide-grid .panel-head .r{font-size:11px;opacity:.75;font-weight:400}
+.guide-grid .panel-head .cnt{margin-left:auto;font-size:12px;opacity:.8;font-variant-numeric:tabular-nums}
+.guide-grid .panel-body{padding:8px 10px}
+.guide-row.exclusive .panel-head .r{color:var(--danger);opacity:1}
+.variants{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px}
+@media (max-width:900px){.variants{grid-template-columns:repeat(6,minmax(0,1fr))}}
+.variant{display:grid;place-items:center;gap:1px;padding:5px 2px;background:var(--card);
+  border:1px solid transparent;border-radius:6px;text-align:center}
+.variant.caught{border-color:var(--line)}
+.variant:not(.caught){opacity:.25}
+.variant:not(.caught) img{filter:grayscale(1)}
+.variant img{image-rendering:pixelated}
+.variant .vn{font-size:9.5px;opacity:.7;line-height:1.2}
+.variant.caught .vn{opacity:1}
+
+/* ── Shop ──────────────────────────────────────────────────────────────── */
+/* Wide content scrolls inside its own box rather than pushing the page sideways. */
+.table-wrap{overflow-x:auto}
+.shop-table{width:100%;border-collapse:collapse;font-size:13px}
+.shop-table td,.shop-table th{padding:5px 8px;text-align:left;vertical-align:middle}
+.shop-table tr.sect th{
+  font-size:12px;text-transform:uppercase;letter-spacing:.8px;font-weight:600;
+  padding:14px 8px 5px;border-bottom:1px solid var(--line);
+}
+.shop-table tr.sect:first-child th{padding-top:2px}
+.shop-table tr.sect .sub{text-transform:none;letter-spacing:0;font-weight:400;opacity:.7;font-size:11.5px}
+.shop-table tbody tr:not(.sect):hover{background:#ffffff0f}
+.shop-table .ic{width:30px;padding-right:0}
+.shop-table .ic img{width:26px;height:26px;object-fit:contain;display:block;image-rendering:pixelated}
+.shop-table .nm{font-weight:600;white-space:nowrap}
+/* The buttons flex INSIDE the cell — flexing the <td> itself drops it out of the
+   table layout and collapses every column in the row. */
+.shop-table .buys{display:inline-flex;gap:4px}
+.shop-table .dt{opacity:.72;font-size:12px}
+.shop-table .dt .unlock{opacity:.72;font-size:11px;white-space:nowrap;margin-left:6px}
+.shop-table .dt .unlock::before{content:"· "}
+.shop-table .pr{color:var(--money);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.shop-table .hv{text-align:right;opacity:.75;font-variant-numeric:tabular-nums;white-space:nowrap}
+.shop-table .bt{text-align:right;width:1%;white-space:nowrap}
+@media (max-width:640px){
+  .shop-table .dt{display:none}
+}
+
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;display:grid;gap:5px}
+.card .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .nm{font-weight:600;display:flex;align-items:center;gap:7px;min-width:0}
+.card .nm img{width:26px;height:26px;object-fit:contain;flex-shrink:0;image-rendering:pixelated}
+.card .price{color:var(--money);font-variant-numeric:tabular-nums;white-space:nowrap}
+.card .d{font-size:11.5px;opacity:.75;line-height:1.35}
+.card .owned{font-size:11.5px;opacity:.75}
+.card .row{display:flex;gap:6px;align-items:center}
+
+/* ── Modals ────────────────────────────────────────────────────────────── */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:grid;place-items:center;z-index:50;padding:16px}
+.modal-box{
+  background:var(--bg2);border:1px solid var(--line);border-radius:8px;
+  padding:18px;max-width:470px;width:100%;display:grid;gap:10px;
+  background-image:
+    linear-gradient(color-mix(in srgb,var(--bg1) 70%,transparent),color-mix(in srgb,var(--bg1) 70%,transparent)),
+    url('assets/panel-body-bg.png');
+  background-size:contain 100%;background-position:left center;background-repeat:repeat;
+}
+.modal-box h2{margin:0;font-size:18px}
+.modal-list{list-style:none;margin:0;padding:0;display:grid;gap:3px;max-height:40vh;overflow-y:auto;font-size:13px}
+.modal-list li{display:flex;justify-content:space-between;gap:8px;background:var(--card);padding:4px 7px;border-radius:5px}
+.modal-box.cart{border-color:var(--danger)}
+.modal-box.cart h2{color:var(--danger)}
+
+.theme-box{width:min(460px,90vw);max-width:none;max-height:85vh;overflow-y:auto}
+/* Theme modal — the family swatch grid, copied verbatim from the other apps. */
+.swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:15px}
+.swatch{aspect-ratio:1;border-radius:8px;border:2px solid transparent;cursor:pointer;position:relative;overflow:hidden;padding:0}
+.swatch.sel{border-color:#fff}
+.swatch-icon{position:absolute;top:7%;left:50%;transform:translateX(-50%);width:60%;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.swatch span{position:absolute;bottom:0;left:0;right:0;text-align:center;font-size:10px;line-height:1.5;color:#fff;background:rgba(0,0,0,.45)}

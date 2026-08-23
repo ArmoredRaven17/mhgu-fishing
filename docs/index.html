@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MHGU Fishing</title>
+<link rel="stylesheet" href="styles.css?v=96">
+</head>
+<body>
+
+<div id="app">
+
+  <header class="titlebar titlebar-header">
+    <img class="title-icon" src="assets/MonsterIcons/MHGU-Plesioth_Icon.webp" alt="">
+    <h1>MHGU Fishing</h1>
+    <span class="filebar">
+      <button id="newBtn"    class="btn tiny">New</button>
+      <button id="saveBtn"   class="btn tiny">Save <span id="dirtyDot" class="dirty-dot hidden">&#9679;</span></button>
+      <button id="saveAsBtn" class="btn tiny">Save As&hellip;</button>
+      <button id="openBtn"   class="btn tiny">Open&hellip;</button>
+    </span>
+    <input type="file" id="importFile" accept=".json,application/json" class="hidden">
+    <button id="themeBtn" class="icon-btn" title="Theme" aria-label="Theme">&#9881;</button>
+    <div class="stats">
+      <span class="stat" title="Hunter Rank"><b id="hrValue">1</b><i>HR</i></span>
+      <span class="stat"><b id="rankName">Low Rank</b></span>
+      <span class="stat"><span class="xpbar"><i id="xpFill"></i></span><i id="xpText">0 / 0</i></span>
+      <span class="stat zenny"><b id="zenny">0</b><i>z</i></span>
+    </div>
+  </header>
+
+  <nav class="tabbar">
+    <button id="navCamp" class="tab active">Camp</button>
+    <button id="navGuide" class="tab">Collectables</button>
+    <button id="navShop" class="tab">Shop</button>
+  </nav>
+
+  <main class="content">
+   <div class="inner">
+
+    <!-- ── Camp: prep, then depart ───────────────────────────────────────── -->
+    <section id="camp" class="screen active">
+      <div class="camp-grid">
+
+        <div class="panel">
+          <div class="panel-head">Locale</div>
+          <div class="panel-body">
+            <ul id="localeList" class="locale-list"></ul>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">Loadout</div>
+          <div class="panel-body">
+
+            <div class="field"><span>Quest</span></div>
+            <div id="departSummary" class="depart-summary"></div>
+
+            <label class="field">
+              <span>Meal</span>
+              <select id="mealSelect"></select>
+            </label>
+            <p id="mealStats" class="mealstats"></p>
+            <p class="hint">A meal provides temporary buffs to HP and/or Stamina</p>
+
+            <label class="field slotrow hire">
+              <span>Hunter for Hire</span>
+              <span class="hire-right">
+                <b id="hireCost" class="money"></b>
+                <input type="checkbox" id="hireToggle">
+              </span>
+            </label>
+            <p class="hint" id="hireHint"></p>
+
+            <div class="field slotrow">
+              <span>Bait Pouch</span>
+              <b id="tackleCount" class="slots">0 / 5</b>
+            </div>
+            <ul id="tackleList" class="pouch"></ul>
+
+            <div class="field slotrow">
+              <span>Pouch</span>
+              <b id="pouchCount" class="slots">0 / 6</b>
+            </div>
+            <ul id="pouchList" class="pouch"></ul>
+
+            <div class="depart">
+              <button id="departBtn" class="btn accent block">Depart</button>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── Quest: the trip ───────────────────────────────────────────────── -->
+    <section id="quest" class="screen">
+      <div class="quest-head">
+        <div class="gauges">
+          <div class="gauge hp">
+            <label>HP</label>
+            <div class="bar"><i id="hpFill"></i></div>
+            <span id="hpText">100 / 100</span>
+          </div>
+          <div class="gauge sta">
+            <label>Stamina</label>
+            <div class="bar"><i id="staFill"></i></div>
+            <span id="staText">110 / 110</span>
+          </div>
+        </div>
+        <div class="quest-meta">
+          <span id="questLocale"></span>
+          <span id="questClimate" class="climate"></span>
+          <span id="questBait"></span>
+        </div>
+        <button id="returnBtn" class="btn accent">Retire</button>
+      </div>
+
+      <div class="quest-body">
+        <div class="water" id="water">
+          <div id="castArea" class="cast-area">
+            <p id="castPrompt" class="cast-prompt">The water is still.</p>
+            <button id="castBtn" class="btn accent big">Cast</button>
+          </div>
+
+          <div id="reel" class="reel hidden">
+            <div id="pond" class="pond"></div>
+            <div id="tensionWrap" class="tension hidden">
+              <div id="strikeBar" class="strike-bar"><i id="strikeFill"></i></div>
+              <div id="tensionTrack" class="tension-track">
+                <i id="tensionBand" class="band"></i>
+                <b id="tensionPill" class="pill"></b>
+              </div>
+              <div class="progress"><i id="reelProgress"></i></div>
+            </div>
+            <b id="reelName" class="reel-name"></b>
+            <p id="reelHint" class="reel-hint"></p>
+          </div>
+        </div>
+
+        <div class="quest-side">
+        <div class="panel haul">
+          <div class="panel-head">Haul
+            <span class="haul-meta"><b id="haulGoal">0 / 0</b>
+              <span class="haul-value" id="haulValue">0z</span></span></div>
+          <div class="panel-body">
+            <p class="hint">Lose all your HP and you cart — the whole haul is lost.</p>
+            <ul id="haulList"></ul>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">Bait Pouch</div>
+          <div class="panel-body">
+            <ul id="questTackle" class="qpouch tackle"></ul>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">Pouch</div>
+          <div class="panel-body">
+            <div id="buffLine" class="buffs"></div>
+            <ul id="questPouch" class="qpouch"></ul>
+          </div>
+        </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Fish Guide ────────────────────────────────────────────────────── -->
+    <section id="guide" class="screen">
+      <div class="subtabs">
+        <button id="subFish" class="subtab active">Fish</button>
+        <button id="subIngredients" class="subtab">Ingredients</button>
+      </div>
+
+      <div id="viewFish" class="subview active">
+        <div class="guide-head">
+          <div class="guide-progress">
+            <span id="guideCount">0 / 240</span>
+            <div class="bar wide"><i id="guideFill"></i></div>
+            <span id="guideReach" class="reach"></span>
+          </div>
+        </div>
+        <div id="guideGrid" class="guide-grid"></div>
+      </div>
+
+      <div id="viewIngredients" class="subview">
+        <div class="guide-head">
+          <div class="guide-progress">
+            <span id="pantryCount">0 / 39</span>
+            <div class="bar wide"><i id="pantryFill"></i></div>
+          </div>
+        </div>
+        <div id="pantryGrid" class="guide-grid"></div>
+      </div>
+    </section>
+
+    <!-- ── Shop ──────────────────────────────────────────────────────────── -->
+    <section id="shop" class="screen">
+      <div class="panel">
+        <div class="panel-body table-wrap">
+          <table class="shop-table"><tbody id="shopTable"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+   </div>
+  </main>
+
+</div>
+
+<!-- ── Result modal ────────────────────────────────────────────────────── -->
+<div id="modal" class="modal hidden">
+  <div class="modal-box">
+    <h2 id="modalTitle"></h2>
+    <p id="modalBody"></p>
+    <ul id="modalList" class="modal-list"></ul>
+    <button id="modalOk" class="btn accent">OK</button>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<!-- ── Theme modal ─────────────────────────────────────────────────────── -->
+<div id="themeModal" class="modal hidden">
+  <div class="modal-box theme-box">
+    <h2>Theme</h2>
+    <div id="swatchGrid" class="swatches"></div>
+    <button id="themeClose" class="btn accent">Done</button>
+  </div>
+</div>
+
+<script src="data/ores.js?v=96"></script>
+<script src="data/fish.js?v=96"></script>
+<script src="data/locales.js?v=96"></script>
+<script src="data/meals.js?v=96"></script>
+<script src="data/canteen.js?v=96"></script>
+<script src="data/themes.js?v=96"></script>
+<script src="theme.js?v=96"></script>
+<script src="game.js?v=96"></script>
+<script src="roll.js?v=96"></script>
+<script src="app.js?v=96"></script>
+<script src="guide.js?v=96"></script>
+<script src="prep.js?v=96"></script>
+<script src="fishing.js?v=96"></script>
+<script src="quest.js?v=96"></script>
+<script src="ui.js?v=96"></script>
+<script src="savefile.js?v=96"></script>
+</body>
+</html>

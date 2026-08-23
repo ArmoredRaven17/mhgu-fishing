@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mhgu-fishing",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5613",
+        "--directory",
+        "docs"
+      ],
+      "port": 5613,
+      "autoPort": false
+    }
+  ]
+}

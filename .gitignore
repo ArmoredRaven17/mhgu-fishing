@@ -1,0 +1,23 @@
+node_modules/
+*.log
+Thumbs.db
+.DS_Store
+
+# Offline generator inputs (saved third-party pages and a copy of the community
+# database — not redistributed, see NOTICE.md). Only the generated JS in
+# docs/data/ is committed.
+data-src/
+
+# Game dumps / extracted game files — never redistribute these.
+*.xci
+*.nsp
+*.nca
+*.nsz
+*.arc
+*.romfs
+*.keys
+romfs/
+extracted/
+
+# Visual Studio local IDE state
+.vs/

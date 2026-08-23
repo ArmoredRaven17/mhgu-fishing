@@ -1,0 +1,281 @@
+// roll.js — resolving what is on the end of the line.
+//
+// Two independent rolls, in order:
+//   1. WHICH FISH — from the locale's real table for the equipped bait, falling
+//      back to that spot's No Bait pool. A species bait re-weights this roll.
+//   2. WHICH ORE  — from the ores unlocked at your HR. An ore bait re-weights
+//      this roll.
+//
+// Keeping them separate is what makes "target a species or an ore, never a
+// specific combo" true by construction rather than by rule. It also means the
+// real drop percentages survive intact: the ore layer sits on top of them and
+// never edits them.
+
+(function () {
+  const G = window.MF_GAME;
+  const FISH = window.MF_FISH;
+  const LOCALES = window.MF_LOCALES;
+
+  const fishById = new Map(FISH.fish.map(f => [f.id, f]));
+  const localeById = new Map(LOCALES.map(l => [l.id, l]));
+  const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+
+  const pick = (list, rng) => {
+    const total = list.reduce((a, e) => a + e.w, 0);
+    let r = rng() * total;
+    for (const e of list) { r -= e.w; if (r <= 0) return e; }
+    return list[list.length - 1];
+  };
+
+  // ── The locale's pool ─────────────────────────────────────────────────────
+  //
+  // A locale is ONE body of water. The game splits its tables by area and by rank,
+  // but you do not walk to an area — you go to the locale and cast — so every
+  // table the locale offers at your rank is merged into a single pool.
+  //
+  // Merging keeps the rank ladder additive, which matters: the low tables are not
+  // redundant. Five of the 34 rank-pairs carry a fish the rank above drops, and
+  // Brocadefish appears ONLY in low tables, so reading just the top rank would
+  // strand it entirely.
+  //
+  // Weights simply add. Each table is its own 100%, so a fish listed in several of
+  // a locale's tables ends up commoner than one listed in a single table, which is
+  // the right shape.
+
+  const RANK_ORDER = ['Low', 'High', 'G'];
+
+  // A locale is open once your rank reaches the one its first Hub quest sits at.
+  // That is what decides ACCESS; which of its tables you can then read is still
+  // a separate question, answered by your rank as before.
+  function localeUnlocked(localeId, hr) {
+    const loc = localeById.get(localeId);
+    if (!loc) return false;
+    if (!loc.hasFishing && !G.SHOW_DESIGNED_LOCALES) return false;
+    return G.localesOpenAt(hr).includes(localeId);
+  }
+
+  // Which of the locale's own table ranks you can read at this HR.
+  function ranksAt(localeId, hr) {
+    const loc = localeById.get(localeId);
+    if (!loc || !localeUnlocked(localeId, hr)) return [];
+    const allowed = G.tableRanksAt(hr);
+    if (!loc.hasFishing) return allowed.slice();
+    const has = new Set();
+    for (const ranks of Object.values(loc.areas))
+      for (const r of Object.keys(ranks)) if (allowed.includes(r)) has.add(r);
+    return RANK_ORDER.filter(r => has.has(r));
+  }
+
+  const isOpen = (localeId, hr) => ranksAt(localeId, hr).length > 0;
+
+  // Every table the locale offers at this HR, merged. A bait reads its own table
+  // where a spot has one and the rod pool where it does not.
+  function basePool(localeId, hr, bait) {
+    const loc = localeById.get(localeId);
+    if (!loc) return [];
+
+    if (!loc.hasFishing) {
+      if (!isOpen(localeId, hr)) return [];
+      const designed = G.DESIGNED_POOLS[localeId];
+      const src = designed ? designed.pool : G.ARENA_POOL;
+      // Hub gating can open an arena at Low Rank, but its pool is the rarest fish
+      // in the game. Without this an early angler lands a Guardfish whose guide
+      // row is still hidden — catchable but invisible. Rank filters the pool.
+      return src
+        .map(e => ({ fish: fishById.get(e.fish), w: e.pct }))
+        .filter(e => e.fish && hr >= G.fishUnlockHR(e.fish));
+    }
+
+    const allowed = new Set(G.tableRanksAt(hr));
+    const weight = new Map();
+    for (const ranks of Object.values(loc.areas)) {
+      for (const [rank, pools] of Object.entries(ranks)) {
+        if (!allowed.has(rank) || !pools.length) continue;
+        const byName = new Map(pools.map(p => [p.bait, p]));
+        const chosen = byName.get(bait.name) || byName.get('No Bait') || pools[0];
+        for (const e of chosen.entries) {
+          const f = fishById.get(slug(e.name));
+          if (f) weight.set(f, (weight.get(f) || 0) + e.pct);
+        }
+      }
+    }
+    return [...weight].map(([fish, w]) => ({ fish, w }));
+  }
+
+  // ── The fish roll ─────────────────────────────────────────────────────────
+  //
+  // A species bait multiplies its target's weight. It never adds the fish — if
+  // the locale has no Goldenfish, Goldenfish Bait catches you nothing new. Bait
+  // biases, it does not conjure.
+  // A species bait stocks the water with its target outright — the school simply
+  // IS that fish. It still never conjures: if the pool has no Goldenfish,
+  // Goldenfish Bait cannot summon one and the cast falls back to what really
+  // swims here.
+  function rollFish(localeId, hr, bait, lureLevel, rng) {
+    const pool = basePool(localeId, hr, bait);
+    if (!pool.length) return null;
+    if (bait.family === 'species') {
+      const want = pool.find(e => e.fish.id === bait.target);
+      if (want) return want.fish;
+    }
+    return pick(pool, rng).fish;
+  }
+
+  // ── The ore roll ──────────────────────────────────────────────────────────
+  //
+  // Independent of which fish bit. Gated by HR, weighted so rare ores stay rare,
+  // shifted by the locale (Volcano is the whole reason to take the risk) and by
+  // an ore bait if one is equipped.
+  function rollOre(localeId, hr, bait, lureLevel, rng) {
+    const ores = G.oresAt(hr);
+    if (!ores.length) return null;
+
+    const boost = G.DESIGNED_POOLS[localeId]?.oreBoost;
+    let list = ores.map(o => ({
+      ore: o,
+      w: G.ORE_WEIGHT[o.rank] * (boost ? (boost[o.rank] ?? 1) : 1),
+    }));
+
+    // A variety bait works the same way on the other axis: every fish comes up in
+    // that ore, with the species still rolled from the water. Rank-gated, so an
+    // ore you cannot reach yet simply falls through to a normal roll.
+    if (bait.family === 'ore') {
+      const want = ores.find(o => o.id === bait.target);
+      if (want) return want;
+    }
+    return pick(list, rng).ore;
+  }
+
+  // ── A whole catch ─────────────────────────────────────────────────────────
+  function rollCatch(opts) {
+    const { localeId, bait, hr, lureLevel = 0, rng = Math.random } = opts;
+    const fish = rollFish(localeId, hr, bait, lureLevel, rng);
+    if (!fish) return null;
+    const ore = rollOre(localeId, hr, bait, lureLevel, rng);
+    if (!ore) return null;
+    return {
+      fish, ore,
+      id: G.variantId(fish, ore),
+      name: G.variantName(fish, ore),
+      icon: G.variantIcon(ore),
+      value: G.variantValue(fish, ore),
+      xp: G.xpFor(fish, ore),
+    };
+  }
+
+  // A whole school for one cast. Lure Quality adds fish to it.
+  function rollSchool(opts) {
+    const { localeId, bait, hr, lureLevel = 0, rng = Math.random } = opts;
+    const n = G.POND.school + Math.round(lureLevel / 3);
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const c = rollCatch({ localeId, bait, hr, lureLevel, rng });
+      if (!c) break;
+      out.push(c);
+    }
+    return out;
+  }
+
+  // ── Encounters ────────────────────────────────────────────────────────────
+  //
+  // Rolled per cast, before the fish. A boss on the line replaces the catch.
+  // Plesioth only bites where monster_habitat actually puts it, and Frog raises
+  // its odds sharply — the game's own description calls Frog "the ideal bait for
+  // certain aquatic monsters".
+  function rollEncounter(localeId, bait, rng = Math.random) {
+    const loc = localeById.get(localeId);
+    if (!loc || !loc.boss.length) return null;
+    for (const name of loc.boss) {
+      let chance = G.ENCOUNTER_CHANCE[name] ?? 0;
+      if (G.BOSS[name]?.bait && bait.id === G.BOSS[name].bait) chance *= 4;
+      if (rng() < chance) return G.BOSS[name];
+    }
+    return null;
+  }
+
+  // ── Small monsters ────────────────────────────────────────────────────────
+  //
+  // Rolled once per ordinary cast. A boss cast is left alone — it already puts
+  // your whole haul on the line and does not need help.
+  //
+  // Which one comes at you is weighted by how many quests bring it to this
+  // locale, so the common pest is the common one. How hard it hits is set by the
+  // best table you can read here, so the water getting richer also gets rougher.
+  const bestRank = (localeId, hr) => {
+    const ranks = ranksAt(localeId, hr);
+    return ranks.length ? ranks[ranks.length - 1] : 'Low';
+  };
+
+  function hireCost(localeId, hr) {
+    const loc = localeById.get(localeId);
+    if (!loc) return 0;
+    const raw = G.HIRE.base[bestRank(localeId, hr)]
+      * (G.HIRE.climate[G.climateOf(localeId)] ?? 1)
+      * (loc.boss.length ? G.HIRE.danger : 1);
+    return Math.round(raw / G.HIRE.round) * G.HIRE.round;
+  }
+
+  function pestChance(hired) {
+    return G.PEST.chancePerCast * (hired ? 1 - G.PEST.hireCut : 1);
+  }
+
+  function rollPest(localeId, hr, hired, rng = Math.random) {
+    const loc = localeById.get(localeId);
+    if (!loc || !loc.pests || !loc.pests.length) return null;
+    if (rng() >= pestChance(hired)) return null;
+    const total = loc.pests.reduce((a, p) => a + p.w, 0);
+    let x = rng() * total, hit = loc.pests[loc.pests.length - 1];
+    for (const p of loc.pests) { x -= p.w; if (x <= 0) { hit = p; break; } }
+    return { name: hit.name, damage: G.PEST.damage[bestRank(localeId, hr)] };
+  }
+
+  // ── What a locale is worth, and so what it asks of you ────────────────────
+  //
+  // Expected zenny for one cast here: the fish weights from the locale's merged
+  // pool crossed with the ore weights your rank can roll. Computed rather than
+  // hand-tabled so it follows the balance instead of drifting from it.
+  function expectedCastValue(localeId, hr) {
+    const pool = basePool(localeId, hr, { id: 'no_bait', name: 'No Bait', family: 'none' });
+    if (!pool.length) return 0;
+    const ores = G.oresAt(hr);
+    const oreTotal = ores.reduce((a, o) => a + G.ORE_WEIGHT[o.rank], 0);
+    const fishTotal = pool.reduce((a, e) => a + e.w, 0);
+
+    let ev = 0;
+    for (const { fish, w } of pool) {
+      const pf = w / fishTotal;
+      for (const o of ores) {
+        const po = G.ORE_WEIGHT[o.rank] / oreTotal;
+        ev += pf * po * G.variantValue(fish, o);
+      }
+    }
+    return ev;
+  }
+
+  // The zenny a trip here must bring home to clear the quest.
+  function questGoal(localeId, hr) {
+    const ev = expectedCastValue(localeId, hr);
+    if (!ev) return 0;
+    return Math.round(ev * G.GOAL_CASTS / G.GOAL_ROUND) * G.GOAL_ROUND;
+  }
+
+  // ── The full guide ────────────────────────────────────────────────────────
+  // Every fish x every ore, in rarity order. This is the completion target.
+  function fullGuide() {
+    const out = [];
+    for (const f of FISH.fish)
+      for (const o of window.CF_ORES.list)
+        out.push({
+          id: G.variantId(f, o), name: G.variantName(f, o),
+          fish: f, ore: o, icon: G.variantIcon(o),
+          value: G.variantValue(f, o),
+        });
+    return out;
+  }
+
+  window.MF_ROLL = {
+    ranksAt, isOpen, localeUnlocked, basePool, expectedCastValue, questGoal,
+    hireCost, pestChance, rollPest, rollSchool, rollFish, rollOre, rollCatch, rollEncounter, fullGuide,
+    fishById, localeById,
+  };
+})();
