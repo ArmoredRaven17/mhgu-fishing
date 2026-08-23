@@ -36,7 +36,7 @@
     el('reel')?.classList.add('hidden');
     el('castArea')?.classList.remove('hidden');
     el('tensionWrap')?.classList.add('hidden');
-    el('tensionTrack')?.classList.remove('out');
+    el('tensionTrack')?.classList.remove('out', 'low');
     el('tensionWrap')?.classList.remove('strike');
     state = null;
     if (pending) { pending.settled = true; pending.resolve({ landed: false, cancelled: true }); }
@@ -270,6 +270,7 @@
 
           el('tensionPill').style.left = t * 100 + '%';
           el('tensionTrack').classList.toggle('out', !held);
+          el('tensionTrack').classList.toggle('low', !held && t < 0.5);
           el('reelProgress').style.width = Math.min(1, S.progress) * 100 + '%';
           if (S.progress >= 1) return done({ landed: true, catch: S.hooked.c });
         }

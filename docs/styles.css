@@ -24,6 +24,7 @@
      use --money, which theme.js derives from the chosen colour. */
   --hp:#d64a4a; --sta:#6fc98a;
   --gauge-hp:#5bb85f; --gauge-sta:#e3c545; --gold:#e3c545; --danger:#e0603c;
+  --slack:#6fc3e8;
   --money:#e3c545;
 }
 
@@ -341,13 +342,15 @@ select{
 .tension:not(.strike) .strike-bar{display:none}
 .tension.strike .tension-track,.tension.strike .progress{display:none}
 
-/* The line: a pill that starts half full and falls on its own. Both ends lose,
-   so the track reads red at either end and clear through the middle, and the
-   marker is the thing you are steering. */
+/* The line: a pill that starts half full and falls on its own. Both ends lose, but
+   they lose in opposite ways, so they are not the same colour: drift left and the
+   line goes SLACK (t <= 0), drift right and it SNAPS (t >= 1). Blue for too little
+   tension, red for too much — the colour tells you which way to correct without
+   reading anything. Clear through the middle, where the marker is what you steer. */
 .tension-track{
   position:relative;height:22px;border:1px solid var(--line);border-radius:999px;overflow:hidden;
   background:linear-gradient(90deg,
-    var(--danger) 0%, color-mix(in srgb,var(--danger) 35%,var(--bg1)) 14%,
+    var(--slack) 0%, color-mix(in srgb,var(--slack) 35%,var(--bg1)) 14%,
     var(--bg1) 34%, var(--bg1) 66%,
     color-mix(in srgb,var(--danger) 35%,var(--bg1)) 86%, var(--danger) 100%);
 }
@@ -363,9 +366,13 @@ select{
   border-radius:999px;background:var(--money);border:1px solid rgba(0,0,0,.5);
   box-shadow:0 0 0 2px color-mix(in srgb,var(--money) 30%,transparent);
 }
-/* Outside the stretch you are gaining nothing and heading for a loss. */
+/* Outside the stretch you are gaining nothing and heading for a loss. Which loss
+   depends on the side, and the marker says so: blue below the band, red above it.
+   A red pill while the line is going slack would point you the wrong way. */
 .tension-track.out .pill{background:var(--danger);box-shadow:0 0 0 3px color-mix(in srgb,var(--danger) 35%,transparent)}
 .tension-track.out{border-color:var(--danger)}
+.tension-track.out.low .pill{background:var(--slack);box-shadow:0 0 0 3px color-mix(in srgb,var(--slack) 35%,transparent)}
+.tension-track.out.low{border-color:var(--slack)}
 
 .progress{height:12px;background:var(--bg1);border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .progress i{display:block;height:100%;width:0;background:var(--gauge-hp)}
