@@ -169,12 +169,16 @@
     el('mealTable').innerHTML = [...none, ...rest].map(m => {
       const tag = G.freshShort(G.freshBonus(m, S.pantry));
       const afford = m.cost <= S.zenny;
+      // The fresh bonus sits UNDER the name rather than in a column of its own.
+      // As a column it was the widest fixed thing in the table and pushed the
+      // price off the edge on a narrow panel, while short names left the name
+      // column half empty. Underneath, it costs no width and fills that space.
       return `<tr data-meal="${m.id}"
         class="${S.mealId === m.id ? 'sel' : ''} ${afford ? '' : 'cant'}">
-        <td class="nm">${m.name}</td>
+        <td class="nm">${m.name}${tag
+          ? `<span class="fr"><span class="fresh-tag">Fresh</span> ${tag}</span>` : ''}</td>
         <td class="n">${m.hp ? `+${m.hp}` : '&mdash;'}</td>
         <td class="n">${m.stamina ? `+${m.stamina}` : '&mdash;'}</td>
-        <td class="fr">${tag ? `<span class="fresh-tag">Fresh</span> ${tag}` : ''}</td>
         <td class="pr">${m.cost ? z(m.cost) : '&mdash;'}</td>
       </tr>`;
     }).join('');
