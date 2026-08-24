@@ -53,6 +53,7 @@
         if (v !== Infinity && !Number.isFinite(v)) delete bag[k];
     S.owned.no_bait = Infinity;
     S.visited = saved.visited || {};
+    prunePlans();          // an old save may already be over a pouch limit
     syncHR();
   }
 
@@ -230,7 +231,31 @@
   // How many of each pouch item to carry. Capped by what you own AND by the
   // item's own carry limit; a slot is claimed by taking at least one of a kind.
   const planned = id => Math.min(S.plan[id] || 0, itemStock(id), G.carryLimit(id));
-  const slotsUsed = () => window.MF_FISH.prep.filter(p => p.buy && planned(p.id) > 0).length;
+
+  // A plan entry you can no longer honour is DROPPED, not merely read as zero.
+  // Running a bait out only clamped it to zero, which freed the slot for another
+  // bait — and then BUYING that bait back resurrected the old entry and put the
+  // pouch over its limit. Nothing gets into a pouch except by being added to it.
+  //
+  // The trailing slice repairs a save that is already over the limit, which is
+  // the only way one could have been left.
+  function prunePlans() {
+    let changed = false;
+    for (const id of Object.keys(S.tackle))
+      if (baitStock(id) <= 0) { delete S.tackle[id]; changed = true; }
+    for (const id of Object.keys(S.plan))
+      if (itemStock(id) <= 0) { delete S.plan[id]; changed = true; }
+    for (const id of Object.keys(S.tackle).slice(G.TACKLE_SLOTS))
+      { delete S.tackle[id]; changed = true; }
+    for (const id of Object.keys(S.plan).slice(G.POUCH_SLOTS))
+      { delete S.plan[id]; changed = true; }
+    return changed;
+  }
+
+  const slotsUsed = () => {
+    prunePlans();
+    return window.MF_FISH.prep.filter(p => p.buy && planned(p.id) > 0).length;
+  };
 
   function setPlan(id, n) {
     const want = Math.max(0, Math.min(n, itemStock(id), G.carryLimit(id)));
@@ -242,7 +267,7 @@
 
   // ── Tackle box ────────────────────────────────────────────────────────────
   const tackled = id => Math.min(S.tackle[id] || 0, baitStock(id), G.BAIT_CARRY);
-  const tackleKinds = () => Object.keys(S.tackle).filter(id => tackled(id) > 0);
+  const tackleKinds = () => { prunePlans(); return Object.keys(S.tackle).filter(id => tackled(id) > 0); };
 
   function setTackle(id, n) {
     const want = Math.max(0, Math.min(n, baitStock(id), G.BAIT_CARRY));
@@ -290,7 +315,7 @@
     record, guideTotal, guideFound, recordIngredient, pantryCount, freshCount, fresh,
     spend, earn, buyBait, buyItem, buyUpgrade, upgradeCost, canBuyBait, canBuyItem,
     baitStock, itemStock, planned, setPlan, slotsUsed, localeOpen,
-    tackled, tackleKinds, setTackle, questRung, selectQuest,
+    tackled, tackleKinds, setTackle, prunePlans, questRung, selectQuest,
     reset() { S = defaults(); save(); },
   };
 })();
