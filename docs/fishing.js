@@ -166,7 +166,8 @@
       // ── Hooking ─────────────────────────────────────────────────────────
       function hook(sw) {
         S.phase = 'hooked';
-        S.hooked = { c: sw.c, fight: sw.c.fight || G().fightFor(sw.c.fish, sw.c.ore, S.lineLevel || 0) };
+        S.hooked = { c: sw.c,
+          fight: sw.c.fight || G().fightFor(sw.c.fish, sw.c.ore, S.lineLevel || 0, S.questHR || 1) };
         if (S.monster) S.hooked.fight = spec.monster.fight;
         S.strikeLeft = S.hooked.fight.strikeWindowMs / 1000;
         bobber.classList.add('under');
@@ -283,6 +284,7 @@
       // Upgrades read once per cast.
       S.lineLevel = spec.lineLevel || 0;
       S.lureLevel = spec.lureLevel || 0;
+      S.questHR = spec.questHR || 1;
 
       el('tensionWrap').classList.add('hidden');
       el('reelProgress').style.width = '0%';

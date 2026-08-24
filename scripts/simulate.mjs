@@ -216,7 +216,7 @@ function runTrip(localeId, lo, hr) {
 
     const c = R.rollCatch({ localeId, bait, hr, lureLevel: up.lure });
     if (!c) break;
-    const fight = G.fightFor(c.fish, c.ore, up.line);
+    const fight = G.fightFor(c.fish, c.ore, up.line, hr);
     const secs = fight.durationMs / 1000;
 
     haul += c.value;

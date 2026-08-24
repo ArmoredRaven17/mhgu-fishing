@@ -178,7 +178,7 @@
     const res = await window.MF_FISHING.start({
       school, bait: trip.bait,
       monster: boss ? { ...boss, fight: boss.fight } : null,
-      lineLevel: S.upgrades.line, lureLevel: S.upgrades.lure,
+      lineLevel: S.upgrades.line, lureLevel: S.upgrades.lure, questHR: trip.questHR,
     });
 
     // Retiring is allowed with a fish on the line. If the trip is already wound
@@ -214,7 +214,7 @@
     // actually took. That is what keeps trip lengths and every quest goal sitting
     // where the balance sim put them.
     const c = res.catch || school[0];
-    const secs = G.fightFor(c.fish, c.ore, S.upgrades.line).durationMs / 1000;
+    const secs = G.fightFor(c.fish, c.ore, S.upgrades.line, trip.questHR).durationMs / 1000;
     tickClimate(secs);
     spendStamina(secs);
     tickBuffs(secs);

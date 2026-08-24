@@ -681,6 +681,7 @@
   const REEL_START = 0.5;      // where the pill sits when the fight opens
   const BAND_WIDE = 0.30;      // half-width for the cheapest thing in the water
   const BAND_TIGHT = 0.07;     // ...and for the most valuable
+  const BAND_FLOOR = 0.05;     // never narrower than this, whatever the rung
 
   // Where a variant sits between the cheapest and dearest in the game, 0..1, on a
   // log scale because value spans two orders of magnitude. Measured off the real
@@ -702,13 +703,19 @@
     return Math.min(1, Math.max(0, (Math.log(variantValue(fish, ore)) - lo) / (hi - lo)));
   }
 
-  function fightFor(fish, ore, lineLevel) {
+  // `hr` is the RUNG the quest was taken on, not your own rank. The same fish is
+  // a harder fight on a G-rank rung than on a Low one: deeper water, rougher day.
+  // It tightens the band and quickens the sink on top of whatever the fish's own
+  // value already asked for.
+  function fightFor(fish, ore, lineLevel, hr = 1) {
     const r = fish.rarity, o = ore.rank;
     const durationMs = 3200 + r * 700 + o * 1400;
+    const rung = Math.min(1, Math.max(0, (hr - 1) / 11));   // HR1..HR12 -> 0..1
     return {
       durationMs,
       // How fast the line falls slack when you stop pulling.
-      sinkPerSec: Math.max(0.18, 0.30 + r * 0.014 + o * 0.022 - lineLevel * 0.010),
+      sinkPerSec: Math.max(0.18,
+        (0.30 + r * 0.014 + o * 0.022 - lineLevel * 0.010) * (1 + rung * 0.25)),
       // What one press buys. Flat, so the rhythm is the skill, not the timing.
       liftPerPress: 0.085,
       // Half-width of the good stretch either side of centre, set by what the
@@ -717,8 +724,9 @@
       // valuable fish in the game only pulled the band in from 46% of the track
       // to 28%. Value spans 47z to 8,293z, so it is read on a log scale — every
       // step up in what you are holding visibly tightens the stretch.
-      band: Math.min(0.34, BAND_WIDE - valueT(fish, ore) * (BAND_WIDE - BAND_TIGHT)
-        + lineLevel * 0.010),
+      band: Math.min(0.34, Math.max(BAND_FLOOR,
+        (BAND_WIDE - valueT(fish, ore) * (BAND_WIDE - BAND_TIGHT)) * (1 - rung * 0.28)
+        + lineLevel * 0.010)),
       // Ground is only gained inside that stretch. A clean fight runs a little
       // under the nominal duration, so playing well beats the stamina you paid.
       progressPerSec: 1000 / (durationMs * 0.6),
