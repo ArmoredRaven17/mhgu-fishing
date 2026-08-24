@@ -208,7 +208,9 @@
             const rx = S.bx - sw.x, ry = S.by - sw.y;
             const raw = Math.hypot(rx, ry);
             const dist = Math.hypot(rx * aspect, ry);
-            const drawn = S.monster || (S.baited && dist < P.attractRange);
+            // Only the fish the bait actually drew come to the bobber. The rest
+            // are here because they live here, and they behave like it.
+            const drawn = S.monster || (S.baited && sw.c.matches && dist < P.attractRange);
 
             // A fish that has been drawn in is not looking around any more.
             sw.turnIn -= dt;

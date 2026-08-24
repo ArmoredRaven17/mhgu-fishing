@@ -58,34 +58,57 @@ for (const hr of [3, 6, 12, 13]) {
 }
 
 // ── Bait bias ───────────────────────────────────────────────────────────────
+//
+// Measured over SCHOOLS, not single catches. A bait no longer decides any one
+// roll — it guarantees a share of the school and leaves the rest to the water —
+// so asking rollCatch about it shows nothing at all.
 const SPOT = { localeId: 'marshlands', hr: 12 };
-const shareOf = (baitId, key, want, n = 100000) => {
+const schoolShare = (baitId, key, want, n = 4000) => {
   const bait = baitBy.get(baitId);
-  let hit = 0;
-  for (let i = 0; i < n; i++) {
-    const c = R.rollCatch({ ...SPOT, bait });
-    if (c && c[key].id === want) hit++;
-  }
-  return hit / n;
+  let hit = 0, tot = 0, drawn = 0;
+  for (let i = 0; i < n; i++)
+    for (const c of R.rollSchool({ ...SPOT, bait })) {
+      tot++;
+      if (c[key].id === want) hit++;
+      if (c.matches) drawn++;
+    }
+  return { share: hit / tot, drawn: drawn / tot };
 };
 
-line('Bait swaps the school (Marshlands, HR12)');
-console.log('species bait — share of the targeted fish:');
+line('Bait salts the school (Marshlands, HR12)');
+console.log('species bait — share of the school that is the targeted fish:');
 for (const [id, target] of [['no_bait', 'scatterfish'], ['bait_scatterfish', 'scatterfish'],
-                            ['no_bait', 'silverfish'], ['bait_silverfish', 'silverfish']])
-  console.log(`  ${baitBy.get(id).name.padEnd(20)} -> ${target.padEnd(14)} ${pct(shareOf(id, 'fish', target) * 100, 100)}`);
-console.log('ore bait — share of the targeted ore:');
+                            ['no_bait', 'silverfish'], ['bait_silverfish', 'silverfish']]) {
+  const r = schoolShare(id, 'fish', target);
+  console.log(`  ${baitBy.get(id).name.padEnd(20)} -> ${target.padEnd(14)} ${(r.share * 100).toFixed(1).padStart(5)}%` +
+    `   drawn to the bobber ${(r.drawn * 100).toFixed(0)}%`);
+}
+console.log('ore bait — share of the school that is the targeted ore:');
 for (const [id, target] of [['no_bait', 'machalite'], ['bait_ore_machalite', 'machalite'],
-                            ['no_bait', 'purecrystal'], ['bait_ore_purecrystal', 'purecrystal']])
-  console.log(`  ${baitBy.get(id).name.padEnd(20)} -> ${target.padEnd(14)} ${pct(shareOf(id, 'ore', target) * 100, 100)}`);
+                            ['no_bait', 'purecrystal'], ['bait_ore_purecrystal', 'purecrystal']]) {
+  const r = schoolShare(id, 'ore', target);
+  console.log(`  ${baitBy.get(id).name.padEnd(20)} -> ${target.padEnd(14)} ${(r.share * 100).toFixed(1).padStart(5)}%` +
+    `   drawn to the bobber ${(r.drawn * 100).toFixed(0)}%`);
+}
+
+// The rest of the pool must survive the bait, or a locale's table stops meaning
+// anything the moment you buy one.
+{
+  const bait = baitBy.get('bait_scatterfish');
+  const seen = new Set();
+  for (let i = 0; i < 2000; i++)
+    for (const c of R.rollSchool({ ...SPOT, bait })) seen.add(c.fish.id);
+  console.log();
+  console.log(`  distinct species still turning up with Scatterfish Bait: ${seen.size}`);
+}
 
 line('Bait stocks, never conjures');
 {
   const bait = baitBy.get('bait_speartuna');   // Speartuna does not live in Marshlands
-  let seen = 0;
-  for (let i = 0; i < 50000; i++)
-    if (R.rollCatch({ ...SPOT, bait })?.fish.id === 'speartuna') seen++;
-  console.log(`Speartuna Bait in Marshlands -> ${seen} Speartuna in 50,000 casts ` +
+  let seen = 0, fish = 0;
+  for (let i = 0; i < 8000; i++)
+    for (const c of R.rollSchool({ ...SPOT, bait })) { fish++; if (c.fish.id === 'speartuna') seen++; }
+  console.log(`Speartuna Bait in Marshlands -> ${seen} Speartuna across ${fish.toLocaleString()} fish ` +
     `(${seen === 0 ? 'correct, it does not live there' : 'BUG: bait conjured a fish'})`);
 }
 

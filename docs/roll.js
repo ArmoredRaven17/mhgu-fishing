@@ -107,17 +107,12 @@
   // A species bait multiplies its target's weight. It never adds the fish — if
   // the locale has no Goldenfish, Goldenfish Bait catches you nothing new. Bait
   // biases, it does not conjure.
-  // A species bait stocks the water with its target outright — the school simply
-  // IS that fish. It still never conjures: if the pool has no Goldenfish,
-  // Goldenfish Bait cannot summon one and the cast falls back to what really
-  // swims here.
+  // Weighted from whatever the bait's own table offers. The bait's PROMISE — that
+  // some of what swims in is the thing you asked for — is kept by rollSchool,
+  // which forces that share; this is what fills the rest.
   function rollFish(localeId, hr, bait, lureLevel, rng) {
     const pool = basePool(localeId, hr, bait);
     if (!pool.length) return null;
-    if (bait.family === 'species') {
-      const want = pool.find(e => e.fish.id === bait.target);
-      if (want) return want.fish;
-    }
     return pick(pool, rng).fish;
   }
 
@@ -136,22 +131,17 @@
       w: G.ORE_WEIGHT[o.rank] * (boost ? (boost[o.rank] ?? 1) : 1),
     }));
 
-    // A variety bait works the same way on the other axis: every fish comes up in
-    // that ore, with the species still rolled from the water. Rank-gated, so an
-    // ore you cannot reach yet simply falls through to a normal roll.
-    if (bait.family === 'ore') {
-      const want = ores.find(o => o.id === bait.target);
-      if (want) return want;
-    }
     return pick(list, rng).ore;
   }
 
   // ── A whole catch ─────────────────────────────────────────────────────────
   function rollCatch(opts) {
-    const { localeId, bait, hr, lureLevel = 0, rng = Math.random } = opts;
-    const fish = rollFish(localeId, hr, bait, lureLevel, rng);
+    const { localeId, bait, hr, lureLevel = 0, rng = Math.random,
+            forceFish = null, forceOre = null } = opts;
+    const fish = forceFish ? fishById.get(forceFish) : rollFish(localeId, hr, bait, lureLevel, rng);
     if (!fish) return null;
-    const ore = rollOre(localeId, hr, bait, lureLevel, rng);
+    const ore = forceOre ? G.oresAt(hr).find(o => o.id === forceOre)
+      : rollOre(localeId, hr, bait, lureLevel, rng);
     if (!ore) return null;
     return {
       fish, ore,
@@ -164,14 +154,49 @@
   }
 
   // A whole school for one cast. Lure Quality adds fish to it.
+  //
+  // A bait SALTS the school rather than replacing it: it guarantees a share of
+  // what you asked for and leaves the rest to the water, and those are the fish
+  // drawn to your bobber. Filling the pond with a single species made the bait an
+  // "I win" button and threw away the pool the locale actually has.
+  //
+  // It still never conjures. The share is only promised when the target really
+  // lives here — Speartuna Bait in the Marshlands forces nothing.
   function rollSchool(opts) {
     const { localeId, bait, hr, lureLevel = 0, rng = Math.random } = opts;
     const n = G.POND.school + Math.round(lureLevel / 3);
+    const pool = basePool(localeId, hr, bait);
+    if (!pool.length) return [];
+
+    const canForce =
+      (bait.family === 'species' && pool.some(e => e.fish.id === bait.target)) ||
+      (bait.family === 'ore' && G.oresAt(hr).some(o => o.id === bait.target));
+    // Never the whole school — there is always something else in the water.
+    const promised = canForce
+      ? Math.min(n - 1, Math.max(2, Math.round(n * (G.POND.baitShare + lureLevel * 0.03))))
+      : 0;
+
     const out = [];
     for (let i = 0; i < n; i++) {
-      const c = rollCatch({ localeId, bait, hr, lureLevel, rng });
+      const forced = i < promised;
+      const c = rollCatch({
+        localeId, bait, hr, lureLevel, rng,
+        forceFish: forced && bait.family === 'species' ? bait.target : null,
+        forceOre: forced && bait.family === 'ore' ? bait.target : null,
+      });
       if (!c) break;
+      // What the bait pulls is anything MATCHING it, not merely the ones it
+      // forced in. A Scatterfish that was already swimming here is still a
+      // Scatterfish, and Scatterfish Bait should mean something to it.
+      c.matches = bait.family === 'species' ? c.fish.id === bait.target
+        : bait.family === 'ore' ? c.ore.id === bait.target
+          : false;
       out.push(c);
+    }
+    // Shuffle, or the bait's fish always spawn as the same slots in the pond.
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
     }
     return out;
   }

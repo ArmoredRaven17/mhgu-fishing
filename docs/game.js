@@ -539,7 +539,7 @@
   const FRESH_LABEL = {
     hp: n => `+${n} HP`,
     stamina: n => `+${n} Stamina`,
-    zenny: n => `+${Math.round(n * 100)}% zenny per catch`,
+    zenny: n => `+${Math.round(n * 100)}% Zenny per catch`,
     guard: n => `+${Math.round(n * 100)}% Def`,
   };
 
@@ -590,10 +590,12 @@
 
   // The short form, for somewhere with no room — a <select> option, which cannot
   // carry markup and has to fit on one line next to the price.
+  // Abbreviations were for a <select> option that had to fit on one line. The
+  // meal table puts this under the name where it can wrap, so it says the words.
   const FRESH_SHORT = {
     hp: n => `+${n} HP`,
-    stamina: n => `+${n} Sta`,
-    zenny: n => `+${Math.round(n * 100)}% z`,
+    stamina: n => `+${n} Stamina`,
+    zenny: n => `+${Math.round(n * 100)}% Zenny`,
     guard: n => `+${Math.round(n * 100)}% Def`,
   };
   const freshShort = bonus => Object.entries(bonus)
@@ -656,6 +658,7 @@
     nibbleRange: 0.075,     // close enough to nibble
     nibbleEveryMs: 700,     // a fish nibbles at most this often
     hookChance: 0.30,       // each nibble's chance of taking it under
+    baitShare: 0.5,         // how much of the school a bait can promise you
   };
 
   // ── Reel struggle ─────────────────────────────────────────────────────────
@@ -676,6 +679,28 @@
   // stays nominal rather than however long you actually took, which is what keeps
   // trip lengths and every quest goal where the sim put them.
   const REEL_START = 0.5;      // where the pill sits when the fight opens
+  const BAND_WIDE = 0.30;      // half-width for the cheapest thing in the water
+  const BAND_TIGHT = 0.07;     // ...and for the most valuable
+
+  // Where a variant sits between the cheapest and dearest in the game, 0..1, on a
+  // log scale because value spans two orders of magnitude. Measured off the real
+  // table once, so it recalibrates itself if fish or ore prices ever change.
+  let _valueSpan = null;
+  function valueSpan() {
+    if (_valueSpan) return _valueSpan;
+    let lo = Infinity, hi = 0;
+    for (const f of FISH.fish) for (const o of ORES.list) {
+      const v = variantValue(f, o);
+      if (v < lo) lo = v;
+      if (v > hi) hi = v;
+    }
+    return (_valueSpan = { lo: Math.log(lo), hi: Math.log(hi) });
+  }
+  function valueT(fish, ore) {
+    const { lo, hi } = valueSpan();
+    if (hi <= lo) return 0;
+    return Math.min(1, Math.max(0, (Math.log(variantValue(fish, ore)) - lo) / (hi - lo)));
+  }
 
   function fightFor(fish, ore, lineLevel) {
     const r = fish.rarity, o = ore.rank;
@@ -686,8 +711,14 @@
       sinkPerSec: Math.max(0.18, 0.30 + r * 0.014 + o * 0.022 - lineLevel * 0.010),
       // What one press buys. Flat, so the rhythm is the skill, not the timing.
       liftPerPress: 0.085,
-      // Half-width of the good stretch either side of centre.
-      band: Math.min(0.34, Math.max(0.10, 0.24 - r * 0.009 - o * 0.014) + lineLevel * 0.010),
+      // Half-width of the good stretch either side of centre, set by what the
+      // fish is WORTH. Rarity and ore rank were far too coarse for this: a 47z
+      // Iron Whetfish and a 52z Iron Pin Tuna came out identical, and the most
+      // valuable fish in the game only pulled the band in from 46% of the track
+      // to 28%. Value spans 47z to 8,293z, so it is read on a log scale — every
+      // step up in what you are holding visibly tightens the stretch.
+      band: Math.min(0.34, BAND_WIDE - valueT(fish, ore) * (BAND_WIDE - BAND_TIGHT)
+        + lineLevel * 0.010),
       // Ground is only gained inside that stretch. A clean fight runs a little
       // under the nominal duration, so playing well beats the stamina you paid.
       progressPerSec: 1000 / (durationMs * 0.6),
