@@ -217,15 +217,19 @@
   let collectView = 'fish';
   function showCollectables(view) {
     collectView = view;
-    el('subFish').classList.toggle('active', view === 'fish');
-    el('subIngredients').classList.toggle('active', view === 'ingredients');
-    el('viewFish').classList.toggle('active', view === 'fish');
-    el('viewIngredients').classList.toggle('active', view === 'ingredients');
+    for (const [name, tab, panel] of [['fish', 'subFish', 'viewFish'],
+                                     ['ingredients', 'subIngredients', 'viewIngredients'],
+                                     ['locales', 'subLocales', 'viewLocales']]) {
+      el(tab).classList.toggle('active', view === name);
+      el(panel).classList.toggle('active', view === name);
+    }
     if (view === 'fish') window.MF_GUIDE.render();
-    else window.MF_GUIDE.renderPantry();
+    else if (view === 'ingredients') window.MF_GUIDE.renderPantry();
+    else window.MF_GUIDE.renderLocaleCatch();
   }
   el('subFish').onclick = () => showCollectables('fish');
   el('subIngredients').onclick = () => showCollectables('ingredients');
+  el('subLocales').onclick = () => showCollectables('locales');
 
   // Theme modal
   el('themeBtn').onclick = () => { window.MF_THEME.renderSwatches(); el('themeModal').classList.remove('hidden'); };

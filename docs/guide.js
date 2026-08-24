@@ -8,6 +8,7 @@
 (function () {
   const G = window.MF_GAME;
   const A = window.MF_APP;
+  const R = window.MF_ROLL;
 
   // The variant's icon: the game's own fish icon, in the ore's colour.
   function fishImg(ore, size = 28, alt = '') {
@@ -105,5 +106,52 @@
     if (f) f.style.width = (100 * found / total) + '%';
   }
 
-  window.MF_GUIDE = { render, renderPantry, fishImg };
+  // ── Where things came from ────────────────────────────────────────────────
+  //
+  // A locale you have fished, and which of its species you have actually pulled
+  // out of it. The ones you have NOT are listed too — that is the useful half,
+  // because it says where to go for a fish you are still missing.
+  function renderLocaleCatch() {
+    const wrap = document.getElementById('localeCatch');
+    if (!wrap) return;
+    const fished = A.fishedLocales();
+
+    if (!fished.length) {
+      wrap.innerHTML = '<p class="hint">Nothing landed yet. ' +
+        'Fish a locale and what you take from it is recorded here.</p>';
+      return;
+    }
+
+    const byId = new Map(window.MF_FISH.fish.map(f => [f.id, f]));
+    wrap.innerHTML = fished.map(id => {
+      const loc = R.localeById.get(id);
+      if (!loc) return '';
+      const got = A.caughtAtLocale(id);
+      const all = R.speciesAt(id);
+      const caught = all.filter(f => got[f]);
+      const missing = all.filter(f => !got[f]);
+      // Anything caught here that the locale's tables do not list — designed
+      // pools and old saves can both produce this, so it is shown rather than
+      // silently dropped.
+      const extra = Object.keys(got).filter(f => !all.includes(f));
+
+      const row = f => {
+        const fish = byId.get(f);
+        return `<li><span class="nm">${fish ? fish.name : f}</span>` +
+          `<span class="n">x${got[f]}</span></li>`;
+      };
+      return `<section class="panel">
+        <h3 class="panel-head">${loc.name}
+          <span class="cnt">${caught.length} / ${all.length} species &middot; ${A.caughtTotalAt(id)} caught</span></h3>
+        <div class="panel-body">
+          <ul class="catch-list">${caught.concat(extra).map(row).join('')}</ul>
+          ${missing.length
+            ? `<p class="missing"><b>Not yet:</b> ${missing.map(f => (byId.get(f) || {}).name || f).join(', ')}</p>`
+            : '<p class="missing done">Every species here has been landed.</p>'}
+        </div>
+      </section>`;
+    }).join('');
+  }
+
+  window.MF_GUIDE = { render, renderPantry, renderLocaleCatch, fishImg };
 })();

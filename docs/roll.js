@@ -284,6 +284,28 @@
     return Math.round(ev * G.GOAL_CASTS / G.GOAL_ROUND) * G.GOAL_ROUND;
   }
 
+  // Every species a locale can ever produce, across all its ranks and bait tables.
+  // Rank-independent on purpose: this answers "what lives here", which is what you
+  // want when you are hunting a fish you are still missing.
+  function speciesAt(localeId) {
+    const loc = localeById.get(localeId);
+    if (!loc) return [];
+    const out = new Set();
+    if (!loc.hasFishing) {
+      for (const e of (G.DESIGNED_POOLS[localeId]?.pool || G.ARENA_POOL))
+        if (fishById.get(e.fish)) out.add(e.fish);
+      return [...out];
+    }
+    for (const ranks of Object.values(loc.areas))
+      for (const pools of Object.values(ranks))
+        for (const p of pools)
+          for (const e of p.entries) {
+            const f = fishById.get(slug(e.name));
+            if (f) out.add(f.id);
+          }
+    return [...out];
+  }
+
   // ── The full guide ────────────────────────────────────────────────────────
   // Every fish x every ore, in rarity order. This is the completion target.
   function fullGuide() {
@@ -299,7 +321,7 @@
   }
 
   window.MF_ROLL = {
-    ranksAt, isOpen, localeUnlocked, basePool, expectedCastValue, questGoal,
+    ranksAt, isOpen, localeUnlocked, basePool, speciesAt, expectedCastValue, questGoal,
     hireCost, pestChance, rollPest, rollSchool, rollFish, rollOre, rollCatch, rollEncounter, fullGuide,
     fishById, localeById,
   };

@@ -17,6 +17,7 @@
     xp: 0,
     zenny: 3000,
     caught: {},              // variantId -> count
+    caughtAt: {},            // localeId -> { fishId: count }, where each came from
     pantry: {},              // ingredientId -> true when found, 'fresh' when fresh
     freshOrder: [],          // which ingredients are fresh, oldest first
     pouch: { potion: 5 },
@@ -43,7 +44,7 @@
   function hydrate(saved) {
     S = { ...defaults(), ...saved };
     // Nested objects need merging, not replacing, or a new field breaks an old save.
-    for (const k of ['caught', 'pantry', 'pouch', 'owned', 'upgrades', 'plan', 'tackle', 'stats'])
+    for (const k of ['caught', 'caughtAt', 'pantry', 'pouch', 'owned', 'upgrades', 'plan', 'tackle', 'stats'])
       S[k] = { ...defaults()[k], ...(saved[k] || {}) };
     S.owned.no_bait = Infinity;
     // Departing used to subtract from counts that were never there, which wrote
@@ -202,10 +203,24 @@
   // the two gauges have to read the bonus, not just the meal's own numbers.
   const fresh = mealId => G.freshBonus(meal(mealId), S.pantry);
 
-  function record(variantId) {
+  // The locale is recorded alongside the catch, because "what comes out of where"
+  // is worth knowing and nothing else in the save answers it. Catches made before
+  // this existed carry no locale and are simply not counted here.
+  function record(variantId, localeId, fishId) {
     S.caught[variantId] = (S.caught[variantId] || 0) + 1;
+    if (localeId && fishId) {
+      const at = S.caughtAt[localeId] || (S.caughtAt[localeId] = {});
+      at[fishId] = (at[fishId] || 0) + 1;
+    }
     return S.caught[variantId] === 1;      // first time?
   }
+
+  // Locales you have actually pulled something out of, most-fished first.
+  const caughtTotalAt = id => Object.values(S.caughtAt[id] || {}).reduce((x, y) => x + y, 0);
+  const caughtAtLocale = id => S.caughtAt[id] || {};
+  const fishedLocales = () => Object.keys(S.caughtAt)
+    .filter(id => Object.keys(S.caughtAt[id] || {}).length)
+    .sort((a, b) => caughtTotalAt(b) - caughtTotalAt(a));
 
   const guideTotal = () => window.MF_FISH.fish.length * window.CF_ORES.list.length;
   const guideFound = () => Object.keys(S.caught).length;
@@ -337,6 +352,7 @@
     localesForHR, visitedAt, visitedCount, hrTotal, hrComplete,
     markVisited, checkPromotion, everVisited,
     record, guideTotal, guideFound, recordIngredient, reconcileFresh, pantryCount, freshCount, fresh,
+    fishedLocales, caughtAtLocale, caughtTotalAt,
     spend, earn, buyBait, buyItem, buyUpgrade, upgradeCost, canBuyBait, canBuyItem,
     baitStock, itemStock, planned, setPlan, slotsUsed, localeOpen,
     tackled, tackleKinds, setTackle, prunePlans, questRung, selectQuest,

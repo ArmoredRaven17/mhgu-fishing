@@ -231,7 +231,7 @@
 
     if (res.landed) {
       S.stats.landed++;
-      const isNew = A.record(c.id);
+      const isNew = A.record(c.id, trip.localeId, c.fish.id);
       const paid = Math.round(c.value * (1 + trip.fresh.zenny));
       trip.haul.push({ name: c.name, value: paid, icon: window.MF_GUIDE.fishImg(c.ore, 22, c.name) });
       trip.value += paid;
