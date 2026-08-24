@@ -557,20 +557,31 @@
   // unchanged — they simply have no fresh ingredients yet.
   const isFresh = (held, id) => held[id] === 'fresh';
 
-  // Anything you have not found, plus anything you have found but not FRESH.
-  // A find is therefore always worth something: a new ingredient early on, and a
-  // freshness upgrade once the pantry fills up.
+  // Anything you have not found yet. Fishing turns ingredients UP; it has nothing
+  // to do with which are fresh, because freshness only ever matters while you are
+  // choosing a meal — see freshPick below.
   const ingredientPool = (hr, held) => CANTEEN.ingredients
-    .filter(i => hr >= RANK_HR[i.rank] && !isFresh(held, i.id));
+    .filter(i => hr >= RANK_HR[i.rank] && !held[i.id]);
 
   function rollIngredient(hr, held, rng = Math.random) {
     if (rng() >= INGREDIENT_CHANCE) return null;
     const pool = ingredientPool(hr, held);
     if (!pool.length) return null;
-    const found = pool[Math.floor(rng() * pool.length)];
-    // Already in the pantry? Then the only reason it came up is to be upgraded.
-    const fresh = held[found.id] ? true : rng() < FRESH_CHANCE;
-    return { ...found, fresh, upgrade: !!held[found.id] };
+    return pool[Math.floor(rng() * pool.length)];
+  }
+
+  // Which of the pantry is fresh right now. Chosen at CAMP, between trips, since
+  // that is the only place it changes anything — it decides which meal is worth
+  // cooking, and there is no meal to cook while you are stood in the water.
+  // Rerolled every time you come home, so the pair rotates rather than being
+  // something you happened to fish up once and keep forever.
+  function freshPick(pantry, rng = Math.random) {
+    const held = Object.keys(pantry);
+    const out = [];
+    const bag = held.slice();
+    while (out.length < FRESH_MAX && bag.length)
+      out.push(bag.splice(Math.floor(rng() * bag.length), 1)[0]);
+    return out;
   }
 
   // What a meal's fresh ingredients are worth. Baseline meals have no recipe and
@@ -826,6 +837,7 @@
     CANTEEN, INGREDIENT_CHANCE, ingredientById, ingredientPool, rollIngredient,
     recipeFor, mealAvailable, mealsAvailable,
     FRESH, FRESH_CHANCE, FRESH_MAX, FRESH_LABEL, isFresh, freshBonus, freshLines, freshShort,
+    freshPick,
     POND, REEL_START, fightFor, BOSS, PEST, HIRE, ENCOUNTER_CHANCE, STOCK_CAP,
     BOSS_LOSS, bossLossDamage,
   };

@@ -166,29 +166,25 @@
     return gained;
   }
 
-  // Returns what actually happened, so the trip can say the right thing: a new
-  // ingredient, the same one now found fresh, or nothing worth mentioning — plus
-  // whatever went stale to make room, since only FRESH_MAX can be fresh at once.
-  function recordIngredient(id, fresh) {
-    const had = S.pantry[id];
-    if (had === 'fresh') return null;
-    if (!fresh) {
-      if (had) return null;
-      S.pantry[id] = true;
-      return { kind: 'new', dropped: [] };
-    }
-    S.pantry[id] = 'fresh';
-    S.freshOrder = (S.freshOrder || []).filter(x => x !== id).concat(id);
-    const dropped = [];
-    while (S.freshOrder.length > G.FRESH_MAX) {
-      const old = S.freshOrder.shift();
-      if (S.pantry[old] === 'fresh') { S.pantry[old] = true; dropped.push(old); }
-    }
-    return { kind: had ? 'fresh' : 'new-fresh', dropped };
+  // Fishing just puts it in the pantry. Nothing about freshness happens out on
+  // the water — that is decided at camp, by rerollFresh below.
+  function recordIngredient(id) {
+    if (S.pantry[id]) return null;
+    S.pantry[id] = true;
+    return 'new';
   }
 
-  // Rebuild the fresh list from the pantry and hold it to the cap. Saves written
-  // before there WAS a cap can carry any number of fresh ingredients.
+  // Which of the pantry is fresh for the next trip. Run on coming home, so the
+  // pair rotates between trips rather than being fixed by whatever you happened
+  // to fish up once.
+  function rerollFresh() {
+    for (const id of Object.keys(S.pantry)) S.pantry[id] = true;
+    S.freshOrder = G.freshPick(S.pantry);
+    for (const id of S.freshOrder) S.pantry[id] = 'fresh';
+  }
+
+  // Hold a loaded save to the cap. Saves written before there WAS one can carry
+  // any number of fresh ingredients.
   function reconcileFresh() {
     const fresh = Object.keys(S.pantry).filter(id => S.pantry[id] === 'fresh');
     const order = (S.freshOrder || []).filter(id => fresh.includes(id));
@@ -351,7 +347,7 @@
     rank, meal, maxHP, maxStamina, xpNeeded, addXP, syncHR,
     localesForHR, visitedAt, visitedCount, hrTotal, hrComplete,
     markVisited, checkPromotion, everVisited,
-    record, guideTotal, guideFound, recordIngredient, reconcileFresh, pantryCount, freshCount, fresh,
+    record, guideTotal, guideFound, recordIngredient, reconcileFresh, rerollFresh, pantryCount, freshCount, fresh,
     fishedLocales, caughtAtLocale, caughtTotalAt,
     spend, earn, buyBait, buyItem, buyUpgrade, upgradeCost, canBuyBait, canBuyItem,
     baitStock, itemStock, planned, setPlan, slotsUsed, localeOpen,

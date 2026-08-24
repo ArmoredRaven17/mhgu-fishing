@@ -243,20 +243,9 @@
       // Something else comes up with it now and then. Drawn from what you have
       // not found yet at or below your rank, so nothing gets stranded behind you.
       const found = G.rollIngredient(S.hr, S.pantry);
-      const got = found && A.recordIngredient(found.id, found.fresh);
-      if (got) {
-        trip.found.push({ ...found, got: got.kind });
-        el('castPrompt').textContent += got.kind === 'fresh'
-          ? ` And a fresh ${found.name} with it.`
-          : got.kind === 'new-fresh'
-            ? ` Something came up with it — ${found.name}, and a fresh one.`
-            : ` Something came up with it — ${found.name}.`;
-        // Only two can be fresh at a time, so say what it pushed out rather than
-        // letting a bonus quietly disappear from a meal you were relying on.
-        for (const id of got.dropped) {
-          const old = G.ingredientById.get(id);
-          if (old) trip.notes.push(`Your ${old.name} is no longer fresh.`);
-        }
+      if (found && A.recordIngredient(found.id)) {
+        trip.found.push(found);
+        el('castPrompt').textContent += ` Something came up with it — ${found.name}.`;
       }
     } else {
       S.stats.lost++;
@@ -388,6 +377,7 @@
     const lost = trip.value;
     const n = trip.haul.length;
     trip = null;
+    A.rerollFresh();          // back at camp, even the hard way
     A.save();
     window.MF_UI.modal({
       cart: true,
@@ -443,6 +433,7 @@
     const n = trip.haul.length;
     trip = null;
     const promoted = completed ? A.checkPromotion() : null;
+    A.rerollFresh();          // back at camp: today's fresh ingredients
     A.save();
 
     const extra = [];
