@@ -700,6 +700,7 @@
     nibbleEveryMs: 700,     // a fish nibbles at most this often
     hookChance: 0.30,       // each nibble's chance of taking it under
     baitShare: 0.5,         // how much of the school a bait can promise you
+    reelInPresses: 5,       // taps to pull an unhooked line back in
   };
 
   // ── Reel struggle ─────────────────────────────────────────────────────────

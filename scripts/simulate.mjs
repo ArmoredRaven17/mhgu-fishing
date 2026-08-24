@@ -172,7 +172,7 @@ const bossWinChance = (boss, lineLvl) => {
   return Math.min(0.9, Math.max(0.1, 0.10 + grace * 0.85 + lineLvl * 0.03));
 };
 
-function runTrip(localeId, lo, hr) {
+function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
   if (!R.isOpen(localeId, hr)) return null;
   const bait = baitBy.get(lo.baitId);
   const climate = G.climateOf(localeId);
@@ -201,6 +201,12 @@ function runTrip(localeId, lo, hr) {
   const used = { potions: 0, rations: 0, drinks: 0 };
 
   while (sta > 0 && hp > 0 && casts < 500) {
+    // Walking away is always available, and it is the whole decision: what you
+    // are carrying is only yours once you are home. A real player does not decide
+    // this on a cast count — they look at the HP bar, which is the information a
+    // blind "retire at N" policy throws away.
+    if (casts >= retireAt) break;
+    if (hp <= bailBelowHP && potions <= 0 && supplyHeals <= 0) break;
     casts++;
 
     const enc = R.rollEncounter(localeId, bait, hr);
@@ -290,6 +296,46 @@ for (const r of rows)
   console.log(`${r.name.padEnd(20)} ${r.climate.padEnd(10)} ${r.casts.toFixed(0).padStart(6)}` +
     ` ${r.perTrip.toFixed(0).padStart(9)} ${r.net.toFixed(0).padStart(8)}` +
     `  ${(r.cartRate * 100).toFixed(1).padStart(5)}%   ${r.designed ? 'designed' : ''}`);
+
+line('Is staying worth the risk?');
+//
+// The push-your-luck spine: retiring banks what you have, staying earns more but
+// puts ALL of it on a cart. The question is whether walking away is ever right.
+//
+// Measured two ways, because they answer different things. A BLIND policy retires
+// after N casts whatever is happening. An INFORMED one watches the HP bar and
+// leaves when it is low and there is nothing left to heal with — which is what a
+// player at the screen actually does.
+{
+  const where = [['ruined_pinnacle', 12, 'G Rank, Danger'],
+                 ['marshlands', 9, 'G Rank, safe']];
+  const runs = Math.min(TRIPS, 1500);
+  const avg = (id, hr, at, bail) => {
+    let take = 0, carts = 0;
+    for (let i = 0; i < runs; i++) {
+      const t = runTrip(id, makeLoadout({ potions: 5 }), hr, at, bail);
+      if (!t) return null;
+      take += t.haul; if (t.carted) carts++;
+    }
+    return { take: take / runs, cart: 100 * carts / runs };
+  };
+  for (const [id, hr, label] of where) {
+    console.log(`
+${R.localeById.get(id).name} — ${label}, 5 potions, no hire`);
+    console.log('  policy                        take-home   cart%');
+    const rows = [['fish it out', Infinity, 0]];
+    for (const at of [16, 24, 32]) rows.push([`blind: stop after ${at} casts`, at, 0]);
+    for (const hpAt of [30, 50, 70]) rows.push([`informed: leave under ${hpAt} HP`, Infinity, hpAt]);
+    let best = { label: '', take: -1 };
+    for (const [label2, at, bail] of rows) {
+      const r = avg(id, hr, at, bail);
+      if (!r) continue;
+      if (r.take > best.take) best = { label: label2, take: r.take };
+      console.log(`  ${label2.padEnd(30)}${r.take.toFixed(0).padStart(7)}z  ${r.cart.toFixed(1).padStart(6)}%`);
+    }
+    console.log(`  -> best: ${best.label} (${best.take.toFixed(0)}z)`);
+  }
+}
 
 line('Is a Hunter for Hire worth it?');
 {

@@ -201,6 +201,16 @@
     if (!trip) return;
     if (res.cancelled) { trip.busy = false; render(); return; }
 
+    // Pulled the line back before anything took it. That costs the cast — you
+    // still threw it — but not the bait, since nothing was ever offered a hook.
+    if (res.reason === 'reeled-in') {
+      trip.sta -= G.STAMINA_COST.cast;
+      el('castPrompt').textContent = 'You reel the line back in.';
+      trip.busy = false; A.save(); render();
+      if (trip.sta <= 0) return finish('out of stamina');
+      return;
+    }
+
     if (boss) {
       spendStamina(boss.durationMs / 1000);
       // Losing costs HP, scaled by the rung this locale sits on. It only ends the

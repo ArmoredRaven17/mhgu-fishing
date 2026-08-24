@@ -120,6 +120,7 @@
           if (e.repeat) return;
           if (S.phase === 'hooked') strike();
           else if (S.phase === 'reel') pull();
+          else if (S.phase === 'swim') reelIn();
           return;
         }
         const dir = NUDGE[e.code];
@@ -139,6 +140,20 @@
         S.ty = Math.max(0.06, Math.min(0.94, S.ty + dy * P.bobberStep));
         bobber.classList.add('nudged');
         setTimeout(() => bobber.classList.remove('nudged'), 120);
+      }
+
+      // Nothing on the hook yet, so the line can simply come back. Hammering it
+      // in costs the cast but keeps the bait, which is what makes it usable for
+      // seeing whether a bait is drawing anything before you commit to waiting.
+      function reelIn() {
+        S.pullIn = (S.pullIn || 0) + 1;
+        const need = P.reelInPresses;
+        if (S.pullIn < need) {
+          el('reelHint').textContent =
+            `Reeling in… ${'●'.repeat(S.pullIn)}${'○'.repeat(need - S.pullIn)}`;
+          return;
+        }
+        done({ landed: false, reason: 'reeled-in', catch: null });
       }
 
       function strike() {
@@ -299,7 +314,7 @@
       el('reelName').textContent = '';
       el('reelHint').textContent = S.monster
         ? 'Something big is circling.'
-        : 'Arrows or WASD to move the bobber. Wait for it to go under.';
+        : 'Arrows or WASD to move the bobber. Hammer Space to reel back in.';
       raf = requestAnimationFrame(frame);
     });
   }
