@@ -474,6 +474,7 @@ const PREP_ROLE = {
   15: 'endure', 16: 'endure',
   23: 'cool', 24: 'hot',
   20: 'defence', 21: 'defence',       // Armorskin, Mega Armorskin
+  52: 'chill', 53: 'warm',            // Chilled Meat, Hot Meat
 };
 const PREP_IDS = Object.keys(PREP_ROLE).join(',');
 const prep = q(`SELECT _id, name, rarity, buy, sell, description, icon_name, icon_color

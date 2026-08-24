@@ -432,12 +432,17 @@
     well_done_steak: { group: 'stamina', stamina: 50,           unlock: 9,  carry: 5,  label: '+50 Stamina' },
     ration:          { group: 'stamina', stamina: 25,                       carry: 10, label: '+25 Stamina' },
     ancient_potion:  { group: 'misc',    hp: 999, stamina: 999, unlock: 13, carry: 1,  label: 'Full HP and Stamina' },
-    cool_drink:      { group: 'misc',                           unlock: 1,  carry: 5,  label: 'Increases heat resistance for a short time' },
-    hot_drink:       { group: 'misc',                           unlock: 1,  carry: 5,  label: 'Increases cold resistance for a short time' },
+    cool_drink:      { group: 'misc', protects: 'hot',          unlock: 1,  carry: 5,  label: 'Increases heat resistance for a short time' },
+    hot_drink:       { group: 'misc', protects: 'cold',         unlock: 1,  carry: 5,  label: 'Increases cold resistance for a short time' },
     dash_juice:      { group: 'misc',      dash: 1,             unlock: 5,  carry: 5,  label: 'Halves Stamina used while reeling' },
     mega_dash_juice: { group: 'misc',      dash: 2,             unlock: 9,  carry: 2,  label: 'Halves Stamina used while reeling, for twice as long' },
     // Defence, the same currency the Alcohol fresh bonus pays in: a fraction off
     // what small monsters and the two big ones take from you.
+    // One slot doing two jobs: a Well-done Steak's Stamina AND a drink's
+    // resistance. That is the whole reason they are G Rank+ and dearer than the
+    // two things they replace put together.
+    hot_meat:        { group: 'misc', stamina: 50, protects: 'cold', unlock: 13, carry: 5, label: '+50 Stamina and cold resistance' },
+    chilled_meat:    { group: 'misc', stamina: 50, protects: 'hot',  unlock: 13, carry: 5, label: '+50 Stamina and heat resistance' },
     armorskin:       { group: 'misc',      def: 0.15, secs: 1,  unlock: 5,  carry: 5,  label: '+15% Def for a short time' },
     mega_armorskin:  { group: 'misc',      def: 0.25, secs: 2,  unlock: 9,  carry: 2,  label: '+25% Def, for twice as long' },
   };
@@ -464,7 +469,14 @@
   // dearer, later one and the drink is the cheap early standby. Straight off the
   // real numbers the steak was half the price AND stronger, which left the drink
   // with no reason to exist after HR5.
-  const ITEM_PRICE = { rare_steak: 60, energy_drink: 30 };
+  const ITEM_PRICE = {
+    rare_steak: 60, energy_drink: 30,
+    // The real prices put these BELOW the drink alone — 250 and 300 against a 96
+    // steak — which would make a slot-saving combo cheaper than either half of
+    // it. Priced above the pair they replace instead (346 and 396), so what you
+    // are paying for is the slot.
+    hot_meat: 420, chilled_meat: 480,
+  };
   const priceOf = p => ITEM_PRICE[p.id] ?? p.buy;
 
   // A group with an explicit order lists its items that way; the rest sort by
@@ -474,7 +486,7 @@
     ['hp', 'HP Items'],
     ['stamina', 'Stamina Items'],
     ['misc', 'Misc', ['ancient_potion', 'cool_drink', 'hot_drink', 'dash_juice', 'mega_dash_juice',
-                      'armorskin', 'mega_armorskin']],
+                      'armorskin', 'mega_armorskin', 'hot_meat', 'chilled_meat']],
   ];
 
   const BASE_MAX_HP = 100;

@@ -152,7 +152,7 @@
   function renderStatus() {
     const buffs = [];
     if (trip.climate !== 'temperate' && trip.drinkLeft > 0)
-      buffs.push(`${trip.climate === 'hot' ? 'Cool' : 'Hot'} Drink ${Math.ceil(trip.drinkLeft)}s`);
+      buffs.push(`${trip.climate === 'hot' ? 'Heat' : 'Cold'} guarded ${Math.ceil(trip.drinkLeft)}s`);
     if (trip.dashLeft > 0) buffs.push(`Dash ${Math.ceil(trip.dashLeft)}s`);
     if (trip.defLeft > 0)
       buffs.push(`+${Math.round(trip.defAmount * 100)}% Def ${Math.ceil(trip.defLeft)}s`);
@@ -340,8 +340,12 @@
   // disabled rather than the click silently eating the item.
   function wouldHelp(id) {
     const e = G.effectOf(id);
-    if (id === 'cool_drink') return trip.climate === 'hot';
-    if (id === 'hot_drink') return trip.climate === 'cold';
+    // A guard against the climate you are actually standing in is worth taking on
+    // its own, full gauges or not — that is the whole point of a drink.
+    if (e.protects === trip.climate) return true;
+    // Against a climate you are NOT in it does nothing, so a plain drink is dead
+    // weight here. A meat still has the food half to offer, so it falls through.
+    if (e.protects && !e.stamina && !e.hp) return false;
     if (e.dash || e.def) return true;              // always worth refreshing
     const helpsHp = e.hp && trip.hp < trip.maxHP;
     const helpsSta = e.stamina && trip.sta < trip.maxSta;
@@ -362,7 +366,7 @@
     trip.carried[id]--;
     if (e.hp) trip.hp = Math.min(trip.maxHP, trip.hp + e.hp);
     if (e.stamina) trip.sta = Math.min(trip.maxSta, trip.sta + e.stamina);
-    if (id === 'cool_drink' || id === 'hot_drink') trip.drinkLeft = G.DRINK_SECONDS;
+    if (e.protects === trip.climate) trip.drinkLeft = G.DRINK_SECONDS;
     if (e.dash) trip.dashLeft = G.DASH_SECONDS * e.dash;
     if (e.def) { trip.defLeft = G.ARMOR_SECONDS * e.secs; trip.defAmount = e.def; }
     A.save();

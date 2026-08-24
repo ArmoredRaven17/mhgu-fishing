@@ -384,6 +384,18 @@ window.MF_FISH = {
       "icon": "MH4G-Medicine_Icon_Red.png"
     },
     {
+      "id": "hot_meat",
+      "gid": 53,
+      "name": "Hot Meat",
+      "role": "warm",
+      "rarity": 1,
+      "buy": 250,
+      "sell": 25,
+      "color": "Red",
+      "desc": "Meat that warms the body, wards off the cold, and restores a moderate amount of Stamina.",
+      "icon": "MH4G-Meat_Icon_Red.png"
+    },
+    {
       "id": "dash_juice",
       "gid": 15,
       "name": "Dash Juice",
@@ -394,6 +406,18 @@ window.MF_FISH = {
       "color": "Yellow",
       "desc": "Lets you run without tiring for a short period of time.",
       "icon": "MH4G-Medicine_Icon_Yellow.png"
+    },
+    {
+      "id": "chilled_meat",
+      "gid": 52,
+      "name": "Chilled Meat",
+      "role": "chill",
+      "rarity": 1,
+      "buy": 300,
+      "sell": 30,
+      "color": "Light Blue",
+      "desc": "Meat that cools the body, wards off heat, and restores a moderate amount of Stamina.",
+      "icon": "MH4G-Meat_Icon_Light_Blue.png"
     },
     {
       "id": "cool_drink",
