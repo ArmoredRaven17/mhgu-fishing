@@ -408,6 +408,18 @@ window.MF_FISH = {
       "icon": "MH4G-Medicine_Icon_White.png"
     },
     {
+      "id": "armorskin",
+      "gid": 20,
+      "name": "Armorskin",
+      "role": "defence",
+      "rarity": 4,
+      "buy": 578,
+      "sell": 58,
+      "color": "Orange",
+      "desc": "Boosts your Defense by turning your skin as hard as rock.",
+      "icon": "MH4G-Medicine_Icon_Orange.png"
+    },
+    {
       "id": "mega_dash_juice",
       "gid": 16,
       "name": "Mega Dash Juice",
@@ -430,6 +442,18 @@ window.MF_FISH = {
       "color": "Yellow",
       "desc": "Fully restores Health and maximizes the size of your Health Gauge.",
       "icon": "MH4G-Sac_Icon_Yellow.png"
+    },
+    {
+      "id": "mega_armorskin",
+      "gid": 21,
+      "name": "Mega Armorskin",
+      "role": "defence",
+      "rarity": 5,
+      "buy": 2696,
+      "sell": 269,
+      "color": "Orange",
+      "desc": "Boosts your Defense even more than a regular Armorskin.",
+      "icon": "MH4G-Medicine_Icon_Orange.png"
     },
     {
       "id": "ancient_potion",

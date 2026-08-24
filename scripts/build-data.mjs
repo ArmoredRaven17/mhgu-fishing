@@ -473,6 +473,7 @@ const PREP_ROLE = {
   1718: 'stamina', 49: 'stamina', 50: 'stamina', 30: 'stamina',
   15: 'endure', 16: 'endure',
   23: 'cool', 24: 'hot',
+  20: 'defence', 21: 'defence',       // Armorskin, Mega Armorskin
 };
 const PREP_IDS = Object.keys(PREP_ROLE).join(',');
 const prep = q(`SELECT _id, name, rarity, buy, sell, description, icon_name, icon_color

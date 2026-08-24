@@ -49,6 +49,7 @@
       hired: !!hire,       // locked in at departure; you cannot hire from the water
       drinkLeft: 0,
       dashLeft: 0,
+      defLeft: 0, defAmount: 0,
       goal: R.questGoal(S.localeId, questHR),
       haul: [], value: 0,
       found: [],          // ingredients turned up this trip
@@ -145,6 +146,8 @@
     if (trip.climate !== 'temperate' && trip.drinkLeft > 0)
       buffs.push(`${trip.climate === 'hot' ? 'Cool' : 'Hot'} Drink ${Math.ceil(trip.drinkLeft)}s`);
     if (trip.dashLeft > 0) buffs.push(`Dash ${Math.ceil(trip.dashLeft)}s`);
+    if (trip.defLeft > 0)
+      buffs.push(`+${Math.round(trip.defAmount * 100)}% Def ${Math.ceil(trip.defLeft)}s`);
     el('buffLine').innerHTML = buffs.length
       ? buffs.map(b => `<span class="buff">${b}</span>`).join('')
       : '';
@@ -190,7 +193,7 @@
       // trip if it empties the bar — and then it is a cart like any other.
       if (!res.landed) {
         const hurt = Math.max(1, Math.round(
-          G.bossLossDamage(trip.questHR) * (1 - trip.fresh.guard)));
+          G.bossLossDamage(trip.questHR) * (1 - guardNow())));
         trip.hp -= hurt;
         el('castPrompt').textContent =
           `${boss.name} throws you off and is gone — ${hurt} HP.`;
@@ -220,7 +223,7 @@
     // makes HP worth carrying potions for away from the two hot locales.
     const pest = R.rollPest(trip.localeId, trip.questHR, trip.hired);
     if (pest) {
-      pest.damage = Math.max(1, Math.round(pest.damage * (1 - trip.fresh.guard)));
+      pest.damage = Math.max(1, Math.round(pest.damage * (1 - guardNow())));
       trip.hp -= pest.damage;
       S.stats.pests = (S.stats.pests || 0) + 1;
       trip.notes.push(`A ${pest.name} goes for you — ${pest.damage} HP.`);
@@ -298,7 +301,13 @@
 
   function tickBuffs(secs) {
     if (trip.dashLeft > 0) trip.dashLeft -= secs;
+    if (trip.defLeft > 0) trip.defLeft -= secs;
   }
+
+  // Everything that softens a hit, added up. A fresh Alcohol meal and an
+  // Armorskin stack, but not without limit — something always gets through.
+  const guardNow = () =>
+    Math.min(0.6, trip.fresh.guard + (trip.defLeft > 0 ? trip.defAmount : 0));
 
   function tickClimate(secs) {
     if (trip.climate === 'temperate') return;
@@ -328,7 +337,7 @@
     const e = G.effectOf(id);
     if (id === 'cool_drink') return trip.climate === 'hot';
     if (id === 'hot_drink') return trip.climate === 'cold';
-    if (e.dash) return true;                       // always worth refreshing
+    if (e.dash || e.def) return true;              // always worth refreshing
     const helpsHp = e.hp && trip.hp < trip.maxHP;
     const helpsSta = e.stamina && trip.sta < trip.maxSta;
     return !!(helpsHp || helpsSta);
@@ -350,6 +359,7 @@
     if (e.stamina) trip.sta = Math.min(trip.maxSta, trip.sta + e.stamina);
     if (id === 'cool_drink' || id === 'hot_drink') trip.drinkLeft = G.DRINK_SECONDS;
     if (e.dash) trip.dashLeft = G.DASH_SECONDS * e.dash;
+    if (e.def) { trip.defLeft = G.ARMOR_SECONDS * e.secs; trip.defAmount = e.def; }
     A.save();
     render();
   }

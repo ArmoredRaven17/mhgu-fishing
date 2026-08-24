@@ -390,6 +390,7 @@
 
   // Dash Juice halves what reeling costs. Same clock as a drink, measured in
   // fight seconds; the Mega version simply runs twice as long.
+  const ARMOR_SECONDS = 90;    // one Armorskin; the Mega lasts twice that
   const DASH_SECONDS = 90;
   const DASH_MULT = 0.5;
 
@@ -435,6 +436,10 @@
     hot_drink:       { group: 'misc',                           unlock: 1,  carry: 5,  label: 'Increases cold resistance for a short time' },
     dash_juice:      { group: 'misc',      dash: 1,             unlock: 5,  carry: 5,  label: 'Halves Stamina used while reeling' },
     mega_dash_juice: { group: 'misc',      dash: 2,             unlock: 9,  carry: 2,  label: 'Halves Stamina used while reeling, for twice as long' },
+    // Defence, the same currency the Alcohol fresh bonus pays in: a fraction off
+    // what small monsters and the two big ones take from you.
+    armorskin:       { group: 'misc',      def: 0.15, secs: 1,  unlock: 5,  carry: 5,  label: '+15% Def for a short time' },
+    mega_armorskin:  { group: 'misc',      def: 0.25, secs: 2,  unlock: 9,  carry: 2,  label: '+25% Def, for twice as long' },
   };
 
   // How much you can take at all. A slot holds one KIND of item, up to its own
@@ -468,7 +473,8 @@
   const ITEM_GROUPS = [
     ['hp', 'HP Items'],
     ['stamina', 'Stamina Items'],
-    ['misc', 'Misc', ['ancient_potion', 'cool_drink', 'hot_drink', 'dash_juice', 'mega_dash_juice']],
+    ['misc', 'Misc', ['ancient_potion', 'cool_drink', 'hot_drink', 'dash_juice', 'mega_dash_juice',
+                      'armorskin', 'mega_armorskin']],
   ];
 
   const BASE_MAX_HP = 100;
@@ -768,7 +774,7 @@
     LADDER, localesAtHR, localesOpenAt, bandOf, openedAtHR, rungsOpenAt, nextHR, MAX_LADDER_HR,
     GOAL_CASTS, GOAL_ROUND,
     CLIMATE, climateOf, CLIMATE_RATES, CLIMATE_TICK_MS, DRINK_SECONDS,
-    DASH_SECONDS, DASH_MULT,
+    DASH_SECONDS, DASH_MULT, ARMOR_SECONDS,
     BASE_MAX_HP, BASE_MAX_STAMINA, STAMINA_COST,
     MEALS, mealCost, MEAL_SCALE, UPGRADES, ITEM_PRICE, priceOf,
     CANTEEN, INGREDIENT_CHANCE, ingredientById, ingredientPool, rollIngredient,
