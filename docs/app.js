@@ -22,6 +22,10 @@
     owned: { no_bait: Infinity },   // baitId -> count; No Bait is free and unlimited
     upgrades: { vitality: 0, endurance: 0, line: 0, lure: 0 },
     localeId: 'jurassic_frontier',
+    // Which RUNG of the ladder the selected quest is. The same locale sits on a
+    // rung per rank, and they are different quests — the tables, ores and goal
+    // all come from this, not from your own HR.
+    questHR: 1,
     baitId: 'no_bait',
     mealId: 'none',
     hired: false,            // a Hunter for Hire stands watch on the next trip
@@ -123,9 +127,11 @@
 
   // Called when a quest is COMPLETED — came home, with something to show for it.
   // A cart is a failed quest and marks nothing.
-  function markVisited(localeId) {
-    if (S.hr >= G.MAX_LADDER_HR) return false;
-    const seen = S.visited[S.hr] || (S.visited[S.hr] = {});
+  // Marks the RUNG the quest was taken on. Clearing the Low Jurassic Frontier as
+  // a High Rank angler ticks HR1, not HR4 — it was the Low quest you did.
+  function markVisited(localeId, hr = S.hr) {
+    if (hr >= G.MAX_LADDER_HR) return false;
+    const seen = S.visited[hr] || (S.visited[hr] = {});
     if (seen[localeId]) return false;
     seen[localeId] = true;
     return true;
@@ -258,6 +264,22 @@
   // ── Locale availability ───────────────────────────────────────────────────
   const localeOpen = id => R.isOpen(id, S.hr);
 
+  // The selected quest, kept honest. A rung you have not reached, or one that
+  // does not run this locale, falls back to the newest rung that does.
+  function questRung() {
+    const runs = G.localesAtHR(S.questHR) || [];
+    if (S.questHR <= S.hr && runs.includes(S.localeId)) return S.questHR;
+    let best = 1;
+    for (let h = 1; h <= Math.min(S.hr, 12); h++)
+      if (G.localesAtHR(h).includes(S.localeId)) best = h;
+    return best;
+  }
+  function selectQuest(localeId, hr) {
+    S.localeId = localeId;
+    S.questHR = hr;
+    save();
+  }
+
   window.MF_APP = {
     get state() { return S; },
     BAITS, baitBy, prepBy,
@@ -268,7 +290,7 @@
     record, guideTotal, guideFound, recordIngredient, pantryCount, freshCount, fresh,
     spend, earn, buyBait, buyItem, buyUpgrade, upgradeCost, canBuyBait, canBuyItem,
     baitStock, itemStock, planned, setPlan, slotsUsed, localeOpen,
-    tackled, tackleKinds, setTackle,
+    tackled, tackleKinds, setTackle, questRung, selectQuest,
     reset() { S = defaults(); save(); },
   };
 })();

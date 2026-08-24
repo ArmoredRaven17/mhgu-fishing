@@ -20,12 +20,13 @@
     const S = A.state;
     const loc = R.localeById.get(S.localeId);
     const meal = A.meal();
-    const hire = S.hired ? R.hireCost(S.localeId, S.hr) : 0;
+    const questHR = A.questRung();          // the rung decides the quest's rank
+    const hire = S.hired ? R.hireCost(S.localeId, questHR) : 0;
     if (!A.spend(meal.cost + hire)) return;
 
     const climate = G.climateOf(S.localeId);
     trip = {
-      localeId: S.localeId, loc, climate,
+      localeId: S.localeId, loc, climate, questHR,
       rates: G.CLIMATE_RATES[climate],
       tackle: Object.fromEntries(A.tackleKinds().map(id => [id, A.tackled(id)])),
       bait: A.baitBy.get('no_bait'),
@@ -48,7 +49,7 @@
       hired: !!hire,       // locked in at departure; you cannot hire from the water
       drinkLeft: 0,
       dashLeft: 0,
-      goal: R.questGoal(S.localeId, S.hr),
+      goal: R.questGoal(S.localeId, questHR),
       haul: [], value: 0,
       found: [],          // ingredients turned up this trip
       notes: [],          // things to tack onto the cast message once it is written
@@ -162,7 +163,7 @@
 
     const boss = R.rollEncounter(trip.localeId, trip.bait);
     const school = boss ? [] : R.rollSchool({
-      localeId: trip.localeId, bait: trip.bait, hr: S.hr, lureLevel: S.upgrades.lure,
+      localeId: trip.localeId, bait: trip.bait, hr: trip.questHR, lureLevel: S.upgrades.lure,
     });
     if (!boss && !school.length) { trip.busy = false; render(); return; }
 
@@ -189,7 +190,7 @@
       // trip if it empties the bar — and then it is a cart like any other.
       if (!res.landed) {
         const hurt = Math.max(1, Math.round(
-          G.bossLossDamage(G.openedAtHR(trip.localeId, S.hr)) * (1 - trip.fresh.guard)));
+          G.bossLossDamage(trip.questHR) * (1 - trip.fresh.guard)));
         trip.hp -= hurt;
         el('castPrompt').textContent =
           `${boss.name} throws you off and is gone — ${hurt} HP.`;
@@ -217,7 +218,7 @@
 
     // Something small has a go at you while your hands are full. This is what
     // makes HP worth carrying potions for away from the two hot locales.
-    const pest = R.rollPest(trip.localeId, S.hr, trip.hired);
+    const pest = R.rollPest(trip.localeId, trip.questHR, trip.hired);
     if (pest) {
       pest.damage = Math.max(1, Math.round(pest.damage * (1 - trip.fresh.guard)));
       trip.hp -= pest.damage;
@@ -407,7 +408,7 @@
     const completed = trip.value >= trip.goal;
     const goal = trip.goal;                    // trip is cleared below; keep it
     const short = goal - trip.value;
-    const firstHere = completed && A.markVisited(trip.localeId);
+    const firstHere = completed && A.markVisited(trip.localeId, trip.questHR);
     const localeName = trip.loc.name;
     const items = trip.haul.map(c => [c.name, z(c.value)])
       .concat(found.map(f => [f.name, 'ingredient']));
@@ -425,7 +426,7 @@
     const extra = [];
     if (firstHere && !promoted) {
       extra.push(`${localeName} cleared — ` +
-        `${A.visitedCount(S.hr)} of ${A.hrTotal(S.hr)} at HR ${S.hr}.`);
+        `${A.visitedCount(trip.questHR)} of ${A.hrTotal(trip.questHR)} at HR ${trip.questHR}.`);
     }
     if (!completed && short > 0)
       extra.push(`${z(short)} short of the ${z(goal)} needed to clear ${localeName}.`);

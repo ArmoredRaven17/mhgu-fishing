@@ -276,12 +276,13 @@
 
   // Everything reachable at this HR: every rung of the current rank up to here.
   // At G Rank+ the ladder is done, so all of it is open.
+  // Everything you have ever opened, from HR1 up. A rung does not close behind
+  // you — a High Rank angler can still go back and fish the Jurassic Frontier,
+  // they just fish it as the High Rank angler they now are.
   function localesOpenAt(hr) {
     if (hr >= MAX_LADDER_HR) return [...new Set(Object.values(LADDER).flat())];
-    const band = bandOf(hr);
-    if (!band) return [];
     const out = new Set();
-    for (let h = band[0]; h <= hr; h++) for (const id of localesAtHR(h)) out.add(id);
+    for (let h = 1; h <= hr; h++) for (const id of localesAtHR(h)) out.add(id);
     return [...out];
   }
 
@@ -317,11 +318,25 @@
 
   // Which rung of the current rank opened this locale. Used to group the locale
   // list, so it reads as the ladder rather than as one flat pile.
-  function openedAtHR(localeId, hr) {
-    const band = bandOf(Math.min(hr, 12)) || [9, 12];
-    for (let h = band[0]; h <= band[1]; h++)
+  // The rung a locale first appeared on. Kept for anything that needs a locale's
+  // earliest home; a QUEST is identified by its own rung, not by this.
+  function openedAtHR(localeId) {
+    for (let h = 1; h <= 12; h++)
       if (localesAtHR(h).includes(localeId)) return h;
-    return band[0];
+    return 1;
+  }
+
+  // Every rung you have unlocked, oldest first. A locale appears once per rank it
+  // is listed at, because those are different quests: the Jurassic Frontier at
+  // HR1 is a Low Rank quest and at HR4 a High Rank one, with different tables,
+  // different ores and a different goal. Reaching High Rank does not close the
+  // Low quest — going back is how you farm a fish out of an undiluted Low pool.
+  function rungsOpenAt(hr) {
+    const top = hr >= MAX_LADDER_HR ? 12 : hr;
+    const out = [];
+    for (let h = 1; h <= top; h++)
+      if (localesAtHR(h).length) out.push({ hr: h, rank: rankAt(h), locales: localesAtHR(h) });
+    return out;
   }
 
   const DESIGNED_POOLS = {
@@ -737,7 +752,7 @@
     ITEM_EFFECT, effectOf, ITEM_GROUPS,
     POUCH_SLOTS, TACKLE_SLOTS, BAIT_CARRY, carryLimit, SUPPLY_RANK, SUPPLY_EACH,
     DESIGNED_POOLS, ARENA_POOL, RANK_ORDER, rankIndex, SHOW_DESIGNED_LOCALES,
-    LADDER, localesAtHR, localesOpenAt, bandOf, openedAtHR, nextHR, MAX_LADDER_HR,
+    LADDER, localesAtHR, localesOpenAt, bandOf, openedAtHR, rungsOpenAt, nextHR, MAX_LADDER_HR,
     GOAL_CASTS, GOAL_ROUND,
     CLIMATE, climateOf, CLIMATE_RATES, CLIMATE_TICK_MS, DRINK_SECONDS,
     DASH_SECONDS, DASH_MULT,

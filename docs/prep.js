@@ -23,25 +23,25 @@
 
   function renderLocales() {
     const S = A.state;
-    const open = window.MF_LOCALES.filter(l => A.localeOpen(l.id));
-    const done = A.everVisited();          // the mark is a record, not a rung
-    const thisRung = A.visitedAt(S.hr);     // ...but the count below still is
+    const ever = A.everVisited();          // the mark is a record, not a rung
+    const rung = A.questRung();            // which quest is actually selected
+    const rungs = G.rungsOpenAt(S.hr);
 
-    const byRung = new Map();
-    for (const l of open) {
-      const h = G.openedAtHR(l.id, S.hr);
-      if (!byRung.has(h)) byRung.set(h, []);
-      byRung.get(h).push(l);
-    }
+    el('localeList').innerHTML = rungs.map(r => {
+      const list = r.locales.map(id => R.localeById.get(id))
+        .filter(l => l && (l.hasFishing || G.SHOW_DESIGNED_LOCALES));
+      if (!list.length) return '';
+      const isCurrent = r.hr === S.hr;
+      const seen = A.visitedAt(r.hr);
+      const doneHere = list.filter(l => seen[l.id]).length;
 
-    const rungs = [...byRung.keys()].sort((a, b) => a - b);
-    el('localeList').innerHTML = rungs.map(h => {
-      const list = byRung.get(h);
-      const isCurrent = h === S.hr;
-      const doneHere = list.filter(l => thisRung[l.id]).length;
+      // Every rung says its rank, because the same locale on two rungs is two
+      // different quests and the rank is the thing that tells them apart.
       const head = `<li class="rung ${isCurrent ? 'current' : ''}">
-        <span>HR ${h}</span>
-        <span class="rmeta">${isCurrent ? `${doneHere} / ${list.length} to reach ${nextLabel(S.hr)}` : ''}</span>
+        <span>HR ${r.hr} &middot; ${r.rank.name}</span>
+        <span class="rmeta">${isCurrent
+          ? `${doneHere} / ${list.length} to reach ${nextLabel(S.hr)}`
+          : `${doneHere} / ${list.length}`}</span>
       </li>`;
 
       return head + list.map(l => {
@@ -49,13 +49,16 @@
         const tags = [];
         if (CLIMATE_LABEL[climate]) tags.push(`<span class="tag ${climate}">${CLIMATE_LABEL[climate]}</span>`);
         if (l.boss.length) tags.push('<span class="tag boss">Danger</span>');
-        if (done[l.id]) tags.push('<span class="tag done">Completed</span>');
+        if (seen[l.id]) tags.push('<span class="tag done">Completed</span>');
 
+        // The pool you would actually fish on THIS rung, not on your own HR.
         const meta = l.hasFishing
-          ? R.ranksAt(l.id, S.hr).join(' / ') + ' Rank'
+          ? `${R.questGoal(l.id, r.hr).toLocaleString()}z &middot; ${G.oresAt(r.hr).length} varieties`
           : 'nothing here swims like it should';
 
-        return `<li data-id="${l.id}" class="${S.localeId === l.id ? 'sel' : ''} ${done[l.id] ? 'done' : ''}">
+        const on = S.localeId === l.id && rung === r.hr;
+        return `<li data-id="${l.id}" data-hr="${r.hr}"
+          class="${on ? 'sel' : ''} ${seen[l.id] ? 'done' : ''}">
           <div class="linfo">
             <span class="lname">${l.name}</span>
             <span class="lmeta">${meta}</span>
@@ -66,10 +69,13 @@
     }).join('');
 
     el('localeList').querySelectorAll('li[data-id]').forEach(li => {
-      li.onclick = () => { A.state.localeId = li.dataset.id; A.save(); renderAll(); };
+      li.onclick = () => { A.selectQuest(li.dataset.id, Number(li.dataset.hr)); renderAll(); };
     });
   }
 
+  // ── Hunter for Hire ───────────────────────────────────────────────────────
+  //
+  // Someone to stand watch while you fish. Priced by the locale, so the places
   // ── Tackle box ────────────────────────────────────────────────────────────
   //
   // Up to five kinds of bait, swapped between casts out on the water. Replaces
@@ -103,14 +109,11 @@
     });
   }
 
-  // ── Hunter for Hire ───────────────────────────────────────────────────────
-  //
-  // Someone to stand watch while you fish. Priced by the locale, so the places
   // that hurt most are the places it costs most to be looked after in.
   function renderHire() {
     const S = A.state;
     const loc = R.localeById.get(S.localeId);
-    const cost = R.hireCost(S.localeId, S.hr);
+    const cost = R.hireCost(S.localeId, A.questRung());
     const none = !loc.pests || !loc.pests.length;
     const broke = S.zenny < cost + A.meal().cost;
 
@@ -221,12 +224,14 @@
 
     // What is charged on departure is already shown next to the meal and the
     // hire themselves, so it is not restated here.
-    const upfront = meal.cost + (S.hired ? R.hireCost(S.localeId, S.hr) : 0);
+    const upfront = meal.cost + (S.hired ? R.hireCost(S.localeId, A.questRung()) : 0);
 
     // The headline: where, what water, and what it takes to clear it.
-    const rank = loc.hasFishing ? R.ranksAt(S.localeId, S.hr).join(' / ') + ' Rank' : '';
-    bits.push(`<div class="head"><b>${loc.name}</b>${rank ? ` - ${rank}` : ''} - ` +
-      `Objective: <b>${z(R.questGoal(S.localeId, S.hr))}</b></div>`);
+    // The quest's own rank, single, from the rung you picked.
+    const rung = A.questRung();
+    const rank = G.rankAt(rung).name;
+    bits.push(`<div class="head"><b>${loc.name}</b> - ${rank} - ` +
+      `Objective: <b>${z(R.questGoal(S.localeId, rung))}</b></div>`);
 
     // Three fixed lines, always present and always in this order. Stating the
     // good case out loud rather than omitting it is what keeps the block the same
