@@ -94,14 +94,21 @@ body{
 .tab.active{opacity:1;background:var(--bg1);border-color:var(--line);font-weight:600}
 .tab:disabled{opacity:.3;cursor:not-allowed}
 
-/* ── Content ───────────────────────────────────────────────────────────── */
+/* ── Content ───────────────────────────────────────────────────────────────
+   The window itself does NOT scroll. Everything is sized to the viewport and
+   whatever is too tall scrolls inside its own panel, so the titlebar, the tabs
+   and the Depart button all stay where you left them. */
 .content{
-  flex:1;min-height:0;overflow-y:auto;padding:16px;
-  background-color:var(--bg1);
+  flex:1;min-height:0;overflow:hidden;padding:16px;
+  background-color:var(--bg1);display:flex;
 }
-.inner{max-width:1400px;margin:0 auto}
-.screen{display:none}
-.screen.active{display:block}
+.inner{max-width:1400px;margin:0 auto;width:100%;min-height:0;display:flex}
+.screen{display:none;min-height:0;width:100%}
+.screen.active{display:flex;flex-direction:column}
+
+/* The screens that are one long list scroll as one, since they have no fixed
+   furniture of their own to keep in place. */
+#guide.screen.active,#shop.screen.active{overflow-y:auto}
 
 /* ── Buttons ───────────────────────────────────────────────────────────── */
 .btn{
@@ -168,10 +175,24 @@ body{
 .hint{color:var(--text-dim);opacity:.75;font-size:12px;margin:4px 0 10px}
 
 /* ── Camp ──────────────────────────────────────────────────────────────── */
-.camp-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:start}
-@media (max-width:900px){.camp-grid{grid-template-columns:minmax(0,1fr)}}
+/* Two columns, both full height, each scrolling its own body. */
+.camp-grid{
+  display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;
+  align-items:stretch;flex:1;min-height:0;
+}
+.camp-grid > .panel{display:flex;flex-direction:column;min-height:0}
+.camp-grid > .panel > .panel-body{flex:1;min-height:0;overflow-y:auto}
+/* Stacked, the two panels cannot each own a slice of the height — the second
+   would simply be below the fold with nothing to scroll it. So when they stack,
+   the grid scrolls as one and the panels go back to their natural height. */
+@media (max-width:900px){
+  .camp-grid{grid-template-columns:minmax(0,1fr);overflow-y:auto;align-items:start}
+  .camp-grid > .panel{min-height:auto}
+  .camp-grid > .panel > .panel-body{flex:none;min-height:auto;overflow:visible}
+  .depart{position:sticky;bottom:0}
+}
 
-.locale-list{list-style:none;margin:0;padding:0;display:grid;gap:5px;max-height:58vh;overflow-y:auto;padding-right:4px}
+.locale-list{list-style:none;margin:0;padding:0;display:grid;gap:5px}
 .locale-list li{
   display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;
   padding:7px 10px;border:1px solid var(--line);border-radius:7px;
@@ -226,7 +247,13 @@ select{
 .pouch li>.btn.tiny{width:100%}
 .pouch .stepper .btn{padding:1px 8px;font-size:14px;line-height:1.3}
 
-.depart{margin-top:12px;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:8px}
+/* Pinned under the Loadout panel rather than sitting at the end of its scroll —
+   the one button the whole screen exists to press should not need finding. */
+.depart{
+  flex:0 0 auto;display:grid;gap:8px;
+  padding:10px 12px 12px;border-top:1px solid var(--line);
+  background:var(--bg2);
+}
 /* Leads the panel, so it reads at a size that matches its importance rather than
    the footnote size it had when it sat above the Depart button. */
 .depart-summary{
@@ -275,7 +302,10 @@ select{
 .climate{font-size:11px;padding:1px 7px;border-radius:4px;border:1px solid var(--line);background:#0000004d}
 .climate.hot{color:#f0a070}.climate.cold{color:#8fd0e8}
 
-.quest-body{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
+.quest-body{
+  display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start;
+  flex:1;min-height:0;overflow-y:auto;
+}
 @media (max-width:900px){.quest-body{grid-template-columns:minmax(0,1fr)}}
 
 .water{
