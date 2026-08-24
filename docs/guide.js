@@ -130,12 +130,17 @@
       const loc = R.localeById.get(id);
       if (!loc) return '';
       const got = A.caughtAtLocale(id);
-      const all = R.speciesAt(id);
       const perRank = R.speciesByRank(id);
-      const caughtAll = all.filter(f => got[f]);
-      // Anything caught here that no rank's tables list — designed pools and old
-      // saves can both produce this, so it is shown rather than silently dropped.
-      const extra = Object.keys(got).filter(f => !all.includes(f));
+      // A rank's water is only shown once you have fished it. Nothing here may
+      // hint at what a rank you have not reached holds — not the species, and
+      // not the count, which is why the totals below are built from the shown
+      // ranks rather than from the locale's full pool.
+      const shown = RANKS.filter(r => perRank[r].length && A.revealedRanks(id)[r]);
+      const known = [...new Set(shown.flatMap(r => perRank[r]))];
+      const caughtAll = known.filter(f => got[f]);
+      // Anything caught here that no SHOWN rank lists — designed pools and old
+      // saves can both produce this, so it is kept rather than silently dropped.
+      const extra = Object.keys(got).filter(f => !known.includes(f));
 
       // Counts are per LOCALE, not per rank — the save does not record which rank
       // a fish came from. So they appear exactly once, in the haul, and the rank
@@ -143,10 +148,9 @@
       const row = f => `<li><span class="nm">${nameOf(f)}</span>` +
         `<span class="n">x${got[f]}</span></li>`;
 
-      // One block per rank the locale has a table for. A locale's pool is not a
-      // superset of the rank below it — Jurassic Frontier trades Brocadefish for
-      // King Brocadefish at High — so all three are worth showing side by side.
-      const blocks = RANKS.filter(r => perRank[r].length).map(r => {
+      // A locale's pool is not a superset of the rank below it — Jurassic Frontier
+      // trades Brocadefish for King Brocadefish at High — so each is its own list.
+      const blocks = shown.map(r => {
         const list = perRank[r];
         const have = list.filter(f => got[f]).length;
         const chips = list.map(f =>
@@ -158,9 +162,10 @@
         </div>`;
       }).join('');
 
+      const total = caughtAll.length + extra.length;
       return `<section class="panel">
         <h3 class="panel-head">${loc.name}
-          <span class="cnt">${caughtAll.length} / ${all.length} species &middot; ${A.caughtTotalAt(id)} caught</span></h3>
+          <span class="cnt">${total} / ${known.length} species &middot; ${A.caughtTotalAt(id)} caught</span></h3>
         <div class="panel-body">
           <ul class="catch-list">${caughtAll.concat(extra).map(row).join('')}</ul>
           ${blocks}

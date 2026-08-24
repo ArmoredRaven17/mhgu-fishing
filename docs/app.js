@@ -18,6 +18,7 @@
     zenny: 3000,
     caught: {},              // variantId -> count
     caughtAt: {},            // localeId -> { fishId: count }, where each came from
+    fishedAt: {},            // localeId -> { Low|High|G: true }, which tables you have read
     pantry: {},              // ingredientId -> true when found, 'fresh' when fresh
     freshOrder: [],          // which ingredients are fresh, oldest first
     pouch: { potion: 5 },
@@ -55,6 +56,7 @@
         if (v !== Infinity && !Number.isFinite(v)) delete bag[k];
     S.owned.no_bait = Infinity;
     S.visited = saved.visited || {};
+    S.fishedAt = saved.fishedAt || {};
     prunePlans();          // an old save may already be over a pouch limit
     reconcileFresh();      // ...or carry more fresh ingredients than the cap
     syncHR();
@@ -222,6 +224,50 @@
 
   // Locales you have actually pulled something out of, most-fished first.
   const caughtTotalAt = id => Object.values(S.caughtAt[id] || {}).reduce((x, y) => x + y, 0);
+  // ── Which rank tables you have actually read ──────────────────────────────
+  //
+  // Recorded at DEPARTURE, not on completion: casting a line at a locale is what
+  // shows you its water, whether or not you come home with the goal. A rung is
+  // additive — a G Rank quest merges the Low, High and G tables and can land you
+  // anything in them — so fishing a G rung marks all three.
+  function markFished(localeId, hr) {
+    const seen = S.fishedAt[localeId] || (S.fishedAt[localeId] = {});
+    for (const r of G.tableRanksAt(hr)) seen[r] = true;
+  }
+
+  // Saves predate fishedAt, so the record is reconstructed from what they DID.
+  // Two witnesses, both conservative: a completed quest names its own rung, and a
+  // species that exists at this locale ONLY in a higher rank's table cannot have
+  // been landed from anywhere else. Anything they fished but neither cleared nor
+  // caught a telltale fish in stays hidden until they go back, which is the safe
+  // direction to be wrong in.
+  function revealedRanks(localeId) {
+    const out = { ...(S.fishedAt[localeId] || {}) };
+    for (const [hr, seen] of Object.entries(S.visited))
+      if (seen[localeId]) for (const r of G.tableRanksAt(+hr)) out[r] = true;
+
+    const R = window.MF_ROLL;                    // render-time only, never at load
+    if (R && R.speciesByRank) {
+      const per = R.speciesByRank(localeId);
+      const got = caughtAtLocale(localeId);
+      const below = { Low: [], High: ['Low'], G: ['Low', 'High'] };
+      for (const rank of ['High', 'G']) {
+        if (out[rank]) continue;
+        const lower = new Set(below[rank].flatMap(r => per[r] || []));
+        if ((per[rank] || []).some(f => got[f] && !lower.has(f)))
+          for (const r of G.tableRanksAt(G.RANK_HR[rank])) out[r] = true;
+      }
+    }
+    // Fished at all, but nothing to place it by: the lowest table it offers is the
+    // only one it can safely be credited with.
+    if (!Object.keys(out).length && Object.keys(caughtAtLocale(localeId)).length) {
+      const per = R && R.speciesByRank ? R.speciesByRank(localeId) : null;
+      const first = per ? ['Low', 'High', 'G'].find(r => per[r].length) : 'Low';
+      if (first) out[first] = true;
+    }
+    return out;
+  }
+
   const caughtAtLocale = id => S.caughtAt[id] || {};
   const fishedLocales = () => Object.keys(S.caughtAt)
     .filter(id => Object.keys(S.caughtAt[id] || {}).length)
@@ -363,7 +409,7 @@
     localesForHR, visitedAt, visitedCount, hrTotal, hrComplete,
     markVisited, checkPromotion, everVisited,
     record, guideTotal, guideFound, recordIngredient, reconcileFresh, rerollFresh, pantryCount, freshCount, fresh,
-    fishedLocales, caughtAtLocale, caughtTotalAt,
+    fishedLocales, caughtAtLocale, caughtTotalAt, markFished, revealedRanks,
     spend, earn, buyBait, buyItem, buyUpgrade, upgradeCost, canBuyBait, canBuyItem,
     baitStock, itemStock, planned, setPlan, slotsUsed, localeOpen,
     tackled, tackleKinds, setTackle, prunePlans, dropEmptyPlans,

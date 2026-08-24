@@ -62,6 +62,8 @@
         if (!p.buy) trip.carried[p.id] = (trip.carried[p.id] || 0) + G.SUPPLY_EACH;
 
     S.stats.trips++;
+    // Setting out is what reveals a locale's water at this rank — see revealedRanks.
+    A.markFished(S.localeId, questHR);
     A.save();
     window.MF_UI.show('quest');
     render();
