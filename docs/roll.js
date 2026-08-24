@@ -168,8 +168,19 @@
     const pool = basePool(localeId, hr, bait);
     if (!pool.length) return [];
 
+    // A species bait delivers wherever that fish LIVES, not merely wherever this
+    // rung's tables happen to list it. Reading the rung's pool meant Guardfish
+    // Bait did nothing at three locales Guardfish genuinely swims in, purely
+    // because the rung read a table that omits it — which is not something a
+    // player can see or reason about.
+    //
+    // The rank gate stays: forcing in a fish you have not unlocked would hand you
+    // a catch whose guide row is still hidden.
+    const fish = bait.family === 'species' ? fishById.get(bait.target) : null;
     const canForce =
-      (bait.family === 'species' && pool.some(e => e.fish.id === bait.target)) ||
+      (bait.family === 'species' && !!fish
+        && speciesAt(localeId).includes(bait.target)
+        && hr >= G.fishUnlockHR(fish)) ||
       (bait.family === 'ore' && G.oresAt(hr).some(o => o.id === bait.target));
     // Never the whole school — there is always something else in the water.
     const promised = canForce
