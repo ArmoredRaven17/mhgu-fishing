@@ -95,7 +95,16 @@
     G.BASE_MAX_HP + meal(mealId).hp + fresh(mealId).hp + S.upgrades.vitality * 5;
   const maxStamina = mealId =>
     G.BASE_MAX_STAMINA + meal(mealId).stamina + fresh(mealId).stamina + S.upgrades.endurance * 8;
-  const meal = id => G.MEALS.find(m => m.id === (id ?? S.mealId)) || G.MEALS[0];
+  // A selected meal is only YOUR meal while you can still cook it. Rank gates and
+  // a pantry that can lose nothing mean a save can carry a selection it has since
+  // outgrown — or, once the meal power ladder landed, one it has not yet grown
+  // into. Either way the buff must not apply, so an unavailable pick reads as no
+  // meal at all rather than silently feeding you a G Rank+ dish in High Rank.
+  const meal = id => {
+    const m = G.MEALS.find(x => x.id === (id ?? S.mealId));
+    if (!m || !G.mealAvailable(m, S.pantry, S.hr)) return G.MEALS[0];
+    return m;
+  };
 
   const xpNeeded = () => G.hrThreshold(S.hr);
 
@@ -281,6 +290,18 @@
     for (const id of Object.keys(S.plan).slice(G.POUCH_SLOTS)) delete S.plan[id];
   }
 
+  // Coming home is where the pouch reconciles with the cupboard. WHILE YOU ARE
+  // OUT a plan is pure intent — burn through all ten Potions and the slot stays
+  // yours, so the pouch refills to ten the moment you restock. Back at camp with
+  // none left to refill from, that intent is fiction: the slot is being held for
+  // something you cannot actually bring, and it reads as a full pouch that packs
+  // half a loadout. So an emptied line is dropped here, and only here.
+  function dropEmptyPlans() {
+    for (const id of Object.keys(S.plan)) if (itemStock(id) <= 0) delete S.plan[id];
+    for (const id of Object.keys(S.tackle)) if (baitStock(id) <= 0) delete S.tackle[id];
+    prunePlans();
+  }
+
   const slotsUsed = () => {
     prunePlans();
     return window.MF_FISH.prep.filter(p => p.buy && wanted(p.id) > 0).length;
@@ -345,7 +366,8 @@
     fishedLocales, caughtAtLocale, caughtTotalAt,
     spend, earn, buyBait, buyItem, buyUpgrade, upgradeCost, canBuyBait, canBuyItem,
     baitStock, itemStock, planned, setPlan, slotsUsed, localeOpen,
-    tackled, tackleKinds, setTackle, prunePlans, wanted, wantedBait, questRung, selectQuest,
+    tackled, tackleKinds, setTackle, prunePlans, dropEmptyPlans,
+    wanted, wantedBait, questRung, selectQuest,
     reset() { S = defaults(); save(); },
   };
 })();

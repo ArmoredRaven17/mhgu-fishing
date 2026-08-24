@@ -481,6 +481,22 @@ select{
 .missing b{opacity:.85}
 .missing.done{color:var(--money);opacity:.9}
 
+/* A locale's pool widens with rank, so Collectables splits it per rank rather
+   than merging the three tables into one list. */
+.rank-catch{margin:0 0 12px}
+.rank-catch:last-child{margin-bottom:0}
+.rank-head{display:flex;align-items:baseline;gap:8px;margin:0 0 6px;
+  font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  opacity:.8;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.rank-head .cnt{margin-left:auto;font-size:11.5px;font-weight:400;
+  opacity:.85;font-variant-numeric:tabular-nums;text-transform:none;letter-spacing:0}
+.rank-catch .chips{display:flex;flex-wrap:wrap;gap:4px}
+.rank-catch .chip{font-size:11.5px;padding:2px 8px;border-radius:999px;
+  background:var(--card);border:1px solid transparent;opacity:.5}
+.rank-catch .chip.has{opacity:1;border-color:var(--line);color:var(--money)}
+.rank-catch + .rank-catch{margin-top:12px}
+.panel-body .catch-list + .rank-catch{margin-top:14px}
+
 .haul ul{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:32vh;overflow-y:auto}
 .haul li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:8px;
   font-size:12.5px;padding:4px 6px;background:var(--card);border-radius:5px}

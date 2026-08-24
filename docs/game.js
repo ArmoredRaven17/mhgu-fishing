@@ -540,7 +540,12 @@
   //
   // Chance is per LANDED fish, not per cast, so a snapped line earns nothing.
 
-  const INGREDIENT_CHANCE = 0.06;
+  // Per LANDED fish, and a trip turns up AT MOST ONE (quest.js stops rolling once
+  // it has something). So the figure that matters is the per-TRIP one: over a
+  // ~30-fish trip this is 1 - 0.985^30, a little over a third. Ingredients were
+  // arriving faster than the ranks that gate them, which is how a High Rank
+  // pantry ended up holding every recipe in the game.
+  const INGREDIENT_CHANCE = 0.015;
 
   // ── Fresh ingredients ─────────────────────────────────────────────────────
   //
@@ -583,6 +588,11 @@
   // Anything you have not found yet. Fishing turns ingredients UP; it has nothing
   // to do with which are fresh, because freshness only ever matters while you are
   // choosing a meal — see freshPick below.
+  // Gated on the wiki's own unlock rank, and ONLY on that. An ingredient does not
+  // inherit the gate of the best meal it feeds: the strong meals share
+  // ingredients with weak ones, so pushing the ingredient back drags a pile of
+  // 20-power dishes to G Rank with it. The power gate belongs on the meal, where
+  // it can be exact — see mealUnlockHR below.
   const ingredientPool = (hr, held) => CANTEEN.ingredients
     .filter(i => hr >= RANK_HR[i.rank] && !held[i.id]);
 
@@ -652,10 +662,40 @@
 
   const recipeFor = new Map(CANTEEN.recipes.map(r => [r.dish, r]));
 
+  // ── The meal power ladder ─────────────────────────────────────────────────
+  //
+  // The wiki rank on an ingredient CANNOT gate meal power, because in the real
+  // game the two have nothing to do with each other. The strongest recipe meals
+  // in MHGU — Wyvernburger, Dragon Salad, Shaved Dragon Mussels, all 105 — are
+  // cooked from ingredients the wiki unlocks at Low and High. Seven of the nine
+  // ingredients feeding them are Low rank. Gate on the wiki rank alone and every
+  // one of those meals is yours before you leave High Rank, while the G-rank
+  // ingredients open nothing better than an 88.
+  //
+  // So the gate goes on the MEAL's own power, on top of the recipe. Ingredients
+  // keep unlocking exactly as the real game unlocks them; what changes is that
+  // holding both halves of a Wyvernburger in High Rank no longer means you get
+  // to cook one. The kitchen is what is gated, not the pantry.
+  const MEAL_TIERS = [
+    { power: 100, hr: 13 },   // G Rank+ — Ultimate Rice and the 105s
+    { power:  80, hr:  9 },   // G Rank  — the 88s
+    { power:  60, hr:  4 },   // High    — the 78s
+  ];                          // everything below is Low
+
+  const mealPower = m => (m.hp || 0) + (m.stamina || 0);
+  const tierHR = power => (MEAL_TIERS.find(t => power >= t.power) || { hr: 1 }).hr;
+
+  // The HR a meal opens at: its own tier, floored by its rank where it has one.
+  const mealUnlockHR = m =>
+    Math.max(m.baseline ? (RANK_HR[m.rank] || 1) : 1, tierHR(mealPower(m)));
+
   function mealAvailable(meal, held, hr) {
     if (meal.id === 'none') return true;
     if (meal.cut) return false;
-    if (meal.baseline) return hr >= (RANK_HR[meal.rank] || 1);
+    // The rank gate sits on the MEAL, not only on its ingredients, so a pantry
+    // stocked before this ladder existed does not hand over the whole canteen.
+    if (hr < mealUnlockHR(meal)) return false;
+    if (meal.baseline) return true;
     const r = recipeFor.get(meal.name);
     return !!r && !!held[r.a] && !!held[r.b];
   }
@@ -881,6 +921,7 @@
     MEALS, mealCost, MEAL_SCALE, UPGRADES, ITEM_PRICE, priceOf,
     CANTEEN, INGREDIENT_CHANCE, ingredientById, ingredientPool, rollIngredient,
     recipeFor, mealAvailable, mealsAvailable,
+    MEAL_TIERS, mealPower, mealUnlockHR,
     FRESH, FRESH_CHANCE, FRESH_MAX, FRESH_LABEL, isFresh, freshBonus, freshLines, freshShort,
     freshPick,
     POND, REEL_START, fightFor, BOSS, PEST, HIRE, ENCOUNTER_CHANCE,

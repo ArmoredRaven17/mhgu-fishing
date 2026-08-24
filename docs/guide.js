@@ -123,31 +123,47 @@
     }
 
     const byId = new Map(window.MF_FISH.fish.map(f => [f.id, f]));
+    const nameOf = f => (byId.get(f) || {}).name || f;
+    const RANKS = ['Low', 'High', 'G'];
+
     wrap.innerHTML = fished.map(id => {
       const loc = R.localeById.get(id);
       if (!loc) return '';
       const got = A.caughtAtLocale(id);
       const all = R.speciesAt(id);
-      const caught = all.filter(f => got[f]);
-      const missing = all.filter(f => !got[f]);
-      // Anything caught here that the locale's tables do not list — designed
-      // pools and old saves can both produce this, so it is shown rather than
-      // silently dropped.
+      const perRank = R.speciesByRank(id);
+      const caughtAll = all.filter(f => got[f]);
+      // Anything caught here that no rank's tables list — designed pools and old
+      // saves can both produce this, so it is shown rather than silently dropped.
       const extra = Object.keys(got).filter(f => !all.includes(f));
 
-      const row = f => {
-        const fish = byId.get(f);
-        return `<li><span class="nm">${fish ? fish.name : f}</span>` +
-          `<span class="n">x${got[f]}</span></li>`;
-      };
+      // Counts are per LOCALE, not per rank — the save does not record which rank
+      // a fish came from. So they appear exactly once, in the haul, and the rank
+      // blocks below are pools rather than tallies.
+      const row = f => `<li><span class="nm">${nameOf(f)}</span>` +
+        `<span class="n">x${got[f]}</span></li>`;
+
+      // One block per rank the locale has a table for. A locale's pool is not a
+      // superset of the rank below it — Jurassic Frontier trades Brocadefish for
+      // King Brocadefish at High — so all three are worth showing side by side.
+      const blocks = RANKS.filter(r => perRank[r].length).map(r => {
+        const list = perRank[r];
+        const have = list.filter(f => got[f]).length;
+        const chips = list.map(f =>
+          `<span class="chip${got[f] ? ' has' : ''}">${nameOf(f)}</span>`).join('');
+        return `<div class="rank-catch">
+          <h4 class="rank-head">${r} Rank
+            <span class="cnt">${have} / ${list.length}</span></h4>
+          <div class="chips">${chips}</div>
+        </div>`;
+      }).join('');
+
       return `<section class="panel">
         <h3 class="panel-head">${loc.name}
-          <span class="cnt">${caught.length} / ${all.length} species &middot; ${A.caughtTotalAt(id)} caught</span></h3>
+          <span class="cnt">${caughtAll.length} / ${all.length} species &middot; ${A.caughtTotalAt(id)} caught</span></h3>
         <div class="panel-body">
-          <ul class="catch-list">${caught.concat(extra).map(row).join('')}</ul>
-          ${missing.length
-            ? `<p class="missing"><b>Not yet:</b> ${missing.map(f => (byId.get(f) || {}).name || f).join(', ')}</p>`
-            : '<p class="missing done">Every species here has been landed.</p>'}
+          <ul class="catch-list">${caughtAll.concat(extra).map(row).join('')}</ul>
+          ${blocks}
         </div>
       </section>`;
     }).join('');

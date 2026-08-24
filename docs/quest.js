@@ -266,10 +266,14 @@
 
       // Something else comes up with it now and then. Drawn from what you have
       // not found yet at or below your rank, so nothing gets stranded behind you.
-      const found = G.rollIngredient(S.hr, S.pantry);
-      if (found && A.recordIngredient(found.id)) {
-        trip.found.push(found);
-        el('castPrompt').textContent += ` Something came up with it — ${found.name}.`;
+      // ONE per trip: the pantry is meant to fill over a campaign, not over an
+      // afternoon, so a trip that has already turned something up stops rolling.
+      if (!trip.found.length) {
+        const found = G.rollIngredient(S.hr, S.pantry);
+        if (found && A.recordIngredient(found.id)) {
+          trip.found.push(found);
+          el('castPrompt').textContent += ` Something came up with it — ${found.name}.`;
+        }
       }
     } else {
       S.stats.lost++;
@@ -403,6 +407,7 @@
     const n = trip.haul.length;
     trip = null;
     A.rerollFresh();          // back at camp, even the hard way
+    A.dropEmptyPlans();       // ...and a cart empties the pack outright
     A.save();
     window.MF_UI.modal({
       cart: true,
@@ -461,6 +466,7 @@
     trip = null;
     const promoted = completed ? A.checkPromotion() : null;
     A.rerollFresh();          // back at camp: today's fresh ingredients
+    A.dropEmptyPlans();       // anything you ran clean out of gives up its slot
     A.save();
 
     const extra = [];

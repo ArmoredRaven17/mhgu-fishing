@@ -317,6 +317,34 @@
     return [...out];
   }
 
+  // The same question asked one rank at a time. A locale's pool GROWS with rank
+  // and the tables are not merely supersets of each other, so "what lives here"
+  // has three different answers and the guide shows all three.
+  function speciesByRank(localeId) {
+    const loc = localeById.get(localeId);
+    const out = { Low: [], High: [], G: [] };
+    if (!loc) return out;
+    if (!loc.hasFishing) {
+      // A designed pool has no rank tables; it reads the same at every rank.
+      const pool = (G.DESIGNED_POOLS[localeId]?.pool || G.ARENA_POOL)
+        .map(e => e.fish).filter(f => fishById.get(f));
+      for (const r of RANK_ORDER) out[r] = [...new Set(pool)];
+      return out;
+    }
+    const sets = { Low: new Set(), High: new Set(), G: new Set() };
+    for (const ranks of Object.values(loc.areas))
+      for (const [rank, pools] of Object.entries(ranks)) {
+        if (!sets[rank]) continue;
+        for (const p of pools)
+          for (const e of p.entries) {
+            const f = fishById.get(slug(e.name));
+            if (f) sets[rank].add(f.id);
+          }
+      }
+    for (const r of RANK_ORDER) out[r] = [...sets[r]];
+    return out;
+  }
+
   // ── The full guide ────────────────────────────────────────────────────────
   // Every fish x every ore, in rarity order. This is the completion target.
   function fullGuide() {
@@ -332,7 +360,8 @@
   }
 
   window.MF_ROLL = {
-    ranksAt, isOpen, localeUnlocked, basePool, speciesAt, expectedCastValue, questGoal,
+    ranksAt, isOpen, localeUnlocked, basePool, speciesAt, speciesByRank,
+    expectedCastValue, questGoal,
     hireCost, pestChance, rollPest, rollSchool, rollFish, rollOre, rollCatch, rollEncounter, fullGuide,
     fishById, localeById,
   };

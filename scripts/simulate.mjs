@@ -20,7 +20,7 @@ const DOCS = join(REPO, 'docs');
 
 global.window = {};
 for (const f of [['data', 'ores.js'], ['data', 'fish.js'], ['data', 'locales.js'],
-                 ['data', 'meals.js'], ['game.js'], ['roll.js']])
+                 ['data', 'meals.js'], ['data', 'canteen.js'], ['game.js'], ['roll.js']])
   require(join(DOCS, ...f));
 
 const { MF_GAME: G, MF_ROLL: R, MF_FISH: F, MF_LOCALES: L, CF_ORES: O } = global.window;
@@ -390,13 +390,63 @@ line('Is Volcanic Hollow worth the heat?');
   heat('unlimited', p9);
 }
 
-line('Does a meal pay for itself? (Misty Peaks, HR12)');
+// HR13, not 12 — the meal power ladder puts the strongest dishes in G Rank+, so
+// sampling at 12 would price a meal the angler cannot yet cook.
+const MEAL_HR = 13;
+line(`Does a meal pay for itself? (Misty Peaks, HR${MEAL_HR})`);
 const sampleMeals = [G.MEALS[0], mealsByTotal[Math.floor(mealsByTotal.length * 0.25)],
   mealsByTotal[Math.floor(mealsByTotal.length * 0.6)], mealsByTotal[mealsByTotal.length - 1]];
 for (const m of sampleMeals) {
-  const p = profile('misty_peaks', makeLoadout({ meal: m.id }), 12, Math.min(TRIPS, 2000));
+  const p = profile('misty_peaks', makeLoadout({ meal: m.id }), MEAL_HR, Math.min(TRIPS, 2000));
+  const gate = G.mealUnlockHR(m);
   console.log(`${m.name.padEnd(28)} cost ${String(m.cost).padStart(5)}z  casts ${p.casts.toFixed(0).padStart(3)}` +
-    `  gross ${p.perTrip.toFixed(0).padStart(7)}z  net ${p.net.toFixed(0).padStart(7)}z`);
+    `  gross ${p.perTrip.toFixed(0).padStart(7)}z  net ${p.net.toFixed(0).padStart(7)}z` +
+    `  opens HR${gate}`);
+}
+
+line('When does the canteen open up?');
+{
+  const full = {};
+  for (const i of G.CANTEEN.ingredients) full[i.id] = true;
+  console.log('holding every ingredient, the best meal each rank can cook:');
+  for (const hr of [1, 4, 9, 13]) {
+    const av = G.mealsAvailable(full, hr).filter(m => m.id !== 'none');
+    const best = Math.max(...av.map(G.mealPower));
+    const top = av.filter(m => G.mealPower(m) === best)[0];
+    console.log(`  HR${String(hr).padEnd(3)}${G.rankAt(hr).id.padEnd(6)}` +
+      `${String(av.length).padStart(3)} meals   best ${String(best).padStart(3)}  ${top.name}`);
+  }
+  // What a real pantry looks like: one find per trip, at the real rate.
+  const LEGS = [{ hr: 1, trips: 12 }, { hr: 4, trips: 18 }, { hr: 9, trips: 22 }, { hr: 13, trips: 15 }];
+  const RUNS = 3000, LANDED = 30;
+  const perTrip = 1 - Math.pow(1 - G.INGREDIENT_CHANCE, LANDED);
+  console.log(`
+and what one actually looks like — ${(perTrip * 100).toFixed(0)}% chance of a find per trip:`);
+  const tally = {};
+  for (let r = 0; r < RUNS; r++) {
+    const held = {};
+    for (const leg of LEGS) {
+      for (let t = 0; t < leg.trips; t++) {
+        if (Math.random() >= perTrip) continue;
+        const pool = G.CANTEEN.ingredients.filter(i => leg.hr >= G.RANK_HR[i.rank] && !held[i.id]);
+        if (pool.length) held[pool[(Math.random() * pool.length) | 0].id] = true;
+      }
+      const av = G.mealsAvailable(held, leg.hr).filter(m => m.id !== 'none');
+      const k = leg.hr;
+      tally[k] = tally[k] || { ing: 0, meals: 0, best: 0 };
+      tally[k].ing += Object.keys(held).length;
+      tally[k].meals += av.length;
+      tally[k].best += Math.max(...av.map(G.mealPower), 0);
+    }
+  }
+  let cum = 0;
+  for (const leg of LEGS) {
+    cum += leg.trips;
+    const a = tally[leg.hr];
+    console.log(`  ${G.rankAt(leg.hr).id.padEnd(6)}by trip ${String(cum).padStart(3)}   ` +
+      `${(a.ing / RUNS).toFixed(1).padStart(4)}/${G.CANTEEN.ingredients.length} ingredients   ` +
+      `${(a.meals / RUNS).toFixed(1).padStart(5)} meals   best ${(a.best / RUNS).toFixed(0).padStart(3)}`);
+  }
 }
 
 line('The long pole — how many trips to fill the guide?');
