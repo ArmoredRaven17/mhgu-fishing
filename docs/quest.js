@@ -415,10 +415,16 @@
     const found = trip.found;
     // A quest is cleared by meeting the catch goal. Falling short is not a
     // failure — you keep the haul — the locale just stays unmarked.
+    // EVERYTHING taken off the trip is read here, before it is cleared below.
+    // Reaching for trip.* after that point throws, and because the only reader
+    // was the first-clear message it broke exactly one case: retiring on a quest
+    // you had just completed for the first time. The button simply stopped
+    // responding, since the throw happened before the modal opened.
     const completed = trip.value >= trip.goal;
-    const goal = trip.goal;                    // trip is cleared below; keep it
+    const goal = trip.goal;
+    const questHR = trip.questHR;
     const short = goal - trip.value;
-    const firstHere = completed && A.markVisited(trip.localeId, trip.questHR);
+    const firstHere = completed && A.markVisited(trip.localeId, questHR);
     const localeName = trip.loc.name;
     const items = trip.haul.map(c => [c.name, z(c.value)])
       .concat(found.map(f => [f.name, 'ingredient']));
@@ -436,7 +442,7 @@
     const extra = [];
     if (firstHere && !promoted) {
       extra.push(`${localeName} cleared — ` +
-        `${A.visitedCount(trip.questHR)} of ${A.hrTotal(trip.questHR)} at HR ${trip.questHR}.`);
+        `${A.visitedCount(questHR)} of ${A.hrTotal(questHR)} at HR ${questHR}.`);
     }
     if (!completed && short > 0)
       extra.push(`${z(short)} short of the ${z(goal)} needed to clear ${localeName}.`);
