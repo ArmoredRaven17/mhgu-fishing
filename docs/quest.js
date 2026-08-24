@@ -100,6 +100,7 @@
     el('castBtn').disabled = trip.busy || trip.sta <= 0 || trip.hp <= 0;
     renderPouch();
     renderTackle();
+    renderStatus();
   }
 
   // The tackle box out on the water: pick which bait the next cast uses.
@@ -141,16 +142,29 @@
     el('questPouch').querySelectorAll('[data-use]').forEach(b =>
       b.onclick = () => useItem(b.dataset.use));
 
-    // Anything ticking down, so the player can see it lapse rather than guess.
+  }
+
+  // ── Status ────────────────────────────────────────────────────────────────
+  //
+  // Everything ticking down, in one place of its own. These used to sit inside
+  // the Item Pouch, which is where you go to START one — not where you want to
+  // be looking to see how long you have left on it.
+  function renderStatus() {
     const buffs = [];
     if (trip.climate !== 'temperate' && trip.drinkLeft > 0)
       buffs.push(`${trip.climate === 'hot' ? 'Cool' : 'Hot'} Drink ${Math.ceil(trip.drinkLeft)}s`);
     if (trip.dashLeft > 0) buffs.push(`Dash ${Math.ceil(trip.dashLeft)}s`);
     if (trip.defLeft > 0)
       buffs.push(`+${Math.round(trip.defAmount * 100)}% Def ${Math.ceil(trip.defLeft)}s`);
+
+    // The climate is a standing condition rather than a timer, but it belongs
+    // here too — it is the thing those drinks are answering.
+    if (trip.climate !== 'temperate' && trip.drinkLeft <= 0)
+      buffs.push(`<i class="exposed">${trip.climate === 'hot' ? 'Heat' : 'Cold'} unguarded</i>`);
+
     el('buffLine').innerHTML = buffs.length
-      ? buffs.map(b => `<span class="buff">${b}</span>`).join('')
-      : '';
+      ? buffs.map(b => b.startsWith('<i') ? b : `<span class="buff">${b}</span>`).join('')
+      : '<span class="none">Nothing active.</span>';
   }
 
   // ── One cast ──────────────────────────────────────────────────────────────
