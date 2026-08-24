@@ -266,6 +266,7 @@
       const LOSS = {
         missed: `Too slow — ${c.name} spat the hook.`,
         slack: `The line went slack. ${c.name} shook it and ran.`,
+        escaped: `${c.name} wore you down and got away.`,
         snap: `The line snapped. ${c.name} is gone.`,
       };
       el('castPrompt').textContent = LOSS[res.reason] || LOSS.snap;

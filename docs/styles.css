@@ -464,6 +464,11 @@ select{
 
 .progress{height:12px;background:var(--bg1);border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .progress i{display:block;height:100%;width:0;background:var(--gauge-hp)}
+/* The fish's half of the race: fills whenever the line is outside the band, and
+   takes the fish if it gets there first. Thinner than yours — it is the threat,
+   not the thing you are steering. */
+.progress.escape{height:7px;margin-top:-4px}
+.progress.escape i{background:var(--danger)}
 .reel-name{font-size:15px;min-height:1.2em}
 .reel-hint{font-size:12px;opacity:.75;margin:0;text-align:center;min-height:1.2em}
 

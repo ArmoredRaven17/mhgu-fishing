@@ -302,10 +302,21 @@
   // and permanently unreachable at Volcanic Hollow — which sits on the HR7 rung,
   // so the ladder would dead-end there.
   //
-  // GOAL_CASTS is the sizing dial. A bare trip supports ~15 casts, so 18 puts the
-  // goal just past a perfect unprovisioned run: you need a meal or some Endurance
-  // to clear it, and comfortably so once you have both.
-  const GOAL_CASTS = 18;
+  // GOAL_CASTS is the sizing dial, and it climbs with the rank. A bare trip
+  // supports ~15 casts, so 18 put the Low goal just past a perfect unprovisioned
+  // run. But a PROVISIONED trip runs to about 35 casts at every rank, so that
+  // same 18 left High and G goals sitting at half of what a normal trip brings
+  // home — you cleared them without noticing and often doubled them.
+  //
+  // Scaling by rank keeps the Low rung where it was and makes the later ones an
+  // actual target: you have the gear by then, so the goal should expect it.
+  // These are shares of a THEORETICAL full trip — the balance harness lands every
+  // cast, which no player does. A missed strike, a snapped line or a fish that
+  // wears you down all come off the top, so G is held a little below where the
+  // arithmetic alone would put it.
+  const GOAL_CASTS_BY_RANK = { Low: 18, High: 25, G: 27, Gplus: 27 };
+  const goalCasts = hr => GOAL_CASTS_BY_RANK[rankAt(hr).id] ?? 18;
+  const GOAL_CASTS = 18;                 // the Low figure, kept for reference
   const GOAL_ROUND = 50;
 
   // Where finishing this rung actually lands you. Empty rungs are stepped over,
@@ -709,9 +720,9 @@
   // stays nominal rather than however long you actually took, which is what keeps
   // trip lengths and every quest goal where the sim put them.
   const REEL_START = 0.5;      // where the pill sits when the fight opens
-  const BAND_WIDE = 0.30;      // half-width for the cheapest thing in the water
-  const BAND_TIGHT = 0.07;     // ...and for the most valuable
-  const BAND_FLOOR = 0.05;     // never narrower than this, whatever the rung
+  const BAND_WIDE = 0.22;      // half-width for the cheapest thing in the water
+  const BAND_TIGHT = 0.055;    // ...and for the most valuable
+  const BAND_FLOOR = 0.045;    // never narrower than this, whatever the rung
 
   // Where a variant sits between the cheapest and dearest in the game, 0..1, on a
   // log scale because value spans two orders of magnitude. Measured off the real
@@ -760,6 +771,11 @@
       // Ground is only gained inside that stretch. A clean fight runs a little
       // under the nominal duration, so playing well beats the stamina you paid.
       progressPerSec: 1000 / (durationMs * 0.6),
+      // ...and the fish takes ground back whenever you are outside it. Slightly
+      // faster than you gain, so a fight you keep slipping out of is one you lose
+      // even if the line never reaches either extreme. This is the fish's half of
+      // the contest rather than another way for you to be punished.
+      escapePerSec: (1000 / (durationMs * 0.6)) * 1.3,
       // The window has to be long enough to NOTICE, not just long enough to
       // react to. Anything under a second is a reflex test you can only pass by
       // already expecting it, which is the opposite of watching for a bite.
@@ -841,7 +857,7 @@
     POUCH_SLOTS, TACKLE_SLOTS, BAIT_CARRY, carryLimit, SUPPLY_RANK, SUPPLY_EACH,
     DESIGNED_POOLS, ARENA_POOL, RANK_ORDER, rankIndex, SHOW_DESIGNED_LOCALES,
     LADDER, localesAtHR, localesOpenAt, bandOf, openedAtHR, rungsOpenAt, nextHR, MAX_LADDER_HR,
-    GOAL_CASTS, GOAL_ROUND,
+    GOAL_CASTS, GOAL_CASTS_BY_RANK, goalCasts, GOAL_ROUND,
     CLIMATE, climateOf, CLIMATE_RATES, CLIMATE_TICK_MS, DRINK_SECONDS,
     DASH_SECONDS, DASH_MULT, ARMOR_SECONDS,
     BASE_MAX_HP, BASE_MAX_STAMINA, STAMINA_COST,

@@ -145,6 +145,7 @@
         S.phase = 'reel';
         S.fight = S.hooked.fight;
         S.tension = G().REEL_START;
+        S.escape = 0;
         // The good stretch is drawn once — it does not move during the fight, so
         // the player has a fixed target to steer the pill into.
         const lo = 0.5 - S.fight.band;
@@ -270,11 +271,15 @@
 
           const held = t >= 0.5 - S.fight.band && t <= 0.5 + S.fight.band;
           if (held) S.progress += S.fight.progressPerSec * dt;
+          else S.escape += (S.fight.escapePerSec || 0) * dt;
 
           el('tensionPill').style.left = t * 100 + '%';
           el('tensionTrack').classList.toggle('out', !held);
           el('tensionTrack').classList.toggle('low', !held && t < 0.5);
           el('reelProgress').style.width = Math.min(1, S.progress) * 100 + '%';
+          el('reelEscape').style.width = Math.min(1, S.escape) * 100 + '%';
+          // Whoever fills first takes it.
+          if (S.escape >= 1) return done({ landed: false, reason: 'escaped', catch: S.hooked.c });
           if (S.progress >= 1) return done({ landed: true, catch: S.hooked.c });
         }
 
@@ -288,6 +293,7 @@
 
       el('tensionWrap').classList.add('hidden');
       el('reelProgress').style.width = '0%';
+      el('reelEscape').style.width = '0%';
       el('strikeFill').style.width = '100%';
       el('tensionPill').style.left = G().REEL_START * 100 + '%';
       el('reelName').textContent = '';

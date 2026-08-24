@@ -292,7 +292,7 @@
   function questGoal(localeId, hr) {
     const ev = expectedCastValue(localeId, hr);
     if (!ev) return 0;
-    return Math.round(ev * G.GOAL_CASTS / G.GOAL_ROUND) * G.GOAL_ROUND;
+    return Math.round(ev * G.goalCasts(hr) / G.GOAL_ROUND) * G.GOAL_ROUND;
   }
 
   // Every species a locale can ever produce, across all its ranks and bait tables.
