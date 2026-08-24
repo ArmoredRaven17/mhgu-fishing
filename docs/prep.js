@@ -169,10 +169,15 @@
     }
     renderMealStats();
 
+    // A meal carrying a fresh ingredient says so in the list itself. Without it
+    // the only way to find the ones worth cooking is to select all 74 in turn,
+    // which is exactly the click-through the pouch was fixed to avoid.
     el('mealSelect').innerHTML = [...groups].map(([label, list]) => {
-      const opts = list.map(m =>
-        `<option value="${m.id}" ${S.mealId === m.id ? 'selected' : ''}>` +
-        `${m.name}${m.cost ? ` — ${z(m.cost)}` : ''}</option>`).join('');
+      const opts = list.map(m => {
+        const tag = G.freshShort(G.freshBonus(m, S.pantry));
+        return `<option value="${m.id}" ${S.mealId === m.id ? 'selected' : ''}>` +
+          `${m.name}${m.cost ? ` — ${z(m.cost)}` : ''}${tag ? `  ·  Fresh ${tag}` : ''}</option>`;
+      }).join('');
       return label ? `<optgroup label="${label}">${opts}</optgroup>` : opts;
     }).join('');
   }

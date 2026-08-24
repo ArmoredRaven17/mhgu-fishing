@@ -582,6 +582,19 @@
     .filter(([, v]) => v > 0)
     .map(([k, v]) => FRESH_LABEL[k](v));
 
+  // The short form, for somewhere with no room — a <select> option, which cannot
+  // carry markup and has to fit on one line next to the price.
+  const FRESH_SHORT = {
+    hp: n => `+${n} HP`,
+    stamina: n => `+${n} Sta`,
+    zenny: n => `+${Math.round(n * 100)}% z`,
+    guard: n => `-${Math.round(n * 100)}% dmg`,
+  };
+  const freshShort = bonus => Object.entries(bonus)
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => FRESH_SHORT[k](v))
+    .join(' ');
+
   // ── Which meals you can order ─────────────────────────────────────────────
   //
   // A recipe meal needs both its ingredients in the pantry. The seven with no
@@ -760,7 +773,7 @@
     MEALS, mealCost, MEAL_SCALE, UPGRADES, ITEM_PRICE, priceOf,
     CANTEEN, INGREDIENT_CHANCE, ingredientById, ingredientPool, rollIngredient,
     recipeFor, mealAvailable, mealsAvailable,
-    FRESH, FRESH_CHANCE, FRESH_LABEL, isFresh, freshBonus, freshLines,
+    FRESH, FRESH_CHANCE, FRESH_LABEL, isFresh, freshBonus, freshLines, freshShort,
     POND, REEL_START, fightFor, BOSS, PEST, HIRE, ENCOUNTER_CHANCE, STOCK_CAP,
     BOSS_LOSS, bossLossDamage,
   };
