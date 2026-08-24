@@ -17,7 +17,8 @@
     xp: 0,
     zenny: 3000,
     caught: {},              // variantId -> count
-    pantry: {},              // ingredientId -> true, once found
+    pantry: {},              // ingredientId -> true when found, 'fresh' when fresh
+    freshOrder: [],          // which ingredients are fresh, oldest first
     pouch: { potion: 5 },
     owned: { no_bait: Infinity },   // baitId -> count; No Bait is free and unlimited
     upgrades: { vitality: 0, endurance: 0, line: 0, lure: 0 },
@@ -54,6 +55,7 @@
     S.owned.no_bait = Infinity;
     S.visited = saved.visited || {};
     prunePlans();          // an old save may already be over a pouch limit
+    reconcileFresh();      // ...or carry more fresh ingredients than the cap
     syncHR();
   }
 
@@ -164,13 +166,34 @@
   }
 
   // Returns what actually happened, so the trip can say the right thing: a new
-  // ingredient, the same one now found fresh, or nothing worth mentioning.
+  // ingredient, the same one now found fresh, or nothing worth mentioning — plus
+  // whatever went stale to make room, since only FRESH_MAX can be fresh at once.
   function recordIngredient(id, fresh) {
     const had = S.pantry[id];
     if (had === 'fresh') return null;
-    S.pantry[id] = fresh ? 'fresh' : true;
-    if (!had) return fresh ? 'new-fresh' : 'new';
-    return fresh ? 'fresh' : null;
+    if (!fresh) {
+      if (had) return null;
+      S.pantry[id] = true;
+      return { kind: 'new', dropped: [] };
+    }
+    S.pantry[id] = 'fresh';
+    S.freshOrder = (S.freshOrder || []).filter(x => x !== id).concat(id);
+    const dropped = [];
+    while (S.freshOrder.length > G.FRESH_MAX) {
+      const old = S.freshOrder.shift();
+      if (S.pantry[old] === 'fresh') { S.pantry[old] = true; dropped.push(old); }
+    }
+    return { kind: had ? 'fresh' : 'new-fresh', dropped };
+  }
+
+  // Rebuild the fresh list from the pantry and hold it to the cap. Saves written
+  // before there WAS a cap can carry any number of fresh ingredients.
+  function reconcileFresh() {
+    const fresh = Object.keys(S.pantry).filter(id => S.pantry[id] === 'fresh');
+    const order = (S.freshOrder || []).filter(id => fresh.includes(id));
+    for (const id of fresh) if (!order.includes(id)) order.push(id);
+    while (order.length > G.FRESH_MAX) S.pantry[order.shift()] = true;
+    S.freshOrder = order;
   }
   const pantryCount = () => Object.keys(S.pantry).length;
   const freshCount = () => Object.values(S.pantry).filter(v => v === 'fresh').length;
@@ -240,16 +263,17 @@
   // The trailing slice repairs a save that is already over the limit, which is
   // the only way one could have been left.
   function prunePlans() {
-    let changed = false;
-    for (const id of Object.keys(S.tackle))
-      if (baitStock(id) <= 0) { delete S.tackle[id]; changed = true; }
-    for (const id of Object.keys(S.plan))
-      if (itemStock(id) <= 0) { delete S.plan[id]; changed = true; }
-    for (const id of Object.keys(S.tackle).slice(G.TACKLE_SLOTS))
-      { delete S.tackle[id]; changed = true; }
-    for (const id of Object.keys(S.plan).slice(G.POUCH_SLOTS))
-      { delete S.plan[id]; changed = true; }
-    return changed;
+    // Anything CLAIMING NOTHING goes first — both stock you no longer have and
+    // entries you emptied, which linger as a zero rather than disappearing.
+    // Testing stock alone left those zeros in place, and because they sit at the
+    // front of the key order the cap below then deleted the bait you had just
+    // added instead of them. That is what made a bait refuse to go in.
+    for (const id of Object.keys(S.tackle)) if (tackled(id) <= 0) delete S.tackle[id];
+    for (const id of Object.keys(S.plan)) if (planned(id) <= 0) delete S.plan[id];
+    // Only then hold what is genuinely claimed to the cap, which repairs a save
+    // that is already over it.
+    for (const id of Object.keys(S.tackle).slice(G.TACKLE_SLOTS)) delete S.tackle[id];
+    for (const id of Object.keys(S.plan).slice(G.POUCH_SLOTS)) delete S.plan[id];
   }
 
   const slotsUsed = () => {
@@ -312,7 +336,7 @@
     rank, meal, maxHP, maxStamina, xpNeeded, addXP, syncHR,
     localesForHR, visitedAt, visitedCount, hrTotal, hrComplete,
     markVisited, checkPromotion, everVisited,
-    record, guideTotal, guideFound, recordIngredient, pantryCount, freshCount, fresh,
+    record, guideTotal, guideFound, recordIngredient, reconcileFresh, pantryCount, freshCount, fresh,
     spend, earn, buyBait, buyItem, buyUpgrade, upgradeCost, canBuyBait, canBuyItem,
     baitStock, itemStock, planned, setPlan, slotsUsed, localeOpen,
     tackled, tackleKinds, setTackle, prunePlans, questRung, selectQuest,

@@ -245,12 +245,18 @@
       const found = G.rollIngredient(S.hr, S.pantry);
       const got = found && A.recordIngredient(found.id, found.fresh);
       if (got) {
-        trip.found.push({ ...found, got });
-        el('castPrompt').textContent += got === 'fresh'
+        trip.found.push({ ...found, got: got.kind });
+        el('castPrompt').textContent += got.kind === 'fresh'
           ? ` And a fresh ${found.name} with it.`
-          : got === 'new-fresh'
+          : got.kind === 'new-fresh'
             ? ` Something came up with it — ${found.name}, and a fresh one.`
             : ` Something came up with it — ${found.name}.`;
+        // Only two can be fresh at a time, so say what it pushed out rather than
+        // letting a bonus quietly disappear from a meal you were relying on.
+        for (const id of got.dropped) {
+          const old = G.ingredientById.get(id);
+          if (old) trip.notes.push(`Your ${old.name} is no longer fresh.`);
+        }
       }
     } else {
       S.stats.lost++;

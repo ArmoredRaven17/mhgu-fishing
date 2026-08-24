@@ -530,6 +530,13 @@
   // A meal uses two ingredients, so bonuses stack — and two fresh Meats really do
   // stack twice, which is the point of chasing them.
   const FRESH_CHANCE = 0.25;
+  // How many ingredients can be fresh AT ONCE. Freshness was accumulating with
+  // nothing to stop it, so a full pantry ended up entirely fresh and every meal
+  // carried its maximum bonus — which is no choice at all. Two, because a meal is
+  // cooked from two ingredients, so the best case is still a meal whose BOTH
+  // ingredients are the ones you are holding fresh. A third find pushes the
+  // oldest back to ordinary.
+  const FRESH_MAX = 2;
   const FRESH = {
     Meat:       { hp: 8 },        // even a stamina-only dish comes with HP on it
     Vegetables: { stamina: 8 },
@@ -818,7 +825,7 @@
     MEALS, mealCost, MEAL_SCALE, UPGRADES, ITEM_PRICE, priceOf,
     CANTEEN, INGREDIENT_CHANCE, ingredientById, ingredientPool, rollIngredient,
     recipeFor, mealAvailable, mealsAvailable,
-    FRESH, FRESH_CHANCE, FRESH_LABEL, isFresh, freshBonus, freshLines, freshShort,
+    FRESH, FRESH_CHANCE, FRESH_MAX, FRESH_LABEL, isFresh, freshBonus, freshLines, freshShort,
     POND, REEL_START, fightFor, BOSS, PEST, HIRE, ENCOUNTER_CHANCE, STOCK_CAP,
     BOSS_LOSS, bossLossDamage,
   };
