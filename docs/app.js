@@ -264,49 +264,43 @@
 
   // How many of each pouch item to carry. Capped by what you own AND by the
   // item's own carry limit; a slot is claimed by taking at least one of a kind.
-  const planned = id => Math.min(S.plan[id] || 0, itemStock(id), G.carryLimit(id));
+  // S.plan and S.tackle hold what you WANT to bring — your intent — clamped only
+  // by the item's own carry limit. Stock clamps at read time instead, so running
+  // low never rewrites the plan: restock and you are back to bringing ten.
+  const wanted = id => Math.min(S.plan[id] || 0, G.carryLimit(id));
+  const planned = id => Math.min(wanted(id), itemStock(id));
+  const wantedBait = id => Math.min(S.tackle[id] || 0, G.BAIT_CARRY);
 
-  // A plan entry you can no longer honour is DROPPED, not merely read as zero.
-  // Running a bait out only clamped it to zero, which freed the slot for another
-  // bait — and then BUYING that bait back resurrected the old entry and put the
-  // pouch over its limit. Nothing gets into a pouch except by being added to it.
-  //
-  // The trailing slice repairs a save that is already over the limit, which is
-  // the only way one could have been left.
+  // A slot is held by INTENT, not by stock. An item you have run out of keeps its
+  // place until you take it out yourself — which is also what stops a slot being
+  // handed to something else and then double-claimed the moment you restock.
   function prunePlans() {
-    // Anything CLAIMING NOTHING goes first — both stock you no longer have and
-    // entries you emptied, which linger as a zero rather than disappearing.
-    // Testing stock alone left those zeros in place, and because they sit at the
-    // front of the key order the cap below then deleted the bait you had just
-    // added instead of them. That is what made a bait refuse to go in.
-    for (const id of Object.keys(S.tackle)) if (tackled(id) <= 0) delete S.tackle[id];
-    for (const id of Object.keys(S.plan)) if (planned(id) <= 0) delete S.plan[id];
-    // Only then hold what is genuinely claimed to the cap, which repairs a save
-    // that is already over it.
+    for (const id of Object.keys(S.tackle)) if (wantedBait(id) <= 0) delete S.tackle[id];
+    for (const id of Object.keys(S.plan)) if (wanted(id) <= 0) delete S.plan[id];
     for (const id of Object.keys(S.tackle).slice(G.TACKLE_SLOTS)) delete S.tackle[id];
     for (const id of Object.keys(S.plan).slice(G.POUCH_SLOTS)) delete S.plan[id];
   }
 
   const slotsUsed = () => {
     prunePlans();
-    return window.MF_FISH.prep.filter(p => p.buy && planned(p.id) > 0).length;
+    return window.MF_FISH.prep.filter(p => p.buy && wanted(p.id) > 0).length;
   };
 
   function setPlan(id, n) {
-    const want = Math.max(0, Math.min(n, itemStock(id), G.carryLimit(id)));
+    const want = Math.max(0, Math.min(n, G.carryLimit(id)));
     // Claiming a new slot is refused once the pouch is full; emptying one is fine.
-    if (want > 0 && !planned(id) && slotsUsed() >= G.POUCH_SLOTS) return false;
+    if (want > 0 && !wanted(id) && slotsUsed() >= G.POUCH_SLOTS) return false;
     S.plan[id] = want;
     return true;
   }
 
   // ── Tackle box ────────────────────────────────────────────────────────────
-  const tackled = id => Math.min(S.tackle[id] || 0, baitStock(id), G.BAIT_CARRY);
-  const tackleKinds = () => { prunePlans(); return Object.keys(S.tackle).filter(id => tackled(id) > 0); };
+  const tackled = id => Math.min(wantedBait(id), baitStock(id));
+  const tackleKinds = () => { prunePlans(); return Object.keys(S.tackle); };
 
   function setTackle(id, n) {
-    const want = Math.max(0, Math.min(n, baitStock(id), G.BAIT_CARRY));
-    if (want > 0 && !tackled(id) && tackleKinds().length >= G.TACKLE_SLOTS) return false;
+    const want = Math.max(0, Math.min(n, G.BAIT_CARRY));
+    if (want > 0 && !wantedBait(id) && tackleKinds().length >= G.TACKLE_SLOTS) return false;
     S.tackle[id] = want;
     return true;
   }
@@ -351,7 +345,7 @@
     fishedLocales, caughtAtLocale, caughtTotalAt,
     spend, earn, buyBait, buyItem, buyUpgrade, upgradeCost, canBuyBait, canBuyItem,
     baitStock, itemStock, planned, setPlan, slotsUsed, localeOpen,
-    tackled, tackleKinds, setTackle, prunePlans, questRung, selectQuest,
+    tackled, tackleKinds, setTackle, prunePlans, wanted, wantedBait, questRung, selectQuest,
     reset() { S = defaults(); save(); },
   };
 })();

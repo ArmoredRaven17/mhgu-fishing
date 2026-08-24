@@ -214,6 +214,8 @@ select{
 .pouch li{display:grid;grid-template-columns:24px minmax(0,1fr) auto 76px;align-items:center;gap:8px;
   padding:5px 8px;background:var(--card);border:1px solid var(--line);border-radius:6px;font-size:13px}
 .pouch li.nofit{opacity:.45}
+/* Slot held, but you have run out — it keeps its place and refills when you restock. */
+.pouch li.dry .qty{color:var(--money);opacity:.9}
 .pouch li.empty{display:block;opacity:.6;font-size:12px;padding:7px}
 .slotrow{flex-direction:row;align-items:baseline;justify-content:space-between;margin-bottom:5px}
 .slots{font-size:12px;font-variant-numeric:tabular-nums;opacity:.85}

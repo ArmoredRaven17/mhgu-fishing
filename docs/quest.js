@@ -429,7 +429,9 @@
     // Only what you actually SPENT leaves your stock; the rest never left it.
     // Supply items are not yours to keep, so they are simply not counted.
     spendCarried();
-    for (const id of Object.keys(trip.packed)) A.setPlan(id, A.planned(id));
+    // The plan is NOT rewritten here. It holds what you want to bring, so coming
+    // home short just means you bring fewer next time until you restock — at
+    // which point the pouch fills back to what you asked for on its own.
     const n = trip.haul.length;
     trip = null;
     const promoted = completed ? A.checkPromotion() : null;

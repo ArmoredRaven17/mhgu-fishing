@@ -89,21 +89,24 @@
 
     el('tackleCount').textContent = `${kinds} / ${G.TACKLE_SLOTS}`;
     el('tackleList').innerHTML = owned.length ? owned.map(b => {
-      const take = A.tackled(b.id), cap = Math.min(A.baitStock(b.id), G.BAIT_CARRY);
-      const full = kinds >= G.TACKLE_SLOTS && !take;
-      return `<li data-id="${b.id}" class="${full ? 'nofit' : ''}">
+      // What you ASKED for against what you can actually take right now. Short of
+      // stock reads as 3 / 10, and refills itself the moment you restock.
+      const want = A.wantedBait(b.id), take = A.tackled(b.id);
+      const full = kinds >= G.TACKLE_SLOTS && !want;
+      const owned = A.baitStock(b.id);
+      return `<li data-id="${b.id}" class="${full ? 'nofit' : ''} ${want && !take ? 'dry' : ''}">
         <img src="${b.icon}" alt="">
         <div><b>${b.name}</b><span class="role">${b.family === 'ore' ? 'variety' : 'species'}</span></div>
-        <span class="qty">${take} / ${cap}</span>
-        <button class="btn tiny" data-toggle="${b.id}" ${!take && (full || !cap) ? 'disabled' : ''}>
-          ${take ? 'Remove' : 'Add'}</button>
+        <span class="qty">${take}${want ? ` / ${want}` : ` / ${Math.min(owned, G.BAIT_CARRY)}`}</span>
+        <button class="btn tiny" data-toggle="${b.id}" ${!want && (full || !owned) ? 'disabled' : ''}>
+          ${want ? 'Remove' : 'Add'}</button>
       </li>`;
     }).join('') : '<li class="empty">No bait yet. The shop sells it.</li>';
 
     el('tackleList').querySelectorAll('button[data-toggle]').forEach(btn => {
       btn.onclick = () => {
         const id = btn.dataset.toggle;
-        A.setTackle(id, A.tackled(id) ? 0 : Infinity);   // setTackle clamps to the most you can take
+        A.setTackle(id, A.wantedBait(id) ? 0 : Infinity);  // clamped to the carry limit
         A.save(); renderTackle(); renderDepart();
       };
     });
@@ -207,22 +210,22 @@
 
     el('pouchCount').textContent = `${used} / ${G.POUCH_SLOTS}`;
     el('pouchList').innerHTML = items.map(p => {
-      const take = A.planned(p.id);
-      const cap = Math.min(A.itemStock(p.id), G.carryLimit(p.id));
-      const noSlot = used >= G.POUCH_SLOTS && !take;
-      return `<li data-id="${p.id}" class="${noSlot ? 'nofit' : ''}">
+      const want = A.wanted(p.id), take = A.planned(p.id);
+      const owned = A.itemStock(p.id);
+      const noSlot = used >= G.POUCH_SLOTS && !want;
+      return `<li data-id="${p.id}" class="${noSlot ? 'nofit' : ''} ${want && !take ? 'dry' : ''}">
         <img src="assets/ItemIcons/${p.icon}" alt="">
         <div><b>${p.name}</b><span class="role">${G.effectOf(p.id).label}</span></div>
-        <span class="qty">${take} / ${cap}</span>
-        <button class="btn tiny" data-toggle="${p.id}" ${!take && (noSlot || !cap) ? 'disabled' : ''}>
-          ${take ? 'Remove' : 'Add'}</button>
+        <span class="qty">${take}${want ? ` / ${want}` : ` / ${Math.min(owned, G.carryLimit(p.id))}`}</span>
+        <button class="btn tiny" data-toggle="${p.id}" ${!want && (noSlot || !owned) ? 'disabled' : ''}>
+          ${want ? 'Remove' : 'Add'}</button>
       </li>`;
     }).join('');
 
     el('pouchList').querySelectorAll('button[data-toggle]').forEach(btn => {
       btn.onclick = () => {
         const id = btn.dataset.toggle;
-        A.setPlan(id, A.planned(id) ? 0 : Infinity);     // setPlan clamps to the most you can take
+        A.setPlan(id, A.wanted(id) ? 0 : Infinity);       // clamped to the carry limit
         A.save(); renderPouch(); renderDepart();
       };
     });
