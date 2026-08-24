@@ -304,17 +304,13 @@
   const guardNow = () =>
     Math.min(0.6, trip.fresh.guard + (trip.defLeft > 0 ? trip.defAmount : 0));
 
+  // Nothing is drunk for you. A climate drink used to top itself up the moment the
+  // last one lapsed, which spent items you might have been saving and made the
+  // decision for you — the pulsing gauge says when you are exposed, and reaching
+  // for the pouch is your call.
   function tickClimate(secs) {
     if (trip.climate === 'temperate') return;
-    trip.drinkLeft -= secs;
-    if (trip.drinkLeft <= 0) {
-      const drink = trip.climate === 'hot' ? 'cool_drink' : 'hot_drink';
-      if (trip.carried[drink] > 0) {
-        trip.carried[drink]--;
-        trip.drinkLeft = G.DRINK_SECONDS;
-        trip.notes.push(`You drink a ${trip.climate === 'hot' ? 'Cool' : 'Hot'} Drink.`);
-      }
-    }
+    if (trip.drinkLeft > 0) trip.drinkLeft -= secs;
     // Only heat costs HP, and only while you are unprotected.
     if (trip.rates.hpPerTick && !protectedNow()) trip.hp -= trip.rates.hpPerTick * secs;
   }

@@ -229,6 +229,10 @@ function runTrip(localeId, lo, hr) {
     // unprotected regardless of loadout.
     if (climate !== 'temperate') {
       drinkLeft -= secs;
+      // The GAME no longer drinks for you — the sim still does, because it models
+      // a player who reaches for the pouch the moment the last one lapses. These
+      // figures are therefore the best case for climate protection, not the
+      // average one.
       if (drinkLeft <= 0 && drinks > 0) { drinks--; used.drinks++; drinkLeft = DRINK_SECONDS; }
       if (rates.hpPerTick && drinkLeft <= 0) hp -= rates.hpPerTick * secs;
     }
