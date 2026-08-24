@@ -153,33 +153,41 @@
     // baseline handful; it grows as ingredients turn up.
     const avail = G.mealsAvailable(S.pantry, S.hr);
 
-    // A meal you can no longer cook must not stay selected. The <select> falls
-    // back to showing the first option, but S.mealId still pointed at the old
-    // one — so the summary read "No Meal" while departure charged for it and
-    // handed out its bonuses. Clamp before anything reads it.
+    // A meal you can no longer cook must not stay selected, or the summary reads
+    // "No Meal" while departure charges for the old one and hands out its bonuses.
     if (!avail.some(m => m.id === S.mealId)) { S.mealId = 'none'; A.save(); }
-
-    const groups = new Map();
-    for (const m of avail) {
-      const key = m.id === 'none' ? '' :
-        [m.hp ? `+${m.hp} HP` : null, m.stamina ? `+${m.stamina} Stamina` : null]
-          .filter(Boolean).join(', ');
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(m);
-    }
     renderMealStats();
 
-    // A meal carrying a fresh ingredient says so in the list itself. Without it
-    // the only way to find the ones worth cooking is to select all 74 in turn,
-    // which is exactly the click-through the pouch was fixed to avoid.
-    el('mealSelect').innerHTML = [...groups].map(([label, list]) => {
-      const opts = list.map(m => {
-        const tag = G.freshShort(G.freshBonus(m, S.pantry));
-        return `<option value="${m.id}" ${S.mealId === m.id ? 'selected' : ''}>` +
-          `${m.name}${m.cost ? ` — ${z(m.cost)}` : ''}${tag ? `  ·  Fresh ${tag}` : ''}</option>`;
-      }).join('');
-      return label ? `<optgroup label="${label}">${opts}</optgroup>` : opts;
+    // A table, not a dropdown: what a meal gives and what it costs are the two
+    // things you are comparing, and a <select> could only ever show them as one
+    // run-on line per row. Strongest first, then cheapest — the order you shop in.
+    const rows = [...avail].sort((a, b) =>
+      (b.hp + b.stamina) - (a.hp + a.stamina) || a.cost - b.cost);
+    const none = rows.filter(m => m.id === 'none');
+    const rest = rows.filter(m => m.id !== 'none');
+
+    el('mealTable').innerHTML = [...none, ...rest].map(m => {
+      const tag = G.freshShort(G.freshBonus(m, S.pantry));
+      const afford = m.cost <= S.zenny;
+      return `<tr data-meal="${m.id}"
+        class="${S.mealId === m.id ? 'sel' : ''} ${afford ? '' : 'cant'}">
+        <td class="nm">${m.name}</td>
+        <td class="n">${m.hp ? `+${m.hp}` : '&mdash;'}</td>
+        <td class="n">${m.stamina ? `+${m.stamina}` : '&mdash;'}</td>
+        <td class="fr">${tag ? `<span class="fresh-tag">Fresh</span> ${tag}` : ''}</td>
+        <td class="pr">${m.cost ? z(m.cost) : '&mdash;'}</td>
+      </tr>`;
     }).join('');
+
+    el('mealTable').querySelectorAll('tr[data-meal]').forEach(tr => {
+      tr.onclick = () => {
+        const m = G.MEALS.find(x => x.id === tr.dataset.meal);
+        if (!m || m.cost > A.state.zenny) return;      // cannot pick what you cannot pay for
+        A.state.mealId = tr.dataset.meal;
+        A.save();
+        renderMeal(); renderHire(); renderDepart();
+      };
+    });
   }
 
   // ── Pouch ─────────────────────────────────────────────────────────────────

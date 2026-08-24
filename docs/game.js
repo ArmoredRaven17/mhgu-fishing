@@ -528,13 +528,13 @@
     Meat:       { hp: 8 },        // even a stamina-only dish comes with HP on it
     Vegetables: { stamina: 8 },
     Fish:       { zenny: 0.06 },  // a fraction of every catch's value
-    Alcohol:    { guard: 0.10 },  // a fraction off what monsters take from you
+    Alcohol:    { guard: 0.10 },  // defence: a fraction off what monsters take
   };
   const FRESH_LABEL = {
     hp: n => `+${n} HP`,
     stamina: n => `+${n} Stamina`,
     zenny: n => `+${Math.round(n * 100)}% zenny per catch`,
-    guard: n => `-${Math.round(n * 100)}% monster damage`,
+    guard: n => `+${Math.round(n * 100)}% Def`,
   };
 
   const ingredientById = new Map(CANTEEN.ingredients.map(i => [i.id, i]));
@@ -588,7 +588,7 @@
     hp: n => `+${n} HP`,
     stamina: n => `+${n} Sta`,
     zenny: n => `+${Math.round(n * 100)}% z`,
-    guard: n => `-${Math.round(n * 100)}% dmg`,
+    guard: n => `+${Math.round(n * 100)}% Def`,
   };
   const freshShort = bonus => Object.entries(bonus)
     .filter(([, v]) => v > 0)

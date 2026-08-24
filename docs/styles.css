@@ -289,6 +289,24 @@ select{
 
 .reel{width:100%;display:grid;gap:10px;justify-items:center}
 
+/* Meals as a table. What a meal gives and what it costs are the two things you
+   compare, and a dropdown could only ever show them as one run-on line. */
+.meal-wrap{max-height:34vh;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg1)}
+.meal-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.meal-table td{padding:4px 6px;vertical-align:middle}
+.meal-table tr{cursor:pointer;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.meal-table tr:last-child{border-bottom:0}
+.meal-table tr:hover{background:#ffffff10}
+.meal-table tr.sel{background:color-mix(in srgb,var(--money) 18%,transparent)}
+.meal-table tr.sel .nm{font-weight:700}
+.meal-table tr.cant{opacity:.4;cursor:not-allowed}
+/* The name gives way, not the price — what a meal costs is half of what you are
+   comparing, and a greedy nowrap name was pushing it out of the panel. */
+.meal-table .nm{white-space:normal;line-height:1.25;min-width:96px}
+.meal-table .n{text-align:right;font-variant-numeric:tabular-nums;width:1%;white-space:nowrap;opacity:.85}
+.meal-table .fr{font-size:10.5px;white-space:nowrap;opacity:.95;width:1%}
+.meal-table .pr{text-align:right;color:var(--money);font-variant-numeric:tabular-nums;width:1%;white-space:nowrap}
+
 .mealstats{margin:6px 0 2px;font-size:12.5px;opacity:.9;font-variant-numeric:tabular-nums}
 .mealfresh{margin:0 0 6px;font-size:12px;opacity:.95;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .mealfresh:empty{display:none}

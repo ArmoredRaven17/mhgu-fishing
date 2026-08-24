@@ -208,10 +208,6 @@
   el('navGuide').onclick = () => show('guide');
   el('navShop').onclick = () => show('shop');
 
-  el('mealSelect').onchange = e => {
-    A.state.mealId = e.target.value; A.save();
-    window.MF_PREP.renderMealStats(); window.MF_PREP.renderHire(); window.MF_PREP.renderDepart();
-  };
   el('hireToggle').onchange = e => { A.state.hired = e.target.checked; A.save(); window.MF_PREP.renderHire(); window.MF_PREP.renderDepart(); };
   el('departBtn').onclick = () => { window.MF_QUEST.begin(); renderHeader(); };
   el('castBtn').onclick = () => window.MF_QUEST.cast().then(renderHeader);
