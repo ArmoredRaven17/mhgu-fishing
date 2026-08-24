@@ -203,7 +203,7 @@ function runTrip(localeId, lo, hr) {
   while (sta > 0 && hp > 0 && casts < 500) {
     casts++;
 
-    const enc = R.rollEncounter(localeId, bait);
+    const enc = R.rollEncounter(localeId, bait, hr);
     if (enc) {
       bosses++;
       const secs = enc.durationMs / 1000;

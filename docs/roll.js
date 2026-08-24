@@ -218,11 +218,11 @@
   // Plesioth only bites where monster_habitat actually puts it, and Frog raises
   // its odds sharply — the game's own description calls Frog "the ideal bait for
   // certain aquatic monsters".
-  function rollEncounter(localeId, bait, rng = Math.random) {
+  function rollEncounter(localeId, bait, hr = 1, rng = Math.random) {
     const loc = localeById.get(localeId);
     if (!loc || !loc.boss.length) return null;
     for (const name of loc.boss) {
-      let chance = G.ENCOUNTER_CHANCE[name] ?? 0;
+      let chance = G.encounterChance(name, hr);
       if (G.BOSS[name]?.bait && bait.id === G.BOSS[name].bait) chance *= 4;
       if (rng() < chance) return G.BOSS[name];
     }

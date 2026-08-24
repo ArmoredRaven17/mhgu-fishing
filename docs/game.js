@@ -673,7 +673,7 @@
     { id: 'line', name: 'Line Strength', max: 10, per: 1,
       icon: 'assets/BaitIcons/MH4G-Bait_Icon_Yellow.png',
       cost: n => Math.round(2600 * Math.pow(1.55, n)),
-      desc: 'Widens the stretch where the line holds, and it slackens more slowly.' },
+      desc: 'The line slackens more slowly, giving you longer between pulls.' },
     { id: 'lure', name: 'Lure Quality', max: 10, per: 1,
       icon: 'assets/ItemIcons/MH4G-Book_Icon_Yellow.png',
       cost: n => Math.round(3000 * Math.pow(1.58, n)),
@@ -754,9 +754,12 @@
     const rung = Math.min(1, Math.max(0, (hr - 1) / 11));   // HR1..HR12 -> 0..1
     return {
       durationMs,
-      // How fast the line falls slack when you stop pulling.
+      // How fast the line falls slack when you stop pulling. This is the ONLY
+      // thing Line Strength touches: a proportional cut, so a strong line buys
+      // you time on every fish rather than a fixed amount that means nothing on
+      // the hard ones.
       sinkPerSec: Math.max(0.18,
-        (0.30 + r * 0.014 + o * 0.022 - lineLevel * 0.010) * (1 + rung * 0.25)),
+        (0.30 + r * 0.014 + o * 0.022) * (1 + rung * 0.25) * (1 - lineLevel * 0.035)),
       // What one press buys. Flat, so the rhythm is the skill, not the timing.
       liftPerPress: 0.085,
       // Half-width of the good stretch either side of centre, set by what the
@@ -765,9 +768,11 @@
       // valuable fish in the game only pulled the band in from 46% of the track
       // to 28%. Value spans 47z to 8,293z, so it is read on a log scale — every
       // step up in what you are holding visibly tightens the stretch.
+      // Line Strength deliberately does NOT widen this. Widening the target makes
+      // the fight easier to be sloppy at; slowing the sink gives you more time to
+      // be precise in. The second is still a test of the same skill.
       band: Math.min(0.34, Math.max(BAND_FLOOR,
-        (BAND_WIDE - valueT(fish, ore) * (BAND_WIDE - BAND_TIGHT)) * (1 - rung * 0.28)
-        + lineLevel * 0.010)),
+        (BAND_WIDE - valueT(fish, ore) * (BAND_WIDE - BAND_TIGHT)) * (1 - rung * 0.28))),
       // Ground is only gained inside that stretch. A clean fight runs a little
       // under the nominal duration, so playing well beats the stamina you paid.
       progressPerSec: 1000 / (durationMs * 0.6),
@@ -837,6 +842,17 @@
   // knowing Lavasioth is the tax on the ore.
   const ENCOUNTER_CHANCE = { Plesioth: 0.007, Lavasioth: 0.022 };
 
+  // ...and it climbs with the rung. At the flat rate a Plesioth turned up on
+  // roughly one trip in five, which at G Rank meant going a very long time
+  // without meeting the thing the locale is warned about. By HR12 the odds are
+  // three and a half times what they are on the first rung.
+  const ENCOUNTER_RANK_SCALE = 2.5;
+  const encounterChance = (name, hr) => {
+    const base = ENCOUNTER_CHANCE[name] ?? 0;
+    const rung = Math.min(1, Math.max(0, ((hr || 1) - 1) / 11));
+    return base * (1 + rung * ENCOUNTER_RANK_SCALE);
+  };
+
   // Losing a boss fight COSTS YOU HP rather than ending the trip outright. What
   // it costs is set by the rung the locale sits on, so a Plesioth in G-rank water
   // hits far harder than the same Plesioth on the Low ladder.
@@ -866,7 +882,8 @@
     recipeFor, mealAvailable, mealsAvailable,
     FRESH, FRESH_CHANCE, FRESH_MAX, FRESH_LABEL, isFresh, freshBonus, freshLines, freshShort,
     freshPick,
-    POND, REEL_START, fightFor, BOSS, PEST, HIRE, ENCOUNTER_CHANCE, STOCK_CAP,
+    POND, REEL_START, fightFor, BOSS, PEST, HIRE, ENCOUNTER_CHANCE,
+    ENCOUNTER_RANK_SCALE, encounterChance, STOCK_CAP,
     BOSS_LOSS, bossLossDamage,
   };
 })();

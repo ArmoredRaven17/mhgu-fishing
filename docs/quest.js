@@ -178,7 +178,7 @@
     const S = A.state;
     S.stats.casts++;
 
-    const boss = R.rollEncounter(trip.localeId, trip.bait);
+    const boss = R.rollEncounter(trip.localeId, trip.bait, trip.questHR);
     const school = boss ? [] : R.rollSchool({
       localeId: trip.localeId, bait: trip.bait, hr: trip.questHR, lureLevel: S.upgrades.lure,
     });
