@@ -83,7 +83,11 @@
   // you make while fishing rather than one you lock in at camp.
   function renderTackle() {
     const S = A.state;
-    const owned = A.BAITS.filter(b => b.id !== 'no_bait' && A.baitStock(b.id) > 0
+    // Only bait you actually hold — plus anything already reserved, so a slot you
+    // have run dry can still be taken back out. Without that second half the row
+    // vanishes with the last bait and its slot is stuck for good.
+    const owned = A.BAITS.filter(b => b.id !== 'no_bait'
+      && (A.baitStock(b.id) > 0 || A.wantedBait(b.id) > 0)
       && S.hr >= G.baitUnlockHR(b));
     const kinds = A.tackleKinds().length;
 
@@ -205,10 +209,19 @@
   // drink them; the quest screen still uses one at a time.
   function renderPouch() {
     const S = A.state;
-    const items = window.MF_FISH.prep.filter(p => p.buy && S.hr >= G.itemUnlockHR(p));
+    // Same rule as the Bait Pouch: what you hold, plus anything reserved so a dry
+    // slot can be given up. Listing everything you had never bought made the
+    // pouch a catalogue of things you cannot take.
+    const items = window.MF_FISH.prep.filter(p => p.buy
+      && (A.itemStock(p.id) > 0 || A.wanted(p.id) > 0)
+      && S.hr >= G.itemUnlockHR(p));
     const used = A.slotsUsed();
 
     el('pouchCount').textContent = `${used} / ${G.POUCH_SLOTS}`;
+    if (!items.length) {
+      el('pouchList').innerHTML = '<li class="empty">Nothing to pack. The shop sells provisions.</li>';
+      return;
+    }
     el('pouchList').innerHTML = items.map(p => {
       const want = A.wanted(p.id), take = A.planned(p.id);
       const owned = A.itemStock(p.id);
