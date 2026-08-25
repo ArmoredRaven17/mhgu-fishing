@@ -254,17 +254,22 @@
     3:  ['dunes', 'deserted_island', 'misty_peaks'],
     // High Rank opens at HR4 — the Low seven return at High tables, plus four new
     4:  ['jurassic_frontier', 'marshlands', 'ancestral_steppe', 'primal_forest'],
-    5:  ['verdant_hills', 'arctic_ridge', 'frozen_seaway', 'deserted_island'],
-    6:  ['dunes', 'misty_peaks', 'volcanic_hollow'],
+    // Volcanic Hollow and Deserted Island are swapped against where the game's own
+    // hub stars would put them, deliberately. Deserted Island is the richest water
+    // in the app and Volcanic Hollow the poorest, so having the rich one on the
+    // EARLIER rung made HR6 ask less than HR5. The poor locale belongs on the
+    // earlier rung and the rich one on the later, or the ladder walks backwards.
+    5:  ['verdant_hills', 'arctic_ridge', 'frozen_seaway', 'volcanic_hollow'],
+    6:  ['dunes', 'misty_peaks', 'deserted_island'],
     // Two empty rungs close out High. checkPromotion steps straight over them, so
     // clearing HR6 lands you on HR9 and G Rank.
     7:  [],
     8:  [],
     // G Rank — all eleven return at G tables, plus three new
     9:  ['jurassic_frontier', 'marshlands', 'ancestral_steppe', 'primal_forest'],
-    10: ['verdant_hills', 'arctic_ridge', 'frozen_seaway', 'deserted_island'],
+    10: ['verdant_hills', 'arctic_ridge', 'frozen_seaway', 'volcanic_hollow'],
     11: ['dunes', 'misty_peaks', 'jungle'],
-    12: ['volcanic_hollow', 'ruined_pinnacle', 'desert'],
+    12: ['deserted_island', 'ruined_pinnacle', 'desert'],
   };
 
   // Which HRs belong to the same rank, so a rank's rungs accumulate but do not
@@ -326,17 +331,16 @@
   // ~21, and only maxed Endurance reaches ~45. Note the meal barely moves it —
   // nothing out-staminas Vigorous Stir-fry's 38 until Ultimate Rice at HR13 — so
   // Endurance is what these later numbers are really asking you to have bought.
-  // Note G's figures are LOWER than High's and still ask more of you. A G trip
-  // runs about 31 casts where a High one runs 34 — the fish are rarer, so the
-  // fights are longer and the same stamina buys fewer lines in the water. What
-  // the player actually sees climbs regardless, because the goal is zenny and G
-  // water is worth far more per cast.
+  // A G trip runs about 31 casts where a High one runs 34 — the fish are rarer,
+  // so the fights are longer and the same stamina buys fewer lines in the water.
+  // G's figures therefore have to climb faster than the arithmetic suggests just
+  // to stay ahead of where High finished.
   const GOAL_CASTS_BY_HR = {
     1: 18, 2: 20, 3: 22,          // Low
     4: 24, 5: 26, 6: 28,          // High
-    9: 26, 10: 27, 11: 28, 12: 29, // G — fewer casts, longer fights
+    9: 30, 10: 31, 11: 32, 12: 33, // G
   };
-  const GOAL_CASTS_BY_RANK = { Low: 18, High: 24, G: 26, Gplus: 29 };
+  const GOAL_CASTS_BY_RANK = { Low: 18, High: 24, G: 30, Gplus: 33 };
   const goalCasts = hr =>
     GOAL_CASTS_BY_HR[hr] ?? GOAL_CASTS_BY_RANK[rankAt(hr).id] ?? 18;
   const GOAL_CASTS = 18;                 // the Low figure, kept for reference

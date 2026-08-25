@@ -311,7 +311,7 @@
   // however long you stand there. The ceiling is a heavily provisioned trip, so
   // clearing a poor locale is meant to be a long grind, not an impossibility.
   const GOAL_LOCALE_SHARE = 0.55;
-  const GOAL_CEILING_CASTS = 32;
+  const GOAL_CEILING_CASTS = 30;
 
   function questGoal(localeId, hr) {
     const ev = expectedCastValue(localeId, hr);
