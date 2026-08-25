@@ -251,6 +251,121 @@
     return Math.round(raw / G.HIRE.round) * G.HIRE.round;
   }
 
+  // A Palico costs a little under the hunter, off the same locale — they are not
+  // standing between you and anything, they are picking things up. Priced each,
+  // so the second cat costs what the first did.
+  const palicoCost = (localeId, hr, n = 1) =>
+    Math.round(hireCost(localeId, hr) * G.PALICO.ofHunter / G.HIRE.round) * G.HIRE.round * n;
+
+  // What the cats can turn up here. Ores are gated by the quest's rank the same
+  // way the ore a fish wears is — a Low rung cannot produce Purecrystal — while
+  // the bugs are found anywhere. Weighted against value, so the cheap things
+  // come up constantly and the dear ones are the reason you keep going out.
+  // The cart's fee: the locale's own rate, a little under a Palico, plus a cut of
+  // what you are asking it to multiply.
+  const tradeCost = (localeId, hr, item) => item
+    ? Math.round((hireCost(localeId, hr) * G.TRADE.ofHunter
+        + (item.sell || 0) * G.TRADE.cut) / G.HIRE.round) * G.HIRE.round
+    : 0;
+
+  // What the cart hands back on top of what you gave it.
+  const tradeExtra = landed =>
+    Math.max(0, Math.min(G.TRADE.max, Math.floor(landed / G.TRADE.perExtra)));
+
+  // What the cats can turn up HERE, weighted by the GAME'S OWN rates. Each
+  // locale page lists its gathering, mining and bug nodes per rank with a
+  // percentage on every row; a material's weight is simply its share summed
+  // across every node this rank can reach. So Ultimas Crystal is rare at
+  // Volcanic Hollow because Kiranico says it is 10-20% of sixteen nodes there,
+  // not because anyone tuned it.
+  //
+  // Materials the shop sells are left out — a cat coming home with an Insect
+  // Husk you could buy for 10z is not a service. Materials with no gathering
+  // rows anywhere are quest rewards; they are folded in at the pool's median
+  // weight so their recipes stay reachable.
+  const RANK_TAG = { Low: 'Low', High: 'High', G: 'G' };
+
+  function gatherNodes(localeId, hr) {
+    const loc = localeById.get(localeId);
+    if (!loc || !loc.gather) return [];
+    const want = new Set(G.tableRanksAt(hr).map(r => RANK_TAG[r]));
+    return Object.entries(loc.gather)
+      .filter(([rank]) => want.has(rank))
+      .flatMap(([, nodes]) => nodes);
+  }
+
+  function gatherPool(localeId, hr) {
+    const nodes = gatherNodes(localeId, hr);
+    const byName = new Map(G.MATERIALS.map(m => [m.name, m]));
+    const weight = new Map();
+    for (const node of nodes)
+      for (const e of node.entries) {
+        const m = byName.get(e.name);
+        if (!m || G.isBuyableMat(m.id)) continue;
+        weight.set(m, (weight.get(m) || 0) + e.pct);
+      }
+    const out = [...weight].map(([mat, w]) => ({ mat, w }));
+
+    // Quest-reward materials belong to no locale, so they get the median weight
+    // of whatever is actually here — present, unremarkable, never absent.
+    const orphans = G.MATERIALS.filter(m =>
+      !G.isBuyableMat(m.id) && !weight.has(m) && G.isQuestRewardMat(m.id));
+    if (orphans.length && out.length) {
+      const ws = out.map(x => x.w).sort((a, b) => a - b);
+      const median = ws[Math.floor(ws.length / 2)];
+      for (const m of orphans) out.push({ mat: m, w: median });
+    }
+    return out;
+  }
+
+  // What share of a locale's gatherable materials a given one is, per rank. This
+  // is the number that matters to an angler: not the raw node percentage, which
+  // is a share of a node that mostly holds things the Palicos ignore, but the
+  // odds that a material they DO bring back is this one.
+  function materialShares(matId) {
+    const out = [];
+    for (const loc of window.MF_LOCALES) {
+      if (!loc.gather) continue;
+      for (const [rank, nodes] of Object.entries(loc.gather)) {
+        const byName = new Map(G.MATERIALS.map(m => [m.name, m]));
+        let total = 0, mine = 0;
+        for (const node of nodes)
+          for (const e of node.entries) {
+            const m = byName.get(e.name);
+            if (!m || G.isBuyableMat(m.id)) continue;
+            total += e.pct;
+            if (m.id === matId) mine += e.pct;
+          }
+        if (mine && total) out.push({ locale: loc.name, rank, share: mine / total });
+      }
+    }
+    // One line per LOCALE, at its best rank. Whetstone shows up in 44 locale-and-
+    // rank combinations; listing all of them made a row taller than the panel and
+    // told an angler nothing they could act on. Where to go is the question.
+    const best = new Map();
+    for (const r of out) {
+      const prev = best.get(r.locale);
+      if (!prev || r.share > prev.share) best.set(r.locale, r);
+    }
+    return [...best.values()].sort((a, b) => b.share - a.share
+      || a.locale.localeCompare(b.locale));
+  }
+
+  // One roll per Palico per cast. Everything they pick up is held until the trip
+  // ends — see quest.js — so a gather can never change what you were able to
+  // combine while you were still out there.
+  function rollGather(localeId, hr, cats, rng = Math.random) {
+    const out = [];
+    if (!cats) return out;
+    const pool = gatherPool(localeId, hr);
+    if (!pool.length) return out;
+    for (let i = 0; i < cats; i++) {
+      if (rng() >= G.PALICO.chancePerCast) continue;
+      out.push(pick(pool, rng).mat);
+    }
+    return out;
+  }
+
   function pestChance(hired) {
     return G.PEST.chancePerCast * (hired ? 1 - G.PEST.hireCut : 1);
   }
@@ -389,7 +504,7 @@
   window.MF_ROLL = {
     ranksAt, isOpen, localeUnlocked, basePool, speciesAt, speciesByRank,
     expectedCastValue, rungCastValue, questGoal,
-    hireCost, pestChance, rollPest, rollSchool, rollFish, rollOre, rollCatch, rollEncounter, fullGuide,
+    hireCost, palicoCost, tradeCost, tradeExtra, gatherPool, gatherNodes, materialShares, rollGather, pestChance, rollPest, rollSchool, rollFish, rollOre, rollCatch, rollEncounter, fullGuide,
     fishById, localeById,
   };
 })();

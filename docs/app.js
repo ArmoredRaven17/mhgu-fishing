@@ -8,7 +8,9 @@
 
   const BAITS = G.buildBaits();
   const baitBy = new Map(BAITS.map(b => [b.id, b]));
-  const prepBy = new Map(window.MF_FISH.prep.map(p => [p.id, p]));
+  // Everything the pouch can hold, not just the provisions — combine materials
+  // and books are bought and carried the same way a Potion is.
+  const prepBy = new Map(G.pouchItems().map(p => [p.id, p]));
 
   const defaults = () => ({
     hr: 1,                   // the ladder itself: each HR opens its own locales
@@ -20,6 +22,9 @@
     caughtAt: {},            // localeId -> { fishId: count }, where each came from
     fishedAt: {},            // localeId -> { Low|High|G: true }, which tables you have read
     spaceToCast: false,      // opt-in: tap Space to cast instead of reaching for the button
+    palicos: 0,              // cats hired to gather while you fish, 0..PALICO.max
+    matsSeen: {},            // materialId -> true, once one has ever been in hand
+    tradeItem: '',           // what the Trade Cart is working on, '' for no cart
     pantry: {},              // ingredientId -> true when found, 'fresh' when fresh
     freshOrder: [],          // which ingredients are fresh, oldest first
     pouch: { potion: 5 },
@@ -59,6 +64,12 @@
     S.visited = saved.visited || {};
     S.fishedAt = saved.fishedAt || {};
     S.spaceToCast = !!saved.spaceToCast;
+    S.palicos = Math.max(0, Math.min(G.PALICO.max, saved.palicos || 0));
+    S.matsSeen = saved.matsSeen || {};
+    S.tradeItem = saved.tradeItem || '';
+    // Anything already in the pouch has obviously been seen — this backfills a
+    // save from before the record existed rather than blanking what it holds.
+    for (const id of Object.keys(S.pouch)) if (G.materialById.has(id)) S.matsSeen[id] = true;
     prunePlans();          // an old save may already be over a pouch limit
     reconcileFresh();      // ...or carry more fresh ingredients than the cap
     syncHR();
@@ -294,7 +305,7 @@
   // all-or-nothing — asking for 99 with room for 12 buys the 12.
   function affordable(id, n, unit, held) {
     if (!unit || unit < 0) return 0;
-    const room = Math.max(0, G.STOCK_CAP - held);
+    const room = Math.max(0, G.ownCap(id) - held);
     return Math.max(0, Math.min(n, room, Math.floor(S.zenny / unit)));
   }
   const canBuyBait = (id, n) => {
@@ -312,10 +323,33 @@
     S.owned[id] = (S.owned[id] || 0) + take;
     return take;
   }
+  // Once held, always known: the Materials page stops masking it from here on,
+  // whether it came from the shop or a Palico.
+  const seeMaterial = id => { if (G.materialById.has(id)) S.matsSeen[id] = true; };
+  const matSeen = id => !!S.matsSeen[id];
+
+  // Locales you have actually set out to, keyed by NAME because that is what the
+  // gathering tables are keyed by. Anything you have fished counts, whether or
+  // not you cleared it — you were there, you saw what the place holds.
+  function everFished() {
+    const out = {};
+    const R = window.MF_ROLL;
+    for (const id of Object.keys(S.fishedAt || {})) {
+      const loc = R && R.localeById.get(id);
+      if (loc) out[loc.name] = true;
+    }
+    for (const id of Object.keys(S.caughtAt || {})) {
+      const loc = R && R.localeById.get(id);
+      if (loc) out[loc.name] = true;
+    }
+    return out;
+  }
+
   function buyItem(id, n = 1) {
     const take = canBuyItem(id, n);
     if (!take || !spend(G.priceOf(prepBy.get(id)) * take)) return 0;
     S.pouch[id] = (S.pouch[id] || 0) + take;
+    seeMaterial(id);
     return take;
   }
 
@@ -350,9 +384,12 @@
     prunePlans();
   }
 
+  // A slot is a slot whatever fills it — a Potion, a bag of husks or a book all
+  // cost you one of the ten. Counting only the provisions let the books and
+  // materials ride along free, which would have given away the entire trade.
   const slotsUsed = () => {
     prunePlans();
-    return window.MF_FISH.prep.filter(p => p.buy && wanted(p.id) > 0).length;
+    return G.pouchItems().filter(p => (p.buy || p.kind === 'mat') && wanted(p.id) > 0).length;
   };
 
   function setPlan(id, n) {
@@ -414,6 +451,7 @@
     fishedLocales, caughtAtLocale, caughtTotalAt, markFished, revealedRanks,
     spend, earn, buyBait, buyItem, buyUpgrade, upgradeCost, canBuyBait, canBuyItem,
     baitStock, itemStock, planned, setPlan, slotsUsed, localeOpen,
+    seeMaterial, matSeen, everFished,
     tackled, tackleKinds, setTackle, prunePlans, dropEmptyPlans,
     wanted, wantedBait, questRung, selectQuest,
     reset() { S = defaults(); save(); },

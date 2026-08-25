@@ -6,8 +6,8 @@
   const el = id => document.getElementById(id);
   const z = n => Math.round(n).toLocaleString() + 'z';
 
-  const SCREENS = ['camp', 'quest', 'guide', 'shop'];
-  const TABS = { camp: 'navCamp', guide: 'navGuide', shop: 'navShop' };
+  const SCREENS = ['camp', 'quest', 'guide', 'combos', 'shop'];
+  const TABS = { camp: 'navCamp', guide: 'navGuide', combos: 'navCombos', shop: 'navShop' };
 
   function show(name) {
     for (const s of SCREENS) el(s).classList.toggle('active', s === name);
@@ -16,6 +16,7 @@
     const questing = window.MF_QUEST.active;
     for (const tab of Object.values(TABS)) el(tab).disabled = questing && name === 'quest';
     if (name === 'guide') showCollectables(collectView);
+    if (name === 'combos') window.MF_GUIDE.renderCombos();
     if (name === 'shop') renderShop();
     if (name === 'camp') window.MF_PREP.renderAll();
   }
@@ -109,8 +110,12 @@
     }
 
     for (const [group, label, order] of G.ITEM_GROUPS) {
-      const items = window.MF_FISH.prep.filter(p =>
-        p.buy && G.effectOf(p.id).group === group && S.hr >= G.itemUnlockHR(p));
+      // Materials and books sit in the same list as the provisions now, so the
+      // shop stops caring which table a thing came out of. A material only shows
+      // if it is one of the few the shop sells — the rest are the cats' job.
+      const items = G.pouchItems().filter(p =>
+        p.buy && p.group === group && S.hr >= G.itemUnlockHR(p)
+        && (p.kind !== 'mat' || G.isBuyableMat(p.id)));
       if (!items.length) continue;
       items.sort(order
         ? (a, b) => order.indexOf(a.id) - order.indexOf(b.id)
@@ -234,6 +239,7 @@
 
   el('navCamp').onclick = () => show('camp');
   el('navGuide').onclick = () => show('guide');
+  el('navCombos').onclick = () => show('combos');
   el('navShop').onclick = () => show('shop');
 
   el('hireToggle').onchange = e => { A.state.hired = e.target.checked; A.save(); window.MF_PREP.renderHire(); window.MF_PREP.renderDepart(); };
@@ -247,17 +253,20 @@
     collectView = view;
     for (const [name, tab, panel] of [['fish', 'subFish', 'viewFish'],
                                      ['locales', 'subLocales', 'viewLocales'],
-                                     ['ingredients', 'subIngredients', 'viewIngredients']]) {
+                                     ['ingredients', 'subIngredients', 'viewIngredients'],
+                                     ['materials', 'subMaterials', 'viewMaterials']]) {
       el(tab).classList.toggle('active', view === name);
       el(panel).classList.toggle('active', view === name);
     }
     if (view === 'fish') window.MF_GUIDE.render();
     else if (view === 'ingredients') window.MF_GUIDE.renderPantry();
+    else if (view === 'materials') window.MF_GUIDE.renderMaterials();
     else window.MF_GUIDE.renderLocaleCatch();
   }
   el('subFish').onclick = () => showCollectables('fish');
   el('subLocales').onclick = () => showCollectables('locales');
   el('subIngredients').onclick = () => showCollectables('ingredients');
+  el('subMaterials').onclick = () => showCollectables('materials');
 
   // Theme modal
   el('themeBtn').onclick = () => {

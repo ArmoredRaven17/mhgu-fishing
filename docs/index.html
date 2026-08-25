@@ -6,7 +6,7 @@
 <title>MHGU Fishing</title>
 <!-- Whetfish: the first thing almost anyone catches here. -->
 <link rel="icon" type="image/png" href="assets/FishIcons/MH4G-Fish_Icon_Yellow.png">
-<link rel="stylesheet" href="styles.css?v=179">
+<link rel="stylesheet" href="styles.css?v=217">
 </head>
 <body>
 
@@ -35,6 +35,7 @@
   <nav class="tabbar">
     <button id="navCamp" class="tab active">Camp</button>
     <button id="navGuide" class="tab">Collectables</button>
+    <button id="navCombos" class="tab">Combos</button>
     <button id="navShop" class="tab">Shop</button>
   </nav>
 
@@ -111,6 +112,28 @@
               </span>
             </label>
             <p class="hint" id="hireHint"></p>
+
+            <label class="field slotrow hire">
+              <span>Gathering Palicos</span>
+              <span class="hire-right">
+                <b id="palicoCost" class="money"></b>
+                <select id="palicoPick">
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                </select>
+              </span>
+            </label>
+            <p class="hint" id="palicoHint"></p>
+
+            <label class="field slotrow hire">
+              <span>Trade Cart</span>
+              <span class="hire-right">
+                <b id="tradeCost" class="money"></b>
+                <select id="tradePick"></select>
+              </span>
+            </label>
+            <p class="hint" id="tradeHint"></p>
           </div>
           <div class="depart">
             <button id="departBtn" class="btn accent block">Depart</button>
@@ -199,6 +222,14 @@
             <ul id="questPouch" class="qpouch"></ul>
           </div>
         </div>
+
+        <div class="panel">
+          <div class="panel-head">Combine
+            <b id="combineBooks" class="slots"></b></div>
+          <div class="panel-body">
+            <ul id="combineList" class="qpouch"></ul>
+          </div>
+        </div>
         </div>
       </div>
     </section>
@@ -209,6 +240,7 @@
         <button id="subFish" class="subtab active">Fish</button>
         <button id="subLocales" class="subtab">Locales</button>
         <button id="subIngredients" class="subtab">Ingredients</button>
+        <button id="subMaterials" class="subtab">Materials</button>
       </div>
 
       <div id="viewFish" class="subview active">
@@ -226,6 +258,10 @@
         <div id="localeCatch" class="guide-grid"></div>
       </div>
 
+      <div id="viewMaterials" class="subview">
+        <div id="materialGrid" class="guide-grid"></div>
+      </div>
+
       <div id="viewIngredients" class="subview">
         <div class="guide-head">
           <div class="guide-progress">
@@ -235,6 +271,11 @@
         </div>
         <div id="pantryGrid" class="guide-grid"></div>
       </div>
+    </section>
+
+    <!-- ── Combos: every recipe, and what it would cost you ─────────────── -->
+    <section id="combos" class="screen">
+      <div id="comboGrid" class="guide-grid"></div>
     </section>
 
     <!-- ── Shop ──────────────────────────────────────────────────────────── -->
@@ -341,21 +382,21 @@
   </div>
 </div>
 
-<script src="data/ores.js?v=179"></script>
-<script src="data/fish.js?v=179"></script>
-<script src="data/locales.js?v=179"></script>
-<script src="data/meals.js?v=179"></script>
-<script src="data/canteen.js?v=179"></script>
-<script src="data/themes.js?v=179"></script>
-<script src="theme.js?v=179"></script>
-<script src="game.js?v=179"></script>
-<script src="roll.js?v=179"></script>
-<script src="app.js?v=179"></script>
-<script src="guide.js?v=179"></script>
-<script src="prep.js?v=179"></script>
-<script src="fishing.js?v=179"></script>
-<script src="quest.js?v=179"></script>
-<script src="ui.js?v=179"></script>
-<script src="savefile.js?v=179"></script>
+<script src="data/ores.js?v=217"></script>
+<script src="data/fish.js?v=217"></script>
+<script src="data/locales.js?v=217"></script>
+<script src="data/meals.js?v=217"></script>
+<script src="data/canteen.js?v=217"></script>
+<script src="data/themes.js?v=217"></script>
+<script src="theme.js?v=217"></script>
+<script src="game.js?v=217"></script>
+<script src="roll.js?v=217"></script>
+<script src="app.js?v=217"></script>
+<script src="guide.js?v=217"></script>
+<script src="prep.js?v=217"></script>
+<script src="fishing.js?v=217"></script>
+<script src="quest.js?v=217"></script>
+<script src="ui.js?v=217"></script>
+<script src="savefile.js?v=217"></script>
 </body>
 </html>

@@ -174,5 +174,163 @@
     }).join('');
   }
 
-  window.MF_GUIDE = { render, renderPantry, renderLocaleCatch, fishImg };
+  // ── Combine materials ─────────────────────────────────────────────────────
+  //
+  // What each material makes, and where it comes from. The locales are the
+  // game's own gathering data rather than anything designed, so this doubles as
+  // the answer to "where do I actually go for Ultimas Crystal" — Volcanic Hollow,
+  // and nowhere else.
+  //
+  // Grouped by what it is rather than by what it costs: ore for the variety
+  // baits, bugs for the species ones. A material you hold is lit; one you have
+  // never seen still shows its sources, because the whole point of the list is
+  // to tell you where to go.
+  function renderMaterials() {
+    const wrap = document.getElementById('materialGrid');
+    if (!wrap) return;
+    const S = A.state;
+    const src = (window.MF_FISH.materialSources) || {};
+    const oreIds = new Set(Object.values(G.ORE_MAT));
+
+    // Grouped by where the thing comes out of the ground, which is the game's own
+    // classification rather than anything read off the names: Insect Husk is a
+    // Gather item and Royal Rhino is a Bug one, and the words do not tell you.
+    // The three bases sit in Misc with everything else you pick up.
+    const isOre = m => oreIds.has(m.id);
+    const isBug = m => m.site === 'Bug';
+    const groups = [
+      ['Ore', G.MATERIALS.filter(isOre)],
+      ['Insects', G.MATERIALS.filter(m => !isOre(m) && isBug(m))],
+      ['Misc', G.MATERIALS.filter(m => !isOre(m) && !isBug(m))],
+    ];
+
+    wrap.innerHTML = groups.filter(([, list]) => list.length).map(([label, list]) => {
+      const have = list.filter(m => A.matSeen(m.id) || G.isBuyableMat(m.id)).length;
+      return `<section class="panel">
+        <h3 class="panel-head">${label}
+          <span class="cnt">${have} / ${list.length} found</span></h3>
+        <div class="panel-body"><ul class="mat-list">${
+          list.map(m => {
+            const n = S.pouch[m.id] || 0;
+            const s = src[m.id] || {};
+            // Where, and how often. The figure is the material's share of what a
+            // Palico can bring back at that locale and rank — not the raw node
+            // percentage, which is a slice of a node mostly full of things the
+            // cats ignore. Sorted best first, so the top line is where to go.
+            // A material you have never held is not named, and a locale you have
+            // never fished does not give up what it holds. You learn the map by
+            // walking it, so the page fills in as you go rather than handing you
+            // the whole answer at HR1.
+            const seen = A.matSeen(m.id) || G.isBuyableMat(m.id);
+            const fished = A.everFished();
+            const rates = G.isBuyableMat(m.id) ? [] : R.materialShares(m.id);
+            const where = G.isBuyableMat(m.id) ? '<span class="shop">Sold at the shop</span>'
+              : rates.length
+                ? (() => {
+                    // Best five, then a count. A material in fifteen locales does
+                    // not need fifteen lines — it needs the ones worth the trip.
+                    const SHOW = 5;
+                    const top = rates.slice(0, SHOW);
+                    const rest = rates.length - top.length;
+                    return top.map(r => `<span class="at"><b>${fished[r.locale]
+                        ? r.locale : '<span class="unknown">????</span>'}</b>` +
+                      `<i>${r.rank}</i><em>${(r.share * 100).toFixed(1)}%</em></span>`).join('')
+                      + (rest ? `<span class="more">and ${rest} more</span>` : '');
+                  })()
+                : (s.questReward ? 'Quest reward — the Palicos still find it' : 'Nowhere yet');
+            // What it MAKES is not listed here — the Combos tab is the recipe
+            // book, and repeating it turned this page into a worse copy of that
+            // one. This page answers the other question: where do I get it.
+            return `<li class="${n ? 'have' : ''}">
+              <img src="assets/ItemIcons/${m.icon}" alt="">
+              <div class="minfo">
+                <span class="nm">${seen
+                  ? m.name : '<span class="unknown">????</span>'}${n ? `<span class="n">x${n}</span>` : ''}</span>
+                <div class="src">${where}</div>
+              </div>
+            </li>`;
+          }).join('')
+        }</ul></div>
+      </section>`;
+    }).join('');
+  }
+
+  // ── Every recipe you can reach ────────────────────────────────────────────
+  //
+  // BASE rates only. What the books add is stated once at the top rather than
+  // folded into every row: a rate that silently moves with what you happen to
+  // own is a number you cannot check anything against, and the books only do
+  // anything when they are actually packed anyway.
+  //
+  // Locked recipes are listed rather than hidden. Knowing a Guardfish Bait needs
+  // a Stygian Worm is the point of the page, even at HR1.
+  function renderCombos() {
+    const wrap = document.getElementById('comboGrid');
+    if (!wrap) return;
+    const S = A.state;
+
+    // Read as a combo list is normally read: the result, then the two things it
+    // is made of. Bait icons carry their own folder, material icons do not.
+    const pic = (icon, alt) => `<img src="${icon.includes('/') ? icon : 'assets/ItemIcons/' + icon}" alt="${alt}">`;
+
+    const row = b => {
+      const rec = G.comboRecipe(b) || {};
+      const base = G.materialById.get(rec.base);
+      const mat = G.materialById.get(rec.mod);
+      const held = S.pouch[rec.mod] || 0;
+      const flies = S.pouch[rec.base] || 0;
+      const unlocked = S.hr >= G.baitUnlockHR(b);
+      const ready = unlocked && held > 0 && flies > 0;
+      const stock = n => n ? `<i class="own">x${n}</i>` : '';
+      // A recipe you have not reached yet keeps its row and its result — you can
+      // see the bait exists and when it opens — but the two things that make it
+      // are withheld rather than greyed out. Dimming says "not now"; ???? says
+      // "not yet", which is the truer statement and gives the page something to
+      // reveal as you climb.
+      const hidden = '<span class="ing unknown">????</span>';
+      // A material you have never held is ???? here too. The Materials page and
+      // this one have to agree — being told the recipe for something you cannot
+      // name would give away exactly what that page is withholding.
+      const knownMod = A.matSeen(rec.mod) || G.isBuyableMat(rec.mod);
+      return `<tr class="${ready ? 'have' : ''} ${unlocked ? '' : 'locked'}">
+        <td class="res"><span class="ing">${pic(b.icon, b.name)}<b>${b.name}</b></span></td>
+        <td class="op">=</td>
+        <td>${unlocked
+          ? `<span class="ing">${base ? pic(base.icon, base.name) : ''}${base ? base.name : rec.base}${stock(flies)}</span>`
+          : hidden}</td>
+        <td class="op">+</td>
+        <td>${unlocked && knownMod
+          ? `<span class="ing">${mat ? pic(mat.icon, mat.name) : ''}${mat ? mat.name : rec.mod}${stock(held)}</span>`
+          : hidden}</td>
+        <td class="n">${unlocked ? G.comboBase(b) + '%' : 'HR ' + G.baitUnlockHR(b)}</td>
+      </tr>`;
+    };
+
+    const groups = [
+      ['Species Bait', A.BAITS.filter(b => b.family === 'species')],
+      ['Variety Bait', A.BAITS.filter(b => b.family === 'ore')],
+    ];
+    wrap.innerHTML =
+      `<section class="panel">
+        <h3 class="panel-head">Combining</h3>
+        <div class="panel-body">
+          <p class="hint">Every recipe is a base plus one material. The base says the tier:
+            Insect Husk for the early baits, Worm for the middle, Mega Fishing Fly for the best.
+            All three are sold at the shop.</p>
+          <p class="hint">The rates below are the base rates. Each Book of Fishing Combos
+            adds 10% to the success rate, so long as the earlier books are brought along
+            too &mdash; Book 2 needs Book 1, and Book 3 needs both.</p>
+        </div>
+      </section>` +
+      groups.map(([label, list]) => {
+        return `<section class="panel">
+          <h3 class="panel-head">${label}</h3>
+          <div class="panel-body table-wrap"><table class="combo-table"><tbody>${
+            [...list].sort((a, b) => G.comboBase(b) - G.comboBase(a)).map(row).join('')
+          }</tbody></table></div>
+        </section>`;
+      }).join('');
+  }
+
+  window.MF_GUIDE = { render, renderPantry, renderLocaleCatch, renderMaterials, renderCombos, fishImg };
 })();

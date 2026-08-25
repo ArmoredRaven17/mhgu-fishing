@@ -138,6 +138,51 @@
     el('hireHint').textContent = none ? 'Nothing here bothers an angler.'
       : S.hired ? 'Hunter for Hire will help with the Small Monsters'
       : `${who} are about.`;
+
+    renderPalicos();
+    renderTrade();
+  }
+
+  // The cart multiplies one thing you already own. It never eats it — what you
+  // hand over comes home whatever happens, so the fee and the trip are the only
+  // things you are risking.
+  //
+  // Only things you CANNOT buy. The cart exists to give a second route to a
+  // material the Palicos turned up, so offering it a Huskberry the shop sells for
+  // a coin would be a worse version of walking to the shop.
+  function renderTrade() {
+    const S = A.state;
+    const held = G.pouchItems()
+      .filter(p => p.kind === 'mat' && !G.isBuyableMat(p.id)
+        && (A.itemStock(p.id) || 0) > 0)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    if (!held.some(h => h.id === S.tradeItem)) S.tradeItem = '';
+
+    el('tradePick').innerHTML = '<option value="">None</option>' +
+      held.map(h => `<option value="${h.id}" ${S.tradeItem === h.id ? 'selected' : ''}>` +
+        `${h.name}</option>`).join('');
+
+    const item = S.tradeItem ? G.pouchItemById.get(S.tradeItem) : null;
+    const cost = R.tradeCost(S.localeId, A.questRung(), item);
+    el('tradeCost').textContent = item ? z(cost) : '—';
+    el('tradeHint').textContent =
+      'Hand the Trade Cart an item, they search for more of that item as you fish. ' +
+      'Item is returned';
+  }
+
+  // Cats gather while you fish. What they pick up is held until you are home —
+  // see quest.js — so hiring them never changes what you can combine out on the
+  // water, only what you will have for next time.
+  function renderPalicos() {
+    const S = A.state;
+    const each = R.palicoCost(S.localeId, A.questRung(), 1);
+    const cost = each * S.palicos;
+    el('palicoPick').value = String(S.palicos);
+    el('palicoCost').textContent = S.palicos ? z(cost) : `${z(each)} each`;
+    el('palicoHint').textContent = S.palicos
+      ? `${S.palicos === 1 ? 'One Palico gathers' : 'Two Palicos gather'} while you fish. ` +
+        'Their haul is handed over when you get back.'
+      : 'Palicos gather combine materials the shop does not sell.';
   }
 
   // Split rather than totalled, so the meal's contribution is visible — that is
@@ -215,7 +260,11 @@
     // Same rule as the Bait Pouch: what you hold, plus anything reserved so a dry
     // slot can be given up. Listing everything you had never bought made the
     // pouch a catalogue of things you cannot take.
-    const items = window.MF_FISH.prep.filter(p => p.buy
+    // Provisions, combine materials and books all draw on the same ten slots.
+    // Supply items (buy 0) are handed out at camp and never packed by hand; a
+    // gathered material has no price at all, so the test is "can it be held",
+    // not "can it be bought".
+    const items = G.pouchItems().filter(p => (p.buy || p.kind === 'mat')
       && (A.itemStock(p.id) > 0 || A.wanted(p.id) > 0)
       && S.hr >= G.itemUnlockHR(p));
     const used = A.slotsUsed();
@@ -231,7 +280,10 @@
       const noSlot = used >= G.POUCH_SLOTS && !want;
       return `<li data-id="${p.id}" class="${want ? 'packed' : ''} ${noSlot ? 'nofit' : ''} ${want && !take ? 'dry' : ''}">
         <img src="assets/ItemIcons/${p.icon}" alt="">
-        <div><b>${p.name}</b><span class="role">${G.effectOf(p.id).label}</span></div>
+        <div><b>${p.name}</b><span class="role">${
+          p.kind === 'book' ? `+${p.bonus}% combine`
+          : p.kind === 'mat' ? 'combine material'
+          : G.effectOf(p.id).label}</span></div>
         <span class="qty">${take}${want ? ` / ${want}` : ` / ${Math.min(owned, G.carryLimit(p.id))}`}</span>
         <button class="btn tiny" data-toggle="${p.id}" ${!want && (noSlot || !owned) ? 'disabled' : ''}>
           ${want ? 'Remove' : 'Add'}</button>
@@ -260,7 +312,10 @@
 
     // What is charged on departure is already shown next to the meal and the
     // hire themselves, so it is not restated here.
-    const upfront = meal.cost + (S.hired ? R.hireCost(S.localeId, A.questRung()) : 0);
+    const upfront = meal.cost + (S.hired ? R.hireCost(S.localeId, A.questRung()) : 0)
+      + R.palicoCost(S.localeId, A.questRung(), S.palicos)
+      + R.tradeCost(S.localeId, A.questRung(),
+          S.tradeItem ? G.pouchItemById.get(S.tradeItem) : null);
 
     // Every row is the same shape: a bold category, a colon, and the reading.
     // The KIND rides along with it, because on the quest card each one gets its
@@ -304,6 +359,14 @@
 
   function renderAll() {
     renderLocales(); renderTackle(); renderMeal(); renderHire(); renderPouch(); renderDepart();
+    el('tradePick').onchange = e => {
+      A.state.tradeItem = e.target.value || '';
+      A.save(); renderTrade(); renderDepart();
+    };
+    el('palicoPick').onchange = e => {
+      A.state.palicos = Math.max(0, Math.min(G.PALICO.max, Number(e.target.value) || 0));
+      A.save(); renderPalicos(); renderDepart();
+    };
   }
 
   window.MF_PREP = { renderAll, renderPouch, renderTackle, renderHire, renderMealStats, renderDepart };

@@ -491,5 +491,1049 @@ window.MF_FISH = {
       "desc": "Fully restores Health and maximizes the size of your Health and Stamina Gauges.",
       "icon": "MH4G-Sac_Icon_Red.png"
     }
+  ],
+  "materials": [
+    {
+      "id": "huskberry",
+      "gid": 98,
+      "name": "Huskberry",
+      "rarity": 1,
+      "buy": 2,
+      "sell": 1,
+      "site": "Gather",
+      "color": "Grey",
+      "desc": "A berry that is hollow on the inside. Tough enough to grow just about anywhere.",
+      "icon": "MH4G-Husk_Icon_Grey.png"
+    },
+    {
+      "id": "insect_husk",
+      "gid": 383,
+      "name": "Insect Husk",
+      "rarity": 1,
+      "buy": 10,
+      "sell": 1,
+      "site": "Gather",
+      "color": "Grey",
+      "desc": "The remains of a dead insect.",
+      "icon": "MH4G-Bug_Icon_Grey.png"
+    },
+    {
+      "id": "needleberry",
+      "gid": 308,
+      "name": "Needleberry",
+      "rarity": 1,
+      "buy": 22,
+      "sell": 1,
+      "site": "Gather",
+      "color": "Grey",
+      "desc": "A berry covered with needle- like thorns. Used as a material for ammo.",
+      "icon": "MH4G-Seed_Icon_Grey.png"
+    },
+    {
+      "id": "bitterbug",
+      "gid": 385,
+      "name": "Bitterbug",
+      "rarity": 1,
+      "buy": 20,
+      "sell": 2,
+      "site": "Bug",
+      "color": "Blue",
+      "desc": "A sharp-tasting bug with innate healing abilities. Eat one for a 50% chance of curing Poison.",
+      "icon": "MH4G-Bug_Icon_Blue.png"
+    },
+    {
+      "id": "worm",
+      "gid": 259,
+      "name": "Worm",
+      "rarity": 1,
+      "buy": 20,
+      "sell": 2,
+      "site": "Gather",
+      "color": "Grey",
+      "desc": "A fishing lure. Wriggles underwater, enticing those fishies to bite.",
+      "icon": "MH4G-Bait_Icon_Grey.png"
+    },
+    {
+      "id": "scatternut",
+      "gid": 307,
+      "name": "Scatternut",
+      "rarity": 2,
+      "buy": 82,
+      "sell": 4,
+      "site": "Gather",
+      "color": "Grey",
+      "desc": "A nut that violently ejects its contents when struck.",
+      "icon": "MH4G-Seed_Icon_Grey.png"
+    },
+    {
+      "id": "sleep_herb",
+      "gid": 276,
+      "name": "Sleep Herb",
+      "rarity": 1,
+      "buy": 50,
+      "sell": 5,
+      "site": "Gather",
+      "color": "Light Blue",
+      "desc": "A plant containing sleeping agents.",
+      "icon": "MH4G-Herb_Icon_Light_Blue.png"
+    },
+    {
+      "id": "nitroshroom",
+      "gid": 293,
+      "name": "Nitroshroom",
+      "rarity": 2,
+      "buy": 60,
+      "sell": 6,
+      "site": "Gather",
+      "color": "Red",
+      "desc": "A hard-to-find mushroom with the power to generate blazing heat.",
+      "icon": "MH4G-Mushroom_Icon_Red.png"
+    },
+    {
+      "id": "paintberry",
+      "gid": 302,
+      "name": "Paintberry",
+      "rarity": 1,
+      "buy": 60,
+      "sell": 6,
+      "site": "Gather",
+      "color": "Pink",
+      "desc": "A berry with a shocking hue and an overwhelming scent. Look out: it WILL stain!",
+      "icon": "MH4G-Seed_Icon_Pink.png"
+    },
+    {
+      "id": "stinkhopper",
+      "gid": 388,
+      "name": "Stinkhopper",
+      "rarity": 1,
+      "buy": 60,
+      "sell": 6,
+      "site": "Bug",
+      "color": "Red",
+      "desc": "A grasshopper with a foul odor. Make fishing lures with it; its scent drives explosive fish wild.",
+      "icon": "MH4G-Bug_Icon_Red.png"
+    },
+    {
+      "id": "whetstone",
+      "gid": 56,
+      "name": "Whetstone",
+      "rarity": 1,
+      "buy": 80,
+      "sell": 8,
+      "site": "Gather",
+      "color": "Yellow",
+      "desc": "A standard-sized Whetstone. Use it to restore a weapon's Sharpness.",
+      "icon": "MH4G-Whetstone_Icon_Yellow.png"
+    },
+    {
+      "id": "mopeshroom",
+      "gid": 296,
+      "name": "Mopeshroom",
+      "rarity": 2,
+      "buy": 90,
+      "sell": 9,
+      "site": "Gather",
+      "color": "Light Blue",
+      "desc": "A mushroom that contains a Stamina-stealing constituent.",
+      "icon": "MH4G-Mushroom_Icon_Light_Blue.png"
+    },
+    {
+      "id": "bomberry",
+      "gid": 310,
+      "name": "Bomberry",
+      "rarity": 2,
+      "buy": 120,
+      "sell": 12,
+      "site": "Gather",
+      "color": "Grey",
+      "desc": "A berry that explodes when struck.",
+      "icon": "MH4G-Seed_Icon_Grey.png"
+    },
+    {
+      "id": "honey",
+      "gid": 271,
+      "name": "Honey",
+      "rarity": 2,
+      "buy": 90,
+      "sell": 45,
+      "site": "Gather",
+      "color": "Orange",
+      "desc": "Sweet, golden honey. High in nutritional value.",
+      "icon": "MH4G-Webbing_Icon_Orange.png"
+    },
+    {
+      "id": "flashbug",
+      "gid": 386,
+      "name": "Flashbug",
+      "rarity": 2,
+      "buy": 96,
+      "sell": 48,
+      "site": "Bug",
+      "color": "Yellow",
+      "desc": "An insect that emits a powerful flash when it dies.",
+      "icon": "MH4G-Bug_Icon_Yellow.png"
+    },
+    {
+      "id": "unique_mushroom",
+      "gid": 2054,
+      "name": "Unique Mushroom",
+      "rarity": 2,
+      "buy": 500,
+      "sell": 50,
+      "site": "Gather",
+      "color": "White",
+      "desc": "A pinky-sized mushroom valued for its unusual aroma. (Account Item)",
+      "icon": "MH4G-Mushroom_Icon_White.png"
+    },
+    {
+      "id": "iron_ore",
+      "gid": 318,
+      "name": "Iron Ore",
+      "rarity": 4,
+      "buy": 600,
+      "sell": 60,
+      "site": "Mine",
+      "color": "Grey",
+      "desc": "Ore that can be smelted into metal and used for many different purposes.",
+      "icon": "MH4G-Ore_Icon_Grey.png"
+    },
+    {
+      "id": "earth_crystal",
+      "gid": 319,
+      "name": "Earth Crystal",
+      "rarity": 4,
+      "buy": 800,
+      "sell": 80,
+      "site": "Mine",
+      "color": "White",
+      "desc": "Crystallized microbes which are prized as an abrasive when forging weapons.",
+      "icon": "MH4G-Ore_Icon_White.png"
+    },
+    {
+      "id": "machalite_ore",
+      "gid": 320,
+      "name": "Machalite Ore",
+      "rarity": 4,
+      "buy": 1600,
+      "sell": 160,
+      "site": "Mine",
+      "color": "Blue",
+      "desc": "An ore that yields better metals than Iron Ore. Used to make Machalite.",
+      "icon": "MH4G-Ore_Icon_Blue.png"
+    },
+    {
+      "id": "silver_cricket",
+      "gid": 2071,
+      "name": "Silver Cricket",
+      "rarity": 2,
+      "buy": 2100,
+      "sell": 210,
+      "site": "Bug",
+      "color": "White",
+      "desc": "A cricket with silver wings. Chirps the soothing sounds of summer. (Account Item)",
+      "icon": "MH4G-Bug_Icon_White.png"
+    },
+    {
+      "id": "dragonite_ore",
+      "gid": 325,
+      "name": "Dragonite Ore",
+      "rarity": 4,
+      "buy": 4800,
+      "sell": 480,
+      "site": "Mine",
+      "color": "Green",
+      "desc": "An ore that yields metal superior to that of Machalite. Rare and valuable.",
+      "icon": "MH4G-Ore_Icon_Green.png"
+    },
+    {
+      "id": "choice_mushroom",
+      "gid": 2055,
+      "name": "Choice Mushroom",
+      "rarity": 4,
+      "buy": 5000,
+      "sell": 500,
+      "site": "Gather",
+      "color": "White",
+      "desc": "The perfect shape and aroma. Even better than a Unique Mushroom. (Account Item)",
+      "icon": "MH4G-Mushroom_Icon_White.png"
+    },
+    {
+      "id": "carbalite_ore",
+      "gid": 329,
+      "name": "Carbalite Ore",
+      "rarity": 6,
+      "buy": 6800,
+      "sell": 680,
+      "site": "Mine",
+      "color": "Purple",
+      "desc": "An ore still being researched. It yields even better metal than Dragonite.",
+      "icon": "MH4G-Ore_Icon_Purple.png"
+    },
+    {
+      "id": "king_scarab",
+      "gid": 395,
+      "name": "King Scarab",
+      "rarity": 6,
+      "buy": 8000,
+      "sell": 800,
+      "site": "Bug",
+      "color": "Purple",
+      "desc": "The royal class of the scarabs, with a hard shell and lustrous wings.",
+      "icon": "MH4G-Bug_Icon_Purple.png"
+    },
+    {
+      "id": "gold_cricket",
+      "gid": 2072,
+      "name": "Gold Cricket",
+      "rarity": 4,
+      "buy": 9800,
+      "sell": 980,
+      "site": "Bug",
+      "color": "Yellow",
+      "desc": "A cricket with gold wings. Chirps the soothing sounds of summer. (Account Item)",
+      "icon": "MH4G-Bug_Icon_Yellow.png"
+    },
+    {
+      "id": "divine_rhino",
+      "gid": 2070,
+      "name": "Divine Rhino",
+      "rarity": 4,
+      "buy": 10000,
+      "sell": 1000,
+      "site": "Bug",
+      "color": "Light Blue",
+      "desc": "A sublime prize from the Altaroth collectors adore. (Account Item)",
+      "icon": "MH4G-Bug_Icon_Light_Blue.png"
+    },
+    {
+      "id": "fucium_ore",
+      "gid": 334,
+      "name": "Fucium Ore",
+      "rarity": 6,
+      "buy": 10200,
+      "sell": 1020,
+      "site": "Mine",
+      "color": "Pink",
+      "desc": "Ore composed of a mysterious metal; capable of fusing nearly any two materials together.",
+      "icon": "MH4G-Ore_Icon_Pink.png"
+    },
+    {
+      "id": "lightcrystal",
+      "gid": 324,
+      "name": "Lightcrystal",
+      "rarity": 4,
+      "buy": 11500,
+      "sell": 1150,
+      "site": "Mine",
+      "color": "Grey",
+      "desc": "An extremely hard substance with a faint glow. Sometimes used for crafting tools.",
+      "icon": "MH4G-Ore_Icon_Grey.png"
+    },
+    {
+      "id": "eltalite_ore",
+      "gid": 330,
+      "name": "Eltalite Ore",
+      "rarity": 8,
+      "buy": 12800,
+      "sell": 1280,
+      "site": "Mine",
+      "color": "Red",
+      "desc": "A promising new ore that produces higher quality metal than Carbalite Ore.",
+      "icon": "MH4G-Ore_Icon_Red.png"
+    },
+    {
+      "id": "firecell_stone",
+      "gid": 335,
+      "name": "Firecell Stone",
+      "rarity": 6,
+      "buy": 17200,
+      "sell": 1720,
+      "site": "Mine",
+      "color": "Orange",
+      "desc": "A magma-like deposit that only trained hands can properly work with.",
+      "icon": "MH4G-Ore_Icon_Orange.png"
+    },
+    {
+      "id": "allfire_stone",
+      "gid": 327,
+      "name": "Allfire Stone",
+      "rarity": 8,
+      "buy": 51600,
+      "sell": 5160,
+      "site": "Mine",
+      "color": "Red",
+      "desc": "An ore that blazes with an all-consuming flame. Requires considerable skill to mine.",
+      "icon": "MH4G-Ore_Icon_Red.png"
+    },
+    {
+      "id": "purecrystal",
+      "gid": 333,
+      "name": "Purecrystal",
+      "rarity": 8,
+      "buy": 73200,
+      "sell": 7320,
+      "site": "Mine",
+      "color": "Light Blue",
+      "desc": "A crystal that's 100% pure. Hard enough to be used in workshop tools.",
+      "icon": "MH4G-Ore_Icon_Light_Blue.png"
+    },
+    {
+      "id": "ultimas_crystal",
+      "gid": 338,
+      "name": "Ultimas Crystal",
+      "rarity": 8,
+      "buy": 75000,
+      "sell": 7500,
+      "site": "Mine",
+      "color": "Yellow",
+      "desc": "A crystal used to reinforce metal. It improves both durability and shock absorbency.",
+      "icon": "MH4G-Ore_Icon_Yellow.png"
+    }
+  ],
+  "materialSources": {
+    "huskberry": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Desert",
+        "Dunes",
+        "Marshlands",
+        "Misty Peaks",
+        "Ruined Pinnacle",
+        "Verdant Hills"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "insect_husk": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Desert",
+        "Deserted Island",
+        "Dunes",
+        "Frozen Seaway",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Primal Forest",
+        "Ruined Pinnacle",
+        "Verdant Hills",
+        "Volcanic Hollow"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "needleberry": {
+      "locales": [
+        "Desert",
+        "Dunes",
+        "Frozen Seaway",
+        "Jurassic Frontier",
+        "Misty Peaks",
+        "Ruined Pinnacle",
+        "Verdant Hills"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "bitterbug": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Desert",
+        "Deserted Island",
+        "Dunes",
+        "Frozen Seaway",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Primal Forest",
+        "Ruined Pinnacle",
+        "Verdant Hills",
+        "Volcanic Hollow"
+      ],
+      "ranks": [
+        "Low",
+        "High"
+      ]
+    },
+    "worm": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Desert",
+        "Deserted Island",
+        "Dunes",
+        "Frozen Seaway",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Primal Forest",
+        "Ruined Pinnacle",
+        "Verdant Hills",
+        "Volcanic Hollow",
+        "Volcano"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "scatternut": {
+      "locales": [
+        "Ancestral Steppe",
+        "Desert",
+        "Frozen Seaway",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Primal Forest",
+        "Verdant Hills",
+        "Volcanic Hollow"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "sleep_herb": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Dunes",
+        "Frozen Seaway",
+        "Marshlands",
+        "Misty Peaks",
+        "Verdant Hills"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "nitroshroom": {
+      "locales": [
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Ruined Pinnacle",
+        "Verdant Hills",
+        "Volcanic Hollow"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "paintberry": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Desert",
+        "Deserted Island",
+        "Dunes",
+        "Jurassic Frontier",
+        "Misty Peaks",
+        "Primal Forest",
+        "Ruined Pinnacle",
+        "Verdant Hills"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "stinkhopper": {
+      "locales": [
+        "Ancestral Steppe",
+        "Deserted Island",
+        "Dunes",
+        "Frozen Seaway",
+        "Jungle",
+        "Primal Forest",
+        "Ruined Pinnacle"
+      ],
+      "ranks": [
+        "Low",
+        "High"
+      ]
+    },
+    "whetstone": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Desert",
+        "Deserted Island",
+        "Dunes",
+        "Frozen Seaway",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Primal Forest",
+        "Ruined Pinnacle",
+        "Verdant Hills",
+        "Volcanic Hollow",
+        "Volcano"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "mopeshroom": {
+      "locales": [
+        "Ancestral Steppe",
+        "Deserted Island",
+        "Dunes",
+        "Jurassic Frontier",
+        "Misty Peaks",
+        "Primal Forest"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "bomberry": {
+      "locales": [
+        "Desert",
+        "Dunes",
+        "Frozen Seaway",
+        "Marshlands",
+        "Primal Forest",
+        "Volcano"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "honey": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Deserted Island",
+        "Dunes",
+        "Frozen Seaway",
+        "Jungle",
+        "Jurassic Frontier",
+        "Misty Peaks",
+        "Primal Forest",
+        "Ruined Pinnacle",
+        "Verdant Hills",
+        "Volcanic Hollow"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "flashbug": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Desert",
+        "Deserted Island",
+        "Dunes",
+        "Frozen Seaway",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Primal Forest",
+        "Ruined Pinnacle",
+        "Verdant Hills",
+        "Volcanic Hollow",
+        "Volcano"
+      ],
+      "ranks": [
+        "Low",
+        "High"
+      ]
+    },
+    "unique_mushroom": {
+      "locales": [
+        "Ancestral Steppe",
+        "Deserted Island",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Verdant Hills"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "iron_ore": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Desert",
+        "Deserted Island",
+        "Dunes",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Verdant Hills",
+        "Volcano"
+      ],
+      "ranks": [
+        "Low",
+        "High"
+      ]
+    },
+    "earth_crystal": {
+      "locales": [
+        "Desert",
+        "Deserted Island",
+        "Dunes",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Primal Forest",
+        "Ruined Pinnacle",
+        "Verdant Hills",
+        "Volcano"
+      ],
+      "ranks": [
+        "Low",
+        "High"
+      ]
+    },
+    "machalite_ore": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Desert",
+        "Deserted Island",
+        "Dunes",
+        "Frozen Seaway",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Ruined Pinnacle",
+        "Verdant Hills",
+        "Volcano"
+      ],
+      "ranks": [
+        "Low",
+        "High"
+      ]
+    },
+    "silver_cricket": {
+      "locales": [
+        "Ancestral Steppe",
+        "Deserted Island",
+        "Ruined Pinnacle",
+        "Volcanic Hollow"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "dragonite_ore": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Desert",
+        "Deserted Island",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Verdant Hills",
+        "Volcanic Hollow",
+        "Volcano"
+      ],
+      "ranks": [
+        "High",
+        "Low"
+      ]
+    },
+    "choice_mushroom": {
+      "locales": [
+        "Ancestral Steppe",
+        "Deserted Island",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Verdant Hills"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "carbalite_ore": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Desert",
+        "Deserted Island",
+        "Dunes",
+        "Frozen Seaway",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Primal Forest",
+        "Ruined Pinnacle",
+        "Verdant Hills",
+        "Volcanic Hollow",
+        "Volcano"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "king_scarab": {
+      "locales": [
+        "Arctic Ridge",
+        "Desert",
+        "Deserted Island",
+        "Dunes",
+        "Frozen Seaway",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Primal Forest",
+        "Ruined Pinnacle",
+        "Verdant Hills",
+        "Volcanic Hollow",
+        "Volcano"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "gold_cricket": {
+      "locales": [
+        "Ancestral Steppe",
+        "Deserted Island",
+        "Ruined Pinnacle",
+        "Volcanic Hollow"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "divine_rhino": {
+      "locales": [
+        "Arctic Ridge",
+        "Desert",
+        "Dunes",
+        "Frozen Seaway",
+        "Jungle",
+        "Marshlands",
+        "Misty Peaks",
+        "Primal Forest",
+        "Verdant Hills",
+        "Volcano"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "fucium_ore": {
+      "locales": [
+        "Ancestral Steppe",
+        "Desert",
+        "Deserted Island",
+        "Dunes",
+        "Frozen Seaway",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Verdant Hills",
+        "Volcanic Hollow",
+        "Volcano"
+      ],
+      "ranks": [
+        "G",
+        "High",
+        "Low"
+      ]
+    },
+    "lightcrystal": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Dunes",
+        "Frozen Seaway",
+        "Jungle",
+        "Marshlands",
+        "Primal Forest",
+        "Ruined Pinnacle"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "eltalite_ore": {
+      "locales": [
+        "Ancestral Steppe",
+        "Arctic Ridge",
+        "Desert",
+        "Deserted Island",
+        "Dunes",
+        "Frozen Seaway",
+        "Jungle",
+        "Jurassic Frontier",
+        "Marshlands",
+        "Misty Peaks",
+        "Primal Forest",
+        "Ruined Pinnacle",
+        "Verdant Hills",
+        "Volcanic Hollow",
+        "Volcano"
+      ],
+      "ranks": [
+        "G"
+      ]
+    },
+    "firecell_stone": {
+      "locales": [
+        "Volcanic Hollow",
+        "Volcano"
+      ],
+      "ranks": [
+        "Low",
+        "High",
+        "G"
+      ]
+    },
+    "allfire_stone": {
+      "locales": [
+        "Volcanic Hollow",
+        "Volcano"
+      ],
+      "ranks": [
+        "G"
+      ]
+    },
+    "purecrystal": {
+      "locales": [
+        "Ancestral Steppe",
+        "Dunes",
+        "Frozen Seaway",
+        "Jungle",
+        "Marshlands",
+        "Primal Forest",
+        "Ruined Pinnacle"
+      ],
+      "ranks": [
+        "G"
+      ]
+    },
+    "ultimas_crystal": {
+      "locales": [
+        "Volcanic Hollow"
+      ],
+      "ranks": [
+        "G"
+      ]
+    }
+  },
+  "books": [
+    {
+      "id": "book_of_combos_1",
+      "gid": 1,
+      "name": "Book of Combos 1",
+      "rarity": 4,
+      "buy": 1000,
+      "sell": 100,
+      "color": "Grey",
+      "desc": "An introductory text for first- time combiners. Improves your combination success rate.",
+      "icon": "MH4G-Book_Icon_Grey.png"
+    },
+    {
+      "id": "book_of_combos_2",
+      "gid": 2,
+      "name": "Book of Combos 2",
+      "rarity": 4,
+      "buy": 2000,
+      "sell": 200,
+      "color": "Grey",
+      "desc": "An entry-level text. Owning Book 1 and this improves your combination success rate.",
+      "icon": "MH4G-Book_Icon_Grey.png"
+    },
+    {
+      "id": "book_of_combos_3",
+      "gid": 3,
+      "name": "Book of Combos 3",
+      "rarity": 4,
+      "buy": 5000,
+      "sell": 500,
+      "color": "White",
+      "desc": "An intermediate text. Owning Books 1, 2, and this improves your combination success rate.",
+      "icon": "MH4G-Book_Icon_White.png"
+    },
+    {
+      "id": "book_of_combos_4",
+      "gid": 4,
+      "name": "Book of Combos 4",
+      "rarity": 5,
+      "buy": 10000,
+      "sell": 1000,
+      "color": "White",
+      "desc": "An advanced text. Owning Books 1-3 and this improves your combination success rate.",
+      "icon": "MH4G-Book_Icon_White.png"
+    },
+    {
+      "id": "book_of_combos_5",
+      "gid": 5,
+      "name": "Book of Combos 5",
+      "rarity": 5,
+      "buy": 15000,
+      "sell": 1500,
+      "color": "Yellow",
+      "desc": "A pro-level text. Owning Books 1-4 and this improves your combination success rate.",
+      "icon": "MH4G-Book_Icon_Yellow.png"
+    }
   ]
 };

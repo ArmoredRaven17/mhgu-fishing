@@ -198,6 +198,15 @@
         desc: `Chum ground through ${o.name}. Fish that take it come up the same colour.`,
       });
     }
+    // Mega Fishing Fly and Burst Bait are NOT baits here. Both are real, and both
+    // have their own real tables in the locale data, but neither is offered:
+    // Burst Bait is dropped outright, and Mega Fishing Fly exists only as the
+    // combine material every bait recipe consumes — see ITEM_EFFECT.
+    //
+    // The cost of that is worth naming, because it is invisible: 96 of the game's
+    // 227 bait tables are keyed to those two names, so basePool falls through to
+    // the No Bait pool for all of them.
+
     // No Frog for now. Deliberately withheld so a large monster is something that
     // happens TO you rather than something you go and fetch — the encounter is a
     // risk you accept by fishing a locale, not a purchase. The item is still in
@@ -546,13 +555,21 @@
   const SUPPLY_RANK = 'Low';
   const SUPPLY_EACH = 3;
 
-  const POUCH_SLOTS = 6;
+  const POUCH_SLOTS = 10;      // books and materials share it with the potions
   const TACKLE_SLOTS = 5;      // bait kinds, swapped between casts — the "Bait Pouch"
   const BAIT_CARRY = 10;       // of any one bait
 
-  const carryLimit = id => ITEM_EFFECT[id]?.carry ?? 10;
+  // A book is knowledge, not a supply: one is all that does anything, and letting
+  // it stack to ten would be a slot-eating trap.
+  const carryLimit = id =>
+    bookById.has(id) ? 1 : (ITEM_EFFECT[id]?.carry ?? 10);
+  // How many you may OWN. A second book does nothing a first one does not, so
+  // the shop should not let you buy 99 of them and call it stock.
+  const ownCap = id => (bookById.has(id) ? 1 : STOCK_CAP);
   const effectOf = id => ITEM_EFFECT[id] || { group: 'misc', label: '' };
-  const itemUnlockHR = p => ITEM_EFFECT[p.id]?.unlock ?? 1;
+  // Books carry their own gate — one per rank, so the ladder of them lands
+  // alongside the ladder of ranks rather than all at once.
+  const itemUnlockHR = p => p.unlock ?? ITEM_EFFECT[p.id]?.unlock ?? 1;
 
   // Prices are the transcribed ones unless overridden here. Rare Steak and Energy
   // Drink have both their effect and their price swapped: the steak is the bigger,
@@ -577,7 +594,208 @@
     ['stamina', 'Stamina Items'],
     ['misc', 'Misc', ['ancient_potion', 'cool_drink', 'hot_drink', 'dash_juice', 'mega_dash_juice',
                       'armorskin', 'mega_armorskin', 'hot_meat', 'chilled_meat']],
+    ['mats', 'Combo Mats'],
+    ['books', 'Books'],
   ];
+
+  // ── Combining ─────────────────────────────────────────────────────────────
+  //
+  // Every bait can be made instead of bought, out on the water, from Mega Fishing
+  // Fly plus one material. The materials are real MHGU items and so are three of
+  // the game's own recipes; which material makes which bait is invented here.
+  //
+  // The rate is keyed to what the bait CATCHES, not to what the bait costs — a
+  // Goldenfish is worth ten Whetfish, so its bait should be the harder one to
+  // make even though both are cheap to buy. Species and variety are scaled
+  // across their OWN spans, or the ore range (up to 24,000z) would swamp the fish
+  // range (up to 2,500z) and no species bait would ever reach the floor.
+  // ── The recipe book ───────────────────────────────────────────────────────
+  //
+  // Every combo is BASE + MODIFIER, and the pair is what names the result. That
+  // is the whole reason the base varies: with one shared base the modifier alone
+  // had to identify the bait, so sharing a husk across four cheap recipes made
+  // four recipes that all claimed the same two ingredients.
+  //
+  // The base doubles as the tier. Insect Husk for the cheap end, Worm for the
+  // middle, Mega Fishing Fly for the top — on both halves of the list, so an ore
+  // bait and a species bait of similar standing read the same way. All three are
+  // the materials the shop sells, so you buy the body and gather the scent.
+  //
+  // Modifiers are chosen to NAME the thing: whetfish takes a whetstone, bomb
+  // arowana a bomberry, silverfish a silver cricket. MHGU's own bait recipes are
+  // not followed — the baits themselves are largely invented, so deferring to
+  // two real recipes was costing better pairings than it bought.
+  const COMBO_BASES = ['insect_husk', 'worm', 'mega_fishing_fly'];
+  const COMBO_BASE_ITEM = 'mega_fishing_fly';   // still the top tier's base
+
+  const SPECIES_RECIPE = {
+    // Huskberry, not Huge Lagniapple: the Lagniapple is a G Rank pickup and this
+    // is the cheapest fish in the game on a bait you have from cast one.
+    glutton_tuna:     ['insect_husk',      'huskberry'],
+    popfish:          ['insect_husk',      'flashbug'],
+    whetfish:         ['insect_husk',      'whetstone'],
+    sleepyfish:       ['insect_husk',      'sleep_herb'],
+    wanchovy:         ['insect_husk',      'bitterbug'],
+    pin_tuna:         ['insect_husk',      'needleberry'],
+    gastronome_tuna:  ['worm',             'choice_mushroom'],
+    burst_arowana:    ['worm',             'nitroshroom'],
+    bomb_arowana:     ['worm',             'bomberry'],
+    scatterfish:      ['worm',             'scatternut'],
+    premium_sashimi:  ['worm',             'unique_mushroom'],
+    small_goldenfish: ['worm',             'honey'],
+    brocadefish:      ['worm',             'paintberry'],
+    sushifish:        ['mega_fishing_fly', 'insect_husk'],
+    goldenfish:       ['mega_fishing_fly', 'gold_cricket'],
+    speartuna:        ['mega_fishing_fly', 'stinkhopper'],
+    silverfish:       ['mega_fishing_fly', 'silver_cricket'],
+    ancient_fish:     ['mega_fishing_fly', 'mopeshroom'],
+    king_brocadefish: ['mega_fishing_fly', 'king_scarab'],
+    // Divine Rhino, not Flutterfly: Flutterfly is G Rank only and this bait opens
+    // at HR4, so it would have sat uncraftable for five ranks.
+    guardfish:        ['mega_fishing_fly', 'divine_rhino'],
+  };
+  // A variety bait is ground from its own ore, so the modifier needs no
+  // invention; the base carries the rank the way it does for species.
+  const ORE_MAT = {
+    iron: 'iron_ore', earth: 'earth_crystal', machalite: 'machalite_ore',
+    dragonite: 'dragonite_ore', carbalite: 'carbalite_ore', fucium: 'fucium_ore',
+    lightcrystal: 'lightcrystal', firecell: 'firecell_stone', eltalite: 'eltalite_ore',
+    allfire: 'allfire_stone', purecrystal: 'purecrystal', ultimas: 'ultimas_crystal',
+  };
+
+  const fishById = new Map(FISH.fish.map(f => [f.id, f]));
+  const oreById = new Map(ORES.list.map(o => [o.id, o]));
+
+  // What a bait is FOR, in zenny: the fish it lands, or the ore it tints them.
+  function comboWorth(b) {
+    if (b.family === 'ore') {
+      const o = oreById.get(b.target);
+      return o.sell * ORE_VALUE_MULT[o.rank];
+    }
+    return (fishById.get(b.target) || { sell: 0 }).sell;
+  }
+
+  // { base, mod } for any bait, or null if it is not something you can make.
+  function comboRecipe(b) {
+    if (!b) return null;
+    if (b.family === 'ore') {
+      const o = oreById.get(b.target);
+      return { base: COMBO_BASES[o.rank] || COMBO_BASE_ITEM, mod: ORE_MAT[b.target] };
+    }
+    const r = SPECIES_RECIPE[b.target];
+    return r ? { base: r[0], mod: r[1] } : null;
+  }
+  const comboMaterial = b => (comboRecipe(b) || {}).mod;
+
+  const COMBO_TOP = 95, COMBO_FLOOR = 70;
+  const comboSpan = (() => {
+    const out = {};
+    for (const fam of ['species', 'ore']) {
+      const v = buildBaits().filter(b => b.family === fam).map(comboWorth);
+      out[fam] = [Math.min(...v), Math.max(...v)];
+    }
+    return out;
+  })();
+
+  function comboBase(b) {
+    const [lo, hi] = comboSpan[b.family] || [1, 1];
+    const t = hi > lo ? Math.log(comboWorth(b) / lo) / Math.log(hi / lo) : 0;
+    return Math.round(COMBO_TOP - (COMBO_TOP - COMBO_FLOOR) * t);
+  }
+
+  // ── Books of Fishing Combos ───────────────────────────────────────────────
+  //
+  // Three where the game has five, at the game's own prices for its first three.
+  // They must be CARRIED to do anything — the knowledge does not stay with you —
+  // and they are sequential the way the real ones are: the second is worth
+  // nothing without the first, the third nothing without both. So they cost you
+  // three pouch slots or none, which is the whole trade.
+  // Renamed, and re-iconed off the game's own five: 1 keeps the dark grey of the
+  // real first book, 2 takes the light grey its third and fourth wear, and 3 goes
+  // cyan. Prices are the real ones for the game's first three.
+  const BOOKS = [
+    { id: 'book_1', name: 'Book of Fishing Combos 1', buy: 1000, bonus: 10, unlock: 3,
+      icon: 'MH4G-Book_Icon_Grey.png',
+      desc: 'Raises the chance a combination succeeds. Must be carried.' },
+    { id: 'book_2', name: 'Book of Fishing Combos 2', buy: 2000, bonus: 10, unlock: 6,
+      icon: 'MH4G-Book_Icon_White.png', needs: 'book_1',
+      desc: 'Worth nothing without the first book alongside it.' },
+    { id: 'book_3', name: 'Book of Fishing Combos 3', buy: 5000, bonus: 10, unlock: 9,
+      icon: 'MH4G-Book_Icon_Light_Blue.png', needs: 'book_2',
+      desc: 'Worth nothing without the first two alongside it.' },
+  ];
+  const bookById = new Map(BOOKS.map(b => [b.id, b]));
+
+  // ── What the pouch can hold ───────────────────────────────────────────────
+  //
+  // Three kinds of thing share the ten slots: the provisions that keep you
+  // alive, the materials a combination eats, and the books that make one work.
+  // They are listed together because the slot is the same slot — that is the
+  // whole trade.
+  //
+  // Only the two commonest bugs and the Fly are sold. Everything else the cats
+  // bring back, or you do without: stocking Snakebee Larva at 300z would make
+  // hiring them pointless, and stocking the ores would be inventing a shop the
+  // game does not have.
+  const MAT_BUYABLE = new Set(COMBO_BASES);
+  const megaFly = () => FISH.baits.find(b => b.id === 'mega_fishing_fly');
+
+  const MATERIALS = (() => {
+    const fly = megaFly();
+    const out = fly ? [{ ...fly, group: 'mats' }] : [];
+    for (const m of (FISH.materials || [])) out.push({ ...m, group: 'mats' });
+    return out;
+  })();
+  const materialById = new Map(MATERIALS.map(m => [m.id, m]));
+  const isBuyableMat = id => MAT_BUYABLE.has(id);
+  // No gathering rows anywhere in the game — a quest reward rather than
+  // something you pick up. Kept, because the alternative is a recipe whose
+  // material can never reach you.
+  const isQuestRewardMat = id => !!(FISH.materialSources || {})[id]?.questReward;
+
+  // Everything the Item Pouch can carry, in one list, so the pouch and the shop
+  // stop having to know which table a thing came out of.
+  const pouchItems = () => [
+    ...FISH.prep.map(p => ({ ...p, group: effectOf(p.id).group || 'misc', kind: 'prep' })),
+    ...MATERIALS.map(m => ({ ...m, kind: 'mat' })),
+    ...BOOKS.map(b => ({ ...b, group: 'books', kind: 'book' })),
+  ];
+  const pouchItemById = new Map(pouchItems().map(i => [i.id, i]));
+
+  // How much the books you are CARRYING are worth. Sequential, so a third book
+  // packed without the first two is dead weight.
+  function bookBonus(carried) {
+    let bonus = 0;
+    for (const b of BOOKS) {
+      if (!carried[b.id]) break;               // the chain stops at the first gap
+      bonus += b.bonus;
+    }
+    return bonus;
+  }
+
+  const comboRate = (b, carried) =>
+    Math.min(100, comboBase(b) + bookBonus(carried || {}));
+
+  // ── Palicos ───────────────────────────────────────────────────────────────
+  //
+  // Up to two, gathering while you fish. Priced off the same locale the Hunter
+  // for Hire is priced off, a little under him: they are not standing between
+  // you and anything, they are picking things up.
+  // chancePerCast is per CAT, so two of them roll twice. Tuned so a full trip
+  // comes home with a useful handful rather than a hoard — the point is that a
+  // rare material is a reason to go out again, not something you farm in one go.
+  const PALICO = { max: 2, ofHunter: 0.8, chancePerCast: 0.08 };
+
+  // ── The Trade Cart ────────────────────────────────────────────────────────
+  //
+  // Hand something over and the cart works it while you fish. What comes back is
+  // whatever you gave PLUS one more for every few fish you land — the item is
+  // never spent, so the only thing at risk is the fee and the trip itself.
+  //
+  // Priced off the locale like the other services, plus a cut of what the item is
+  // worth: multiplying a Purecrystal should not cost what multiplying a Huskberry
+  // costs, or the cart would be a free printing press for the rarest thing you own.
+  const TRADE = { ofHunter: 0.6, cut: 0.18, perExtra: 5, max: 5 };
 
   const BASE_MAX_HP = 100;
   const BASE_MAX_STAMINA = 110;
@@ -990,7 +1208,11 @@
     ORE_WEIGHT, oresAt, ORE_VALUE_MULT,
     buildBaits, baitIconFor,
     ITEM_EFFECT, effectOf, ITEM_GROUPS,
-    POUCH_SLOTS, TACKLE_SLOTS, BAIT_CARRY, carryLimit, SUPPLY_RANK, SUPPLY_EACH,
+    COMBO_BASE_ITEM, COMBO_BASES, SPECIES_RECIPE, ORE_MAT,
+    comboWorth, comboRecipe, comboMaterial, comboBase, comboRate,
+    BOOKS, bookById, bookBonus, PALICO, TRADE,
+    MATERIALS, materialById, isBuyableMat, isQuestRewardMat, MAT_BUYABLE, pouchItems, pouchItemById,
+    POUCH_SLOTS, TACKLE_SLOTS, BAIT_CARRY, carryLimit, ownCap, SUPPLY_RANK, SUPPLY_EACH,
     DESIGNED_POOLS, ARENA_POOL, RANK_ORDER, rankIndex, SHOW_DESIGNED_LOCALES,
     LADDER, localesAtHR, localesOpenAt, bandOf, openedAtHR, rungsOpenAt, nextHR, MAX_LADDER_HR,
     GOAL_CASTS, GOAL_CASTS_BY_RANK, GOAL_CASTS_BY_HR, goalCasts, GOAL_ROUND,

@@ -108,7 +108,7 @@ body{
 
 /* The screens that are one long list scroll as one, since they have no fixed
    furniture of their own to keep in place. */
-#guide.screen.active,#shop.screen.active{overflow-y:auto}
+#guide.screen.active,#combos.screen.active,#shop.screen.active{overflow-y:auto}
 
 /* ── Buttons ───────────────────────────────────────────────────────────── */
 .btn{
@@ -921,3 +921,72 @@ select{
 .panel.watered .chip.has{opacity:1;color:var(--lit);border-color:rgba(255,255,255,.20)}
 .panel.watered .missing{color:var(--ink-dim);opacity:.9}
 .panel.watered .missing.done{color:var(--lit);opacity:1}
+
+/* Combine materials: what it makes, then where it comes from. The sources are
+   the long line, so they get their own row rather than fighting the name. */
+.mat-list{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.mat-list li{
+  display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;align-items:start;
+  padding:5px 8px;background:var(--card);border:1px solid var(--line);border-radius:6px;
+  opacity:.62;
+}
+.mat-list li.have{opacity:1;border-color:color-mix(in srgb,var(--accent-hover) 45%,var(--line))}
+.mat-list img{width:22px;height:22px;object-fit:contain;image-rendering:pixelated}
+.mat-list .minfo{display:grid;gap:2px;min-width:0}
+.mat-list .nm{font-size:12.5px;font-weight:600;display:flex;align-items:baseline;gap:6px}
+.mat-list .nm .n{font-size:11.5px;font-weight:400;opacity:.8;font-variant-numeric:tabular-nums}
+.mat-list .mk{font-size:11.5px;opacity:.85;line-height:1.35}
+/* Where the thing comes from, and how often, one locale per line. */
+.mat-list .src{font-size:11px;opacity:.75;line-height:1.4;display:grid;gap:1px;margin-top:2px}
+.mat-list .src .at{display:grid;grid-template-columns:minmax(0,1fr) 34px 40px;gap:5px;align-items:baseline}
+.mat-list .src .at b{font-weight:400}
+.mat-list .src .at i{font-style:normal;opacity:.6}
+.mat-list .src .at em{
+  font-style:normal;text-align:right;font-variant-numeric:tabular-nums;opacity:.9;
+}
+.mat-list .src .shop{opacity:.7}
+.mat-list .src .more{opacity:.5;font-size:10.5px}
+.mat-list li{align-items:start}
+
+/* A recipe you cannot reach yet still shows what it will want. */
+.mat-list li.locked{opacity:.42}
+.mat-list li.locked .nm .n{color:var(--text);opacity:.7;font-weight:400}
+
+/* A combo list is a table, so the result, the two ingredients and the rate line
+   up down the page instead of each row wrapping wherever its names happen to
+   end. The rate sits immediately after the ingredients rather than at the far
+   edge — its column is only as wide as it needs to be. */
+/* Two panels abreast where there is room. Each table is only ~520px wide once it
+   shrinks to its content, so on a normal window the Species and Variety lists sit
+   side by side instead of leaving half the screen empty and making the page twice
+   as long as it needs to be. */
+#comboGrid{display:grid;gap:14px;align-items:start;
+  grid-template-columns:repeat(auto-fit,minmax(520px,1fr))}
+#comboGrid > .panel:first-child{grid-column:1/-1}
+
+/* Shrink to the content. At 100% width the browser hands the slack to the two
+   ingredient columns, which put 200px of nothing between a bait and its parts. */
+.combo-table{width:auto;border-collapse:collapse;font-size:12.5px}
+.combo-table tr{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.combo-table tr:last-child{border-bottom:0}
+.combo-table td{padding:2px 6px;vertical-align:middle;opacity:.62;white-space:nowrap;line-height:1.2}
+.combo-table tr.have td{opacity:1}
+/* Not dimmed — the row reads normally and only the ingredients are withheld. */
+.combo-table tr.locked td{opacity:.62}
+.combo-table .unknown{letter-spacing:2px;opacity:.5;font-weight:600}
+.combo-table img{width:18px;height:18px;object-fit:contain;image-rendering:pixelated;flex:none}
+.combo-table .ing{display:flex;align-items:center;gap:5px;min-width:0}
+
+.combo-table .res b{font-weight:600;font-size:12.5px}
+.combo-table .op{text-align:center;opacity:.45;font-weight:600;padding:2px 3px}
+.combo-table .n{
+  text-align:right;font-weight:600;
+  font-variant-numeric:tabular-nums;padding-left:12px;
+}
+.combo-table .own{font-style:normal;opacity:.65;font-variant-numeric:tabular-nums}
+
+/* The material panels go abreast too — each is a narrow list, and stacking them
+   left three quarters of the screen empty. */
+#materialGrid{display:grid;gap:12px;align-items:start;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.mat-list .unknown{letter-spacing:2px;opacity:.55;font-weight:600}

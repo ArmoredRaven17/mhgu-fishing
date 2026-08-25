@@ -22,7 +22,19 @@
     const meal = A.meal();
     const questHR = A.questRung();          // the rung decides the quest's rank
     const hire = S.hired ? R.hireCost(S.localeId, questHR) : 0;
-    if (!A.spend(meal.cost + hire)) return;
+    const cats = Math.max(0, Math.min(G.PALICO.max, S.palicos || 0));
+    const catCost = R.palicoCost(S.localeId, questHR, cats);
+    // The cart takes ONE of whatever you handed it. It is not spent — it comes
+    // home either way — but it does leave the pouch for the trip, so it cannot
+    // also be combined with while it is out on the cart.
+    // Gathered materials only — the same rule the picker enforces, restated here
+    // so a stale save cannot smuggle a shop item onto the cart.
+    const tradeOk = S.tradeItem && A.itemStock(S.tradeItem) > 0
+      && G.materialById.has(S.tradeItem) && !G.isBuyableMat(S.tradeItem);
+    const traded = tradeOk ? G.pouchItemById.get(S.tradeItem) : null;
+    const tradeFee = R.tradeCost(S.localeId, questHR, traded);
+    if (!A.spend(meal.cost + hire + catCost + tradeFee)) return;
+    if (traded) S.pouch[traded.id] = Math.max(0, (S.pouch[traded.id] || 0) - 1);
 
     const climate = G.climateOf(S.localeId);
     trip = {
@@ -39,14 +51,21 @@
       // ends — deducting at departure meant a reload mid-trip silently destroyed
       // everything you were carrying, because the trip itself is not persisted.
       // Nothing leaves the pouch until finish() or cartOut() says what you spent.
-      carried: Object.fromEntries(window.MF_FISH.prep
+      // Everything the pouch holds — provisions, combine materials AND the books.
+      // Built from prep alone, materials and books were packed at camp, charged
+      // for, and then simply not on the boat.
+      carried: Object.fromEntries(G.pouchItems()
         .map(p => [p.id, A.planned(p.id)]).filter(([, n]) => n > 0)),
-      packed: Object.fromEntries(window.MF_FISH.prep
+      packed: Object.fromEntries(G.pouchItems()
         .map(p => [p.id, A.planned(p.id)]).filter(([, n]) => n > 0)),
       // Supply items (buy 0) are not sold anywhere. Camp hands them out at Low
       // Rank only — see below.
       supplied: S.rank === G.SUPPLY_RANK,
       hired: !!hire,       // locked in at departure; you cannot hire from the water
+      cats,                // Palicos gathering alongside you
+      gathered: [],        // what they have picked up, handed over at the end
+      traded,              // what the Trade Cart is working on, or null
+      landed: 0,           // fish actually landed — what the cart is paid in
       drinkLeft: 0,
       dashLeft: 0,
       defLeft: 0, defAmount: 0,
@@ -106,6 +125,7 @@
     el('castBtn').disabled = trip.busy || trip.sta <= 0 || trip.hp <= 0;
     renderPouch();
     renderTackle();
+    renderCombine();
     renderStatus();
   }
 
@@ -125,6 +145,80 @@
     }).join('');
     el('questTackle').querySelectorAll('[data-bait]').forEach(b =>
       b.onclick = () => equipBait(b.dataset.bait));
+  }
+
+  // ── Combining, out on the water ───────────────────────────────────────────
+  //
+  // A recipe is offered only when you are holding BOTH halves of it — its own
+  // base and its own modifier. Each recipe names its base, so the list is what
+  // you could actually do right now rather than a catalogue of what you forgot.
+  //
+  // The books are read from what you CARRIED, not from what you own, and the
+  // chain is sequential — a third book with no first is dead weight in a slot.
+  function combinable() {
+    return A.BAITS
+      .filter(b => b.family === 'species' || b.family === 'ore')
+      // The shop's unlock gate applies here too. A locale can hand a Low Rank
+      // angler a Carbalite Ore — the game's own gathering data says so — and
+      // combining would otherwise turn it into a bait three ranks early,
+      // straight past the gate the shop enforces.
+      .filter(b => A.state.hr >= G.baitUnlockHR(b))
+      .map(b => ({ bait: b, ...(G.comboRecipe(b) || {}) }))
+      .filter(r => r.mod && (trip.carried[r.mod] || 0) > 0 && (trip.carried[r.base] || 0) > 0)
+      .map(r => ({ ...r, rate: G.comboRate(r.bait, trip.carried) }))
+      .sort((a, b) => b.rate - a.rate || a.bait.name.localeCompare(b.bait.name));
+  }
+
+  function renderCombine() {
+    const books = G.BOOKS.filter(b => trip.carried[b.id] > 0).length;
+    const bonus = G.bookBonus(trip.carried);
+    el('combineBooks').textContent = books
+      ? `${books} book${books > 1 ? 's' : ''} · +${bonus}%` : 'no books';
+
+    const rows = combinable();
+    if (!rows.length) {
+      el('combineList').innerHTML =
+        '<li class="empty">Nothing you are carrying makes a bait.</li>';
+      return;
+    }
+    el('combineList').innerHTML = rows.map(r => {
+      const base = G.materialById.get(r.base), mod = G.materialById.get(r.mod);
+      return `<li>
+        <img src="${r.bait.icon}" alt="">
+        <div><b>${r.bait.name}</b><span class="role">${
+          base ? base.name : r.base} + ${mod ? mod.name : r.mod} &middot; ${r.rate}%</span></div>
+        <span class="qty">x${trip.carried[r.mod]}</span>
+        <button class="btn tiny" data-combine="${r.bait.id}" ${trip.busy ? 'disabled' : ''}>Make</button>
+      </li>`;
+    }).join('');
+    el('combineList').querySelectorAll('[data-combine]').forEach(b =>
+      b.onclick = () => combine(b.dataset.combine));
+  }
+
+  // Both halves are spent whether it works or not — that is what the books are
+  // buying you, and what makes a 70% recipe a decision rather than a formality.
+  function combine(baitId) {
+    if (!trip || trip.busy) return;
+    const bait = A.baitBy.get(baitId);
+    if (!bait) return;
+    const rec = G.comboRecipe(bait);
+    if (!rec) return;
+    if ((trip.carried[rec.base] || 0) <= 0 || (trip.carried[rec.mod] || 0) <= 0) return;
+
+    trip.carried[rec.base]--;
+    trip.carried[rec.mod]--;
+    const rate = G.comboRate(bait, trip.carried);
+    const made = Math.random() * 100 < rate;
+    if (made) {
+      trip.tackle[baitId] = (trip.tackle[baitId] || 0) + 1;
+      A.state.stats.combined = (A.state.stats.combined || 0) + 1;
+      el('castPrompt').textContent = `${bait.name} made.`;
+    } else {
+      A.state.stats.comboFails = (A.state.stats.comboFails || 0) + 1;
+      el('castPrompt').textContent = `The mix was no good. ${bait.name} not made.`;
+    }
+    A.save();
+    render();
   }
 
   // What you are carrying, and what you can do with it right now.
@@ -249,6 +343,12 @@
     spendStamina(secs);
     tickBuffs(secs);
 
+    // The cats work the bank while you work the water. What they find is HELD,
+    // not banked — see finish(). Gathering mid-trip and handing it over at the
+    // end is what stops a lucky pickup from changing which bait you could
+    // combine while you were still standing there.
+    for (const m of R.rollGather(trip.localeId, trip.questHR, trip.cats)) trip.gathered.push(m);
+
     // Something small has a go at you while your hands are full. This is what
     // makes HP worth carrying potions for away from the two hot locales.
     const pest = R.rollPest(trip.localeId, trip.questHR, trip.hired);
@@ -261,6 +361,7 @@
 
     if (res.landed) {
       S.stats.landed++;
+      trip.landed++;
       const isNew = A.record(c.id, trip.localeId, c.fish.id);
       const paid = Math.round(c.value * (1 + trip.fresh.zenny));
       trip.haul.push({ name: c.name, value: paid, icon: window.MF_GUIDE.fishImg(c.ore, 22, c.name) });
@@ -286,7 +387,7 @@
       const LOSS = {
         missed: `Too slow — ${c.name} spat the hook.`,
         slack: `The line went slack. ${c.name} shook it and ran.`,
-        escaped: `${c.name} wore you down and got away.`,
+        escaped: 'The fish snapped the line.',
         snap: `The line snapped. ${c.name} is gone.`,
       };
       el('castPrompt').textContent = LOSS[res.reason] || LOSS.snap;
@@ -403,12 +504,19 @@
   // rather than at departure so that a reload mid-trip costs nothing.
   function cartOut(boss) {
     for (const [id, n] of Object.entries(trip.packed)) {
-      const item = window.MF_FISH.prep.find(p => p.id === id);
-      if (item && item.buy) A.state.pouch[id] = Math.max(0, (A.state.pouch[id] || 0) - n);
+      const item = G.pouchItemById.get(id);
+      // Supply items were never yours; everything else was, whether you bought it
+      // or a Palico handed it to you.
+      if (item && (item.buy || item.kind === 'mat'))
+        A.state.pouch[id] = Math.max(0, (A.state.pouch[id] || 0) - n);
     }
     for (const [id, n] of Object.entries(trip.packedTackle || {}))
       A.state.owned[id] = Math.max(0, (A.state.owned[id] || 0) - n);
     A.state.stats.carts++;
+    // Gathered materials go down with the haul — they were never banked, and a
+    // cart is a cart.
+    const gatheredLost = trip.gathered.length;
+    const cartLost = trip.traded ? trip.traded.name : null;
     const lost = trip.value;
     const n = trip.haul.length;
     trip = null;
@@ -418,9 +526,11 @@
     window.MF_UI.modal({
       cart: true,
       title: boss ? `${boss.name} won` : 'You carted',
-      body: boss
+      body: (boss
         ? `${boss.name} threw you off and that was the last of you. Every one of the ${n} catch${n === 1 ? '' : 'es'} you had — ${z(lost)} — is at the bottom of the water.`
-        : `You ran out of HP. The ${n} catch${n === 1 ? '' : 'es'} you were carrying — ${z(lost)} — is lost.`,
+        : `You ran out of HP. The ${n} catch${n === 1 ? '' : 'es'} you were carrying — ${z(lost)} — is lost.`)
+        + (gatheredLost ? ` The Palicos lose the ${gatheredLost} material${gatheredLost === 1 ? '' : 's'} they had gathered.` : '')
+        + (cartLost ? ` The Trade Cart goes with you, and your ${cartLost} with it.` : ''),
       items: [],
       onClose: () => { window.MF_UI.show('camp'); window.MF_UI.refresh(); },
     });
@@ -431,14 +541,23 @@
   function spendCarried() {
     const S = A.state;
     for (const [id, packed] of Object.entries(trip.packed)) {
-      const item = window.MF_FISH.prep.find(p => p.id === id);
-      if (!item || !item.buy) continue;
+      const item = G.pouchItemById.get(id);
+      if (!item || !(item.buy || item.kind === 'mat')) continue;
       const used = Math.max(0, packed - (trip.carried[id] || 0));
       if (used) S.pouch[id] = Math.max(0, (S.pouch[id] || 0) - used);
     }
-    for (const [id, packed] of Object.entries(trip.packedTackle || {})) {
-      const used = Math.max(0, packed - (trip.tackle[id] || 0));
-      if (used) S.owned[id] = Math.max(0, (S.owned[id] || 0) - used);
+    // Bait settles on the DIFFERENCE, signed, over every kind that was either
+    // packed or turned up during the trip. Stock is never deducted at departure,
+    // so what you owe is simply what left the box: pack five and come back with
+    // three and you are down two; combine two more than you packed and you are up
+    // two. Subtracting only would have thrown away anything you made out there,
+    // and worse, a bait you both packed AND made would have looked like it was
+    // never used at all.
+    const kinds = new Set([...Object.keys(trip.packedTackle || {}), ...Object.keys(trip.tackle || {})]);
+    for (const id of kinds) {
+      if (id === 'no_bait') continue;                 // free and unlimited
+      const delta = (trip.tackle[id] || 0) - ((trip.packedTackle || {})[id] || 0);
+      if (delta) S.owned[id] = Math.max(0, (S.owned[id] || 0) + delta);
     }
   }
 
@@ -458,6 +577,9 @@
     const short = goal - trip.value;
     const firstHere = completed && A.markVisited(trip.localeId, questHR);
     const localeName = trip.loc.name;
+    // Built here, added to below once the cats have handed over — what they
+    // brought is part of what you came home with, so it belongs in the same list
+    // as the fish rather than in a sentence underneath it.
     const items = trip.haul.map(c => [c.name, z(c.value)])
       .concat(found.map(f => [f.name, 'ingredient']));
     const gained = trip.value;
@@ -465,6 +587,10 @@
     // Only what you actually SPENT leaves your stock; the rest never left it.
     // Supply items are not yours to keep, so they are simply not counted.
     spendCarried();
+    // The cats hand over here, and only here. Carried home like the fish, which
+    // means a cart loses them too — see cartOut.
+    const brought = handOverGathered();
+    const cart = handOverTrade();
     // The plan is NOT rewritten here. It holds what you want to bring, so coming
     // home short just means you bring fewer next time until you restock — at
     // which point the pouch fills back to what you asked for on its own.
@@ -483,6 +609,17 @@
     if (!completed && short > 0)
       extra.push(`${z(short)} short of the ${z(goal)} needed to clear ${localeName}.`);
     if (promoted) extra.push(`Every locale fished. You are now HR ${promoted}, ${G.rankAt(promoted).name}.`);
+    if (cart) {
+      extra.push(cart.extra
+        ? `The Trade Cart returns your ${cart.name} and ${cart.extra} more.`
+        : `The Trade Cart returns your ${cart.name}.`);
+      items.push([cart.name, cart.extra ? `traded, +${cart.extra}` : 'traded, returned']);
+    }
+    if (brought.length) {
+      const total = brought.reduce((a, b) => a + b.n, 0);
+      extra.push(`The Palicos hand over ${total} material${total === 1 ? '' : 's'}.`);
+      for (const b of brought) items.push([b.name, b.n > 1 ? `gathered x${b.n}` : 'gathered']);
+    }
 
     window.MF_UI.modal({
       title: promoted ? `HR ${promoted}` : 'Back at camp',
@@ -504,6 +641,40 @@
 
   const bossSVG = (boss, size = 52) =>
     `<img src="assets/MonsterIcons/${boss.icon}" alt="${boss.name}" width="${size}" height="${size}">`;
+
+  // Everything the Palicos picked up, banked into the pouch. Returns a summary
+  // so the trip can say what came back, and respects the same ownership cap the
+  // shop does — a cat cannot push you past 99 of anything.
+  function handOverGathered() {
+    if (!trip || !trip.gathered.length) return [];
+    const count = {};
+    for (const m of trip.gathered) count[m.id] = (count[m.id] || 0) + 1;
+    const out = [];
+    for (const [id, n] of Object.entries(count)) {
+      const have = A.state.pouch[id] || 0;
+      const take = Math.max(0, Math.min(n, G.ownCap(id) - have));
+      if (!take) continue;
+      A.state.pouch[id] = have + take;
+      A.seeMaterial(id);
+      out.push({ name: (G.materialById.get(id) || { name: id }).name, n: take });
+    }
+    return out;
+  }
+
+  // The cart settles up. What you handed over always comes back — that is the
+  // whole shape of the service — with one more for every few fish you landed.
+  // Returns { name, back, extra } so the trip can say what happened, or null.
+  function handOverTrade() {
+    if (!trip || !trip.traded) return null;
+    const id = trip.traded.id;
+    const extra = R.tradeExtra(trip.landed);
+    const have = A.state.pouch[id] || 0;
+    const room = Math.max(0, G.ownCap(id) - have);
+    const back = Math.min(1 + extra, room);
+    if (back) A.state.pouch[id] = have + back;
+    if (G.materialById.has(id)) A.seeMaterial(id);
+    return { name: trip.traded.name, back, extra: Math.max(0, back - 1) };
+  }
 
   // ── Casting from the keyboard ─────────────────────────────────────────────
   //

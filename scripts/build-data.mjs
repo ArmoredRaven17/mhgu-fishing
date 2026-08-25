@@ -49,6 +49,10 @@ const ITEM_ICONS = (() => {
 // Listed here so the copy step keeps them in step with docs/game.js.
 const EXTRA_ICONS = [
   'MH4G-Book_Icon_Yellow.png',    // Book of Combos 5 -> Lure Quality
+  // The three Books of Fishing Combos are re-iconed off the game's five: grey,
+  // then the light grey its third and fourth wear, then cyan. Only the cyan is a
+  // file no real item names, so only the cyan needs listing here.
+  'MH4G-Book_Icon_Light_Blue.png',
 ];
 
 const wantedIcons = new Set(EXTRA_ICONS);
@@ -101,9 +105,15 @@ const unescapeHtml = s => s
   .replace(/&quot;/g, '"').replace(/&#39;/g, String.fromCharCode(39))
   .replace(/&nbsp;/g, ' ');
 
+// Returns BOTH halves of the table. Fishing pools are headed by a bait; the
+// gathering, mining and bug nodes are the ones Kiranico greys out with
+// text-muted, and their header is a quantity rather than a bait. They were
+// skipped outright until the Palicos needed somewhere to gather from — the real
+// percentages had been sitting in these files unread the whole time.
 function parseRankTable(tableHtml, ctx) {
   const rows = tableHtml.match(/<tr>[\s\S]*?<\/tr>/g) || [];
   const pools = [];
+  const gathers = [];
   let i = 0;
   while (i < rows.length) {
     const m = rows[i].match(GROUP);
@@ -114,7 +124,17 @@ function parseRankTable(tableHtml, ctx) {
     const items = rows.slice(i + 1, i + span);
     i += span;
 
-    if (/text-muted/.test(attrs)) continue;   // gathering / mining / bug node
+    // A gathering node: keep it, with the quantity its header states.
+    if (/text-muted/.test(attrs)) {
+      const qty = header.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const got = [];
+      for (const row of items) {
+        const r = row.match(ITEM_ROW);
+        if (r) got.push({ name: unescapeHtml(r[2]), pct: Number(r[3]) });
+      }
+      if (got.length) gathers.push({ qty, entries: got });
+      continue;
+    }
 
     const baitMatch = header.match(BAIT_IN_HEADER);
     const bait = baitMatch ? unescapeHtml(baitMatch[1])
@@ -137,7 +157,7 @@ function parseRankTable(tableHtml, ctx) {
 
     pools.push({ bait, entries });
   }
-  return pools;
+  return { pools, gathers };
 }
 
 function parseLocalePage(file) {
@@ -149,6 +169,7 @@ function parseLocalePage(file) {
   const html = readFileSync(join(SRC, file), 'utf8').replace(/>\s+</g, '><');
 
   const areas = {};
+  const gather = {};                       // rank -> the locale's gathering nodes
   const byArea = html.split(/<h4>Area(\d+)<\/h4>/);
   for (let a = 1; a < byArea.length; a += 2) {
     const area = Number(byArea[a]);
@@ -156,13 +177,17 @@ function parseLocalePage(file) {
     for (let r = 1; r < byRank.length; r += 2) {
       const rank = byRank[r];
       const table = byRank[r + 1].split('</table>')[0];
-      const pools = parseRankTable(table, `${name} Area${area} ${rank}`);
+      const { pools, gathers } = parseRankTable(table, `${name} Area${area} ${rank}`);
+      if (gathers.length) {
+        gather[rank] ??= [];
+        gather[rank].push(...gathers);
+      }
       if (!pools.length) continue;
       areas[area] ??= {};
       areas[area][rank] = pools;
     }
   }
-  return { name, areas };
+  return { name, areas, gather };
 }
 
 // ── Meals ───────────────────────────────────────────────────────────────────
@@ -487,6 +512,102 @@ const prep = q(`SELECT _id, name, rarity, buy, sell, description, icon_name, ico
   }))
   .sort((a, b) => a.buy - b.buy || a.name.localeCompare(b.name));
 
+// Combine materials — the real items every bait recipe is made from. Which
+// material makes which bait is INVENTED and lives in docs/game.js; this is only
+// the transcription of the items themselves, so their names, prices, rarities
+// and icons are the game's own. Twelve ores (an ore bait is ground from its own
+// ore) and nine bugs. Mega Fishing Fly is already in `baits` above — it is the
+// one material the shop sells outright and every recipe consumes.
+const MATERIAL_NAMES = [
+  // The twelve ores, one per variety bait.
+  'Iron Ore', 'Earth Crystal', 'Machalite Ore', 'Dragonite Ore', 'Carbalite Ore',
+  'Fucium Ore', 'Lightcrystal', 'Firecell Stone', 'Eltalite Ore', 'Allfire Stone',
+  'Purecrystal', 'Ultimas Crystal',
+  // The three bases, all sold at the shop. Insect Husk is both a base and the
+  // modifier in one recipe, which is fine — a pair is what identifies a combo,
+  // and "Insect Husk + Sleep Herb" is not "Mega Fishing Fly + Insect Husk".
+  'Insect Husk', 'Worm',
+  // One modifier per species bait, every one gatherable in four locales or more.
+  'Huskberry', 'Flashbug', 'Choice Mushroom', 'Whetstone', 'Sleep Herb',
+  'Nitroshroom', 'Bitterbug', 'Needleberry', 'Bomberry', 'Scatternut',
+  'Unique Mushroom', 'Gold Cricket', 'Honey', 'Paintberry', 'Stinkhopper',
+  'Silver Cricket', 'Mopeshroom', 'King Scarab', 'Divine Rhino',
+];
+const matList = MATERIAL_NAMES.map(n => "'" + n.replace(/'/g, "''") + "'").join(',');
+// Which kind of node an item comes out of — Bug, Mine or Gather. Taken from the
+// game rather than guessed from the name, because "Insect Husk" is a Gather item
+// and "Royal Rhino" is a Bug one, and no amount of reading the words tells you.
+const siteOf = new Map(q(`SELECT i.name AS name, g.site AS site, COUNT(*) n
+                          FROM gathering g JOIN items i ON i._id = g.item_id
+                          GROUP BY i.name, g.site ORDER BY n DESC`)
+  .reduce((m, r) => (m.has(r.name) ? m : m.set(r.name, r.site)), new Map()));
+
+const materials = q(`SELECT _id, name, rarity, buy, sell, description, icon_name, icon_color
+                     FROM items WHERE name IN (${matList})`)
+  .map(r => ({
+    id: slug(r.name), gid: r._id, name: r.name,
+    rarity: r.rarity, buy: r.buy, sell: r.sell,
+    site: siteOf.get(r.name) || 'Gather',
+    color: COLOR[r.icon_color] || 'Grey', desc: r.description || '',
+    icon: iconOf(r.name),
+  }))
+  .sort((a, b) => a.sell - b.sell || a.name.localeCompare(b.name));
+for (const n of MATERIAL_NAMES)
+  if (!materials.some(m => m.name === n)) warn(`material "${n}" has no row in mhgu.db`);
+
+// Where each material actually comes from — read off the SAME saved pages the
+// fishing tables come from, not out of mhgu.db. The pages are the fuller source:
+// they list Snakebee Larva at Volcanic Hollow where the database does not, and
+// they carry the percentage on every row.
+//
+// A few materials appear in no gathering node anywhere. They are quest rewards
+// rather than things you pick up; they are kept and flagged, because the
+// alternative is a recipe whose material can never reach you.
+const materialSources = (() => {
+  const out = {};
+  const wanted = new Map(materials.map(m => [m.name, m.id]));
+  const hits = new Map();                       // id -> Map(locale -> Set(rank))
+  for (const p of parsed) {
+    for (const [rank, nodes] of Object.entries(p.gather || {}))
+      for (const node of nodes)
+        for (const e of node.entries) {
+          const id = wanted.get(e.name);
+          if (!id) continue;
+          if (!hits.has(id)) hits.set(id, new Map());
+          const byLoc = hits.get(id);
+          if (!byLoc.has(p.name)) byLoc.set(p.name, new Set());
+          byLoc.get(p.name).add(rank);
+        }
+  }
+  for (const m of materials) {
+    const byLoc = hits.get(m.id);
+    out[m.id] = byLoc
+      ? { locales: [...byLoc.keys()].sort(),
+          ranks: [...new Set([...byLoc.values()].flatMap(s => [...s]))] }
+      : { locales: [], ranks: [], questReward: true };
+  }
+  return out;
+})();
+{
+  const gathered = Object.values(materialSources).filter(s => !s.questReward).length;
+  console.log(`material sources  ${gathered} gathered, ${materials.length - gathered} quest-reward only`);
+  const only = Object.entries(materialSources)
+    .filter(([, s]) => s.locales.length === 1)
+    .map(([id, s]) => `${id} (${s.locales[0]})`);
+  if (only.length) console.log(`  single-locale    ${only.join(', ')}`);
+}
+
+// Books of Combos — real items at their real prices. The app offers three of the
+// game's five; which three, and what each is worth, is decided in docs/game.js.
+const books = q(`SELECT _id, name, rarity, buy, sell, description, icon_name, icon_color
+                 FROM items WHERE name LIKE 'Book of Combos%' ORDER BY buy`)
+  .map(r => ({
+    id: slug(r.name), gid: r._id, name: r.name,
+    rarity: r.rarity, buy: r.buy, sell: r.sell,
+    color: COLOR[r.icon_color] || 'Grey', desc: r.description || '',
+    icon: iconOf(r.name),
+  }));
+
 // Locales — all 27, flagged by whether the pages gave them a fishing table.
 const dbLocales = q(`SELECT _id, name FROM locations WHERE _id <= 27 ORDER BY _id`);
 const gatherCount = new Map(
@@ -539,6 +660,9 @@ const locales = dbLocales.map(l => {
     id: slug(l.name), gid: l._id, name: l.name,
     sourced: !!p,                              // a saved page exists for it
     hasFishing: Object.keys(areas).length > 0, // ...and it defined fishing pools
+    // Every gathering, mining and bug node the page lists, by rank, with the
+    // game's own percentages. This is what the Palicos work from.
+    gather: p ? p.gather : {},
     gatherRows: gatherCount.get(l._id) || 0,
     boss: bossAt.get(l.name) || [],
     // Weighted by how many quests bring them here, so the common pest is common.
@@ -563,7 +687,7 @@ const header = (what, from) => `// ${what}
 
 writeFileSync(join(OUT, 'fish.js'),
   header('MHGU fish, baits and prep items', 'mhgu.db (items table)') +
-  `window.MF_FISH = ${JSON.stringify({ fish, baits, prep }, null, 2)};\n`);
+  `window.MF_FISH = ${JSON.stringify({ fish, baits, prep, materials, materialSources, books }, null, 2)};\n`);
 
 // Meals with no recipe are the baseline seven; they gate by rank instead, on a
 // power ladder, so the strongest meal in the game is not free from cast one.
