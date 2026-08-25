@@ -375,20 +375,28 @@ select{
    Bird's-eye water. Everything inside is positioned by percentage, so the
    surface can be any size and the fishing maths stays in pond-fractions. */
 .pond{
+  /* --water is set per locale from JS; the fallback is only ever used if the
+     pond is somehow shown outside a trip. Shallows and depths are both mixed
+     from that one colour, so a locale is tuned by changing a single hex. */
+  --water:#2E7D6B;
   position:relative;width:100%;aspect-ratio:16/10;max-height:52vh;
   border:1px solid var(--line);border-radius:10px;overflow:hidden;
   background:
-    radial-gradient(120% 90% at 50% 12%, color-mix(in srgb,var(--accent-hover) 16%,transparent), transparent 70%),
-    linear-gradient(180deg, color-mix(in srgb,var(--bg2) 92%,transparent), var(--bg1));
-  cursor:crosshair;
+    radial-gradient(120% 90% at 50% 12%, color-mix(in srgb,var(--water) 46%,transparent), transparent 72%),
+    linear-gradient(180deg,
+      color-mix(in srgb,var(--water) 62%,#000 18%),
+      color-mix(in srgb,var(--water) 34%,#000 46%));
+  /* Nothing in the water is clickable — the pond is arrows and Space — so the
+     pointer is only ever something sat on top of the fish you are watching. */
+  cursor:none;
 }
 /* A few still ripples so the water is not a flat plate. */
 .pond::after{
-  content:"";position:absolute;inset:0;pointer-events:none;opacity:.16;
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.22;
   background-image:
-    radial-gradient(circle at 22% 30%, var(--accent-hover) 0 1px, transparent 2px),
-    radial-gradient(circle at 71% 66%, var(--accent-hover) 0 1px, transparent 2px),
-    radial-gradient(circle at 43% 82%, var(--accent-hover) 0 1px, transparent 2px);
+    radial-gradient(circle at 22% 30%, color-mix(in srgb,var(--water) 60%,#fff) 0 1px, transparent 2px),
+    radial-gradient(circle at 71% 66%, color-mix(in srgb,var(--water) 60%,#fff) 0 1px, transparent 2px),
+    radial-gradient(circle at 43% 82%, color-mix(in srgb,var(--water) 60%,#fff) 0 1px, transparent 2px);
   background-size:180px 180px,220px 220px,260px 260px;
 }
 

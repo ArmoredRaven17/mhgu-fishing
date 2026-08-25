@@ -422,6 +422,38 @@
   };
   const climateOf = id => CLIMATE[id] || 'temperate';
 
+  // ── The colour of the water ───────────────────────────────────────────────
+  //
+  // The pond used to be painted from the THEME, which meant every locale looked
+  // the same and the theme picker — a monster colour, nothing to do with where
+  // you are standing — decided what a marsh looked like. One hex per locale
+  // instead. Invented, like everything else in this file: the game does not
+  // publish a water colour, these are read off what each place looks like.
+  //
+  // The pond derives its shallows and depths from this single value the same way
+  // the theme derives its shades, so tuning a locale means changing one number.
+  const WATER = {
+    jurassic_frontier: '#2E7D6B',   // clear green over pale rock
+    verdant_hills:     '#3A8A57',   // shallow, weed-green
+    marshlands:        '#5C6B33',   // silt and standing water
+    arctic_ridge:      '#5C8FB5',   // meltwater under ice
+    dunes:             '#1F8C93',   // an oasis against the sand
+    deserted_island:   '#1C90B8',   // bright tropical shallows
+    misty_peaks:       '#4A7FA0',   // cold cloud-lit blue
+    ancestral_steppe:  '#3E7F72',   // grass-fed pools
+    primal_forest:     '#245C4A',   // deep shade, almost black-green
+    frozen_seaway:     '#6FA8C4',   // pale glacial blue
+    volcanic_hollow:   '#B4552A',   // lit from underneath
+    jungle:            '#1F6B4C',   // heavy emerald
+    ruined_pinnacle:   '#4B5A86',   // cold stone, high altitude
+    desert:            '#2A8FA0',   // spring water in dry country
+    volcano:           '#C0431F',   // molten
+  };
+  // Anything without its own entry falls back to its climate, so a locale added
+  // later still looks like somewhere rather than like the theme.
+  const WATER_BY_CLIMATE = { cold: '#5C8FB5', hot: '#B4552A', temperate: '#2E7D6B' };
+  const waterOf = id => WATER[id] || WATER_BY_CLIMATE[climateOf(id)];
+
   // How long one drink holds off the climate, measured in fight seconds rather
   // than wall clock — a trip is only as long as the time you spend reeling.
   const DRINK_SECONDS = 90;
@@ -942,7 +974,8 @@
     DESIGNED_POOLS, ARENA_POOL, RANK_ORDER, rankIndex, SHOW_DESIGNED_LOCALES,
     LADDER, localesAtHR, localesOpenAt, bandOf, openedAtHR, rungsOpenAt, nextHR, MAX_LADDER_HR,
     GOAL_CASTS, GOAL_CASTS_BY_RANK, GOAL_CASTS_BY_HR, goalCasts, GOAL_ROUND,
-    CLIMATE, climateOf, CLIMATE_RATES, CLIMATE_TICK_MS, DRINK_SECONDS,
+    CLIMATE, climateOf, WATER, WATER_BY_CLIMATE, waterOf,
+    CLIMATE_RATES, CLIMATE_TICK_MS, DRINK_SECONDS,
     DASH_SECONDS, DASH_MULT, ARMOR_SECONDS,
     BASE_MAX_HP, BASE_MAX_STAMINA, STAMINA_COST,
     MEALS, mealCost, MEAL_SCALE, UPGRADES, ITEM_PRICE, priceOf,

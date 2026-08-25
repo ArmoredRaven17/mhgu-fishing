@@ -65,6 +65,9 @@
     // Setting out is what reveals a locale's water at this rank — see revealedRanks.
     A.markFished(S.localeId, questHR);
     A.save();
+    // The pond is painted from the LOCALE, not the theme — a marsh should not
+    // change colour because you picked a different monster on the title screen.
+    el('pond')?.style.setProperty('--water', G.waterOf(S.localeId));
     window.MF_UI.show('quest');
     render();
   }
