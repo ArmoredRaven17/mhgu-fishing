@@ -117,7 +117,7 @@
     const fished = A.fishedLocales();
 
     if (!fished.length) {
-      wrap.innerHTML = '<p class="hint">Nothing landed yet. ' +
+      wrap.innerHTML = '<p class="hint">Nothing caught yet. ' +
         'Fish a locale and what you take from it is recorded here.</p>';
       return;
     }

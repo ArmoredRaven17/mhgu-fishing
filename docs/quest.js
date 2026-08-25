@@ -231,7 +231,7 @@
       trip.value += boss.reward;
       trip.haul.push({ name: boss.name, value: boss.reward, icon: bossSVG(boss, 22) });
       A.addXP(boss.xp);
-      el('castPrompt').textContent = `${boss.name} landed. Worth ${z(boss.reward)}.`;
+      el('castPrompt').textContent = `${boss.name} caught. Worth ${z(boss.reward)}.`;
       trip.busy = false; A.save(); render();
       return;
     }
@@ -252,7 +252,7 @@
       pest.damage = Math.max(1, Math.round(pest.damage * (1 - guardNow())));
       trip.hp -= pest.damage;
       S.stats.pests = (S.stats.pests || 0) + 1;
-      trip.notes.push(`A ${pest.name} goes for you — ${pest.damage} HP.`);
+      trip.notes.push(`A ${pest.name} attacked you — ${pest.damage} HP.`);
     }
 
     if (res.landed) {
@@ -264,7 +264,7 @@
       A.addXP(c.xp);
       el('castPrompt').textContent = isNew
         ? `${c.name} — new to the guide.`
-        : `${c.name} landed.`;
+        : `${c.name} caught.`;
 
       // Something else comes up with it now and then. Drawn from what you have
       // not found yet at or below your rank, so nothing gets stranded behind you.
