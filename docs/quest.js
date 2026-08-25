@@ -18,6 +18,12 @@
 
   function begin() {
     const S = A.state;
+    // Wipe the water before filling it. Only retire() tore the pond down, so a
+    // trip that ended on stamina or in a cart left its last school, its last
+    // bobber and its last result sitting there — and the next trip opened on the
+    // previous one until the first cast happened to rebuild it.
+    window.MF_FISHING.cancel();
+    el('castPrompt').textContent = 'The water is still.';
     const loc = R.localeById.get(S.localeId);
     const meal = A.meal();
     const questHR = A.questRung();          // the rung decides the quest's rank
@@ -356,7 +362,7 @@
       pest.damage = Math.max(1, Math.round(pest.damage * (1 - guardNow())));
       trip.hp -= pest.damage;
       S.stats.pests = (S.stats.pests || 0) + 1;
-      trip.notes.push(`A ${pest.name} attacked you — ${pest.damage} HP.`);
+      trip.notes.push(`${pestIcon(pest.name)}A ${pest.name} attacked you — ${pest.damage} HP.`);
     }
 
     if (res.landed) {
@@ -404,7 +410,10 @@
     }
 
     if (trip.notes.length) {
-      el('castPrompt').textContent += ' ' + trip.notes.join(' ');
+      // innerHTML rather than textContent, because a note can carry the icon of
+      // whatever just bit you. Everything in here is built from our own data, not
+      // from anything a player types.
+      el('castPrompt').innerHTML += ' ' + trip.notes.join(' ');
       trip.notes = [];
     }
 
@@ -503,6 +512,7 @@
   // price, and it is the same price it has always been. It is charged here
   // rather than at departure so that a reload mid-trip costs nothing.
   function cartOut(boss) {
+    window.MF_FISHING.cancel();
     for (const [id, n] of Object.entries(trip.packed)) {
       const item = G.pouchItemById.get(id);
       // Supply items were never yours; everything else was, whether you bought it
@@ -563,6 +573,7 @@
 
   function finish(why) {
     const S = A.state;
+    window.MF_FISHING.cancel();
     const found = trip.found;
     // A quest is cleared by meeting the catch goal. Falling short is not a
     // failure — you keep the haul — the locale just stays unmarked.
@@ -674,6 +685,16 @@
     if (back) A.state.pouch[id] = have + back;
     if (G.materialById.has(id)) A.seeMaterial(id);
     return { name: trip.traded.name, back, extra: Math.max(0, back - 1) };
+  }
+
+  // The thing that just hit you, in the line that says so. Small monsters carry
+  // the same icons the large ones do; the filename is the name with its spaces
+  // underscored, and anything without art falls back to the question mark rather
+  // than showing a broken image.
+  function pestIcon(name) {
+    const file = `MHGU-${name.replace(/ /g, '_')}_Icon.webp`;
+    return `<img class="pest-icon" src="assets/MonsterIcons/${file}" alt="" ` +
+      `onerror="this.src='assets/MonsterIcons/MHGU-Question_Mark_Icon.webp'">`;
   }
 
   // ── Casting from the keyboard ─────────────────────────────────────────────
