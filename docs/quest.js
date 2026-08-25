@@ -154,7 +154,7 @@
   function renderStatus() {
     const buffs = [];
     if (trip.climate !== 'temperate' && trip.drinkLeft > 0)
-      buffs.push(`${trip.climate === 'hot' ? 'Heat' : 'Cold'} guarded ${Math.ceil(trip.drinkLeft)}s`);
+      buffs.push(`${trip.climate === 'hot' ? 'Heat' : 'Cold'} Resistant ${Math.ceil(trip.drinkLeft)}s`);
     if (trip.dashLeft > 0) buffs.push(`Dash ${Math.ceil(trip.dashLeft)}s`);
     if (trip.defLeft > 0)
       buffs.push(`+${Math.round(trip.defAmount * 100)}% Def ${Math.ceil(trip.defLeft)}s`);
@@ -162,7 +162,7 @@
     // The climate is a standing condition rather than a timer, but it belongs
     // here too — it is the thing those drinks are answering.
     if (trip.climate !== 'temperate' && trip.drinkLeft <= 0)
-      buffs.push(`<i class="exposed">${trip.climate === 'hot' ? 'Heat' : 'Cold'} unguarded</i>`);
+      buffs.push(`<i class="exposed">Susceptible to ${trip.climate === 'hot' ? 'Heat' : 'Cold'}</i>`);
 
     el('buffLine').innerHTML = buffs.length
       ? buffs.map(b => b.startsWith('<i') ? b : `<span class="buff">${b}</span>`).join('')
