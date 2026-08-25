@@ -261,9 +261,14 @@
     // earlier rung and the rich one on the later, or the ladder walks backwards.
     5:  ['verdant_hills', 'arctic_ridge', 'frozen_seaway', 'volcanic_hollow'],
     6:  ['dunes', 'misty_peaks', 'deserted_island'],
-    // Two empty rungs close out High. checkPromotion steps straight over them, so
-    // clearing HR6 lands you on HR9 and G Rank.
-    7:  [],
+    // HR7 is High Rank's capstone: the three best waters it has, asked for again
+    // at a harder goal. Nothing new opens here — the point is that you already
+    // know these places, and they are going to want more of you than they did.
+    // Frozen Seaway is in it so the rung is not simply HR6 repeated, and so the
+    // last test of the rank costs you cold as well as stamina.
+    7:  ['deserted_island', 'dunes', 'frozen_seaway'],
+    // HR8 stays empty and checkPromotion steps over it, so clearing HR7 lands
+    // you on HR9 and G Rank.
     8:  [],
     // G Rank — all eleven return at G tables, plus three new
     9:  ['jurassic_frontier', 'marshlands', 'ancestral_steppe', 'primal_forest'],
@@ -337,7 +342,7 @@
   // to stay ahead of where High finished.
   const GOAL_CASTS_BY_HR = {
     1: 18, 2: 20, 3: 22,          // Low
-    4: 24, 5: 26, 6: 28,          // High
+    4: 24, 5: 26, 6: 28, 7: 29,   // High — 7 is the capstone rung
     9: 30, 10: 31, 11: 32, 12: 33, // G
   };
   const GOAL_CASTS_BY_RANK = { Low: 18, High: 24, G: 30, Gplus: 33 };
