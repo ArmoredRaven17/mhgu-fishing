@@ -445,24 +445,27 @@
   // The pond derives its shallows and depths from this single value the same way
   // the theme derives its shades, so tuning a locale means changing one number.
   const WATER = {
-    jurassic_frontier: '#2E7D6B',   // clear green over pale rock
-    verdant_hills:     '#3A8A57',   // shallow, weed-green
-    marshlands:        '#5C6B33',   // silt and standing water
+    jurassic_frontier: '#55A8CE',   // open, light, sky on the surface
+    verdant_hills:     '#4C6076',   // grey-blue, overcast rather than lush
+    marshlands:        '#9A8F7E',   // pale brown-grey, silt held in suspension
     arctic_ridge:      '#5C8FB5',   // meltwater under ice
     dunes:             '#1F8C93',   // an oasis against the sand
     deserted_island:   '#1C90B8',   // bright tropical shallows
-    misty_peaks:       '#4A7FA0',   // cold cloud-lit blue
-    ancestral_steppe:  '#3E7F72',   // grass-fed pools
+    misty_peaks:       '#3F8F7C',   // blue-green
+    ancestral_steppe:  '#8A8270',   // craggy grey-tan, more rock than water
     primal_forest:     '#245C4A',   // deep shade, almost black-green
     frozen_seaway:     '#6FA8C4',   // pale glacial blue
     volcanic_hollow:   '#B4552A',   // lit from underneath
-    jungle:            '#1F6B4C',   // heavy emerald
+    jungle:            '#128FA6',   // blue-cyan
     ruined_pinnacle:   '#4B5A86',   // cold stone, high altitude
     desert:            '#2A8FA0',   // spring water in dry country
     volcano:           '#C0431F',   // molten
   };
   // Anything without its own entry falls back to its climate, so a locale added
-  // later still looks like somewhere rather than like the theme.
+  // later still looks like somewhere rather than like the theme. The temperate
+  // default is PINNED rather than tracking Jurassic Frontier, whose hex it used
+  // to share: the two parted company when the Frontier went blue, and green is
+  // the safer thing for a locale nobody has looked at yet to look like.
   const WATER_BY_CLIMATE = { cold: '#5C8FB5', hot: '#B4552A', temperate: '#2E7D6B' };
   const waterOf = id => WATER[id] || WATER_BY_CLIMATE[climateOf(id)];
 
