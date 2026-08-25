@@ -98,7 +98,7 @@
       const want = A.wantedBait(b.id), take = A.tackled(b.id);
       const full = kinds >= G.TACKLE_SLOTS && !want;
       const owned = A.baitStock(b.id);
-      return `<li data-id="${b.id}" class="${full ? 'nofit' : ''} ${want && !take ? 'dry' : ''}">
+      return `<li data-id="${b.id}" class="${want ? 'packed' : ''} ${full ? 'nofit' : ''} ${want && !take ? 'dry' : ''}">
         <img src="${b.icon}" alt="">
         <div><b>${b.name}</b><span class="role">${b.family === 'ore' ? 'variety' : 'species'}</span></div>
         <span class="qty">${take}${want ? ` / ${want}` : ` / ${Math.min(owned, G.BAIT_CARRY)}`}</span>
@@ -226,7 +226,7 @@
       const want = A.wanted(p.id), take = A.planned(p.id);
       const owned = A.itemStock(p.id);
       const noSlot = used >= G.POUCH_SLOTS && !want;
-      return `<li data-id="${p.id}" class="${noSlot ? 'nofit' : ''} ${want && !take ? 'dry' : ''}">
+      return `<li data-id="${p.id}" class="${want ? 'packed' : ''} ${noSlot ? 'nofit' : ''} ${want && !take ? 'dry' : ''}">
         <img src="assets/ItemIcons/${p.icon}" alt="">
         <div><b>${p.name}</b><span class="role">${G.effectOf(p.id).label}</span></div>
         <span class="qty">${take}${want ? ` / ${want}` : ` / ${Math.min(owned, G.carryLimit(p.id))}`}</span>
