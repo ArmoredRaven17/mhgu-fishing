@@ -75,10 +75,14 @@
   // — capped by STOCK_CAP and by your zenny — so a greyed-out button means
   // "none of these would land", not "you cannot afford all of them".
   const BUY_AMOUNTS = [1, 10, G.STOCK_CAP];
+  // A button that would silently buy fewer than it says is worse than a dead one.
+  // affordable() clamps the amount to what will fit, so Buy 10 on a book you may
+  // only own one of came back as "1" — not zero, so it read as live and then did
+  // something other than what it said.
   const buyButtons = (attrName, id, can) => BUY_AMOUNTS.map(n => ({
     label: `Buy ${n}`,
     attr: `data-${attrName}="${id}" data-n="${n}"`,
-    disabled: can(id, n) === 0,
+    disabled: can(id, n) === 0 || n > G.ownCap(id),
   }));
 
   // Say when a stock is full, so a row of dead buttons explains itself.
