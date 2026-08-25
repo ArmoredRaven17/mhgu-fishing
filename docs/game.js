@@ -314,8 +314,31 @@
   // cast, which no player does. A missed strike, a snapped line or a fish that
   // wears you down all come off the top, so G is held a little below where the
   // arithmetic alone would put it.
-  const GOAL_CASTS_BY_RANK = { Low: 18, High: 25, G: 27, Gplus: 27 };
-  const goalCasts = hr => GOAL_CASTS_BY_RANK[rankAt(hr).id] ?? 18;
+  //
+  // Per RUNG, not per rank. Holding it flat across a rank meant rung order carried
+  // no difficulty at all: every HR4, HR5 and HR6 quest was sized at 25 casts, so
+  // whether one was harder than another came down purely to which locale happened
+  // to be richer. Deserted Island on the HR5 rung asked 8,550z while Misty Peaks
+  // on the rung ABOVE it asked 6,700z. Climbing per rung is what makes the next
+  // step up actually feel like one.
+  //
+  // The ceiling is real: a bare trip runs ~15 casts, a trip with the best meal
+  // ~21, and only maxed Endurance reaches ~45. Note the meal barely moves it —
+  // nothing out-staminas Vigorous Stir-fry's 38 until Ultimate Rice at HR13 — so
+  // Endurance is what these later numbers are really asking you to have bought.
+  // Note G's figures are LOWER than High's and still ask more of you. A G trip
+  // runs about 31 casts where a High one runs 34 — the fish are rarer, so the
+  // fights are longer and the same stamina buys fewer lines in the water. What
+  // the player actually sees climbs regardless, because the goal is zenny and G
+  // water is worth far more per cast.
+  const GOAL_CASTS_BY_HR = {
+    1: 18, 2: 20, 3: 22,          // Low
+    4: 24, 5: 26, 6: 28,          // High
+    9: 26, 10: 27, 11: 28, 12: 29, // G — fewer casts, longer fights
+  };
+  const GOAL_CASTS_BY_RANK = { Low: 18, High: 24, G: 26, Gplus: 29 };
+  const goalCasts = hr =>
+    GOAL_CASTS_BY_HR[hr] ?? GOAL_CASTS_BY_RANK[rankAt(hr).id] ?? 18;
   const GOAL_CASTS = 18;                 // the Low figure, kept for reference
   const GOAL_ROUND = 50;
 
@@ -914,7 +937,7 @@
     POUCH_SLOTS, TACKLE_SLOTS, BAIT_CARRY, carryLimit, SUPPLY_RANK, SUPPLY_EACH,
     DESIGNED_POOLS, ARENA_POOL, RANK_ORDER, rankIndex, SHOW_DESIGNED_LOCALES,
     LADDER, localesAtHR, localesOpenAt, bandOf, openedAtHR, rungsOpenAt, nextHR, MAX_LADDER_HR,
-    GOAL_CASTS, GOAL_CASTS_BY_RANK, goalCasts, GOAL_ROUND,
+    GOAL_CASTS, GOAL_CASTS_BY_RANK, GOAL_CASTS_BY_HR, goalCasts, GOAL_ROUND,
     CLIMATE, climateOf, CLIMATE_RATES, CLIMATE_TICK_MS, DRINK_SECONDS,
     DASH_SECONDS, DASH_MULT, ARMOR_SECONDS,
     BASE_MAX_HP, BASE_MAX_STAMINA, STAMINA_COST,

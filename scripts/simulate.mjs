@@ -449,6 +449,60 @@ and what one actually looks like — ${(perTrip * 100).toFixed(0)}% chance of a 
   }
 }
 
+line('The goal ladder — does each rung ask more than the last?');
+{
+  // Difficulty is the goal measured against what the locale can ACTUALLY pay on a
+  // provisioned trip, not the raw zenny — a rich locale should ask for more zenny
+  // without being harder. Kit is the best meal that rung can cook plus 10 levels
+  // of Endurance, which is roughly 74,000z of upgrades: affordable, not maxed.
+  const fullPantry = {};
+  for (const i of G.CANTEEN.ingredients) fullPantry[i.id] = true;
+  const bestMealSta = hr =>
+    Math.max(0, ...G.mealsAvailable(fullPantry, hr).map(m => m.stamina));
+  const noBait = baitBy.get('no_bait');
+  const grossPerTrip = (id, hr, sta, runs = 2500) => {
+    let tot = 0;
+    for (let r = 0; r < runs; r++) {
+      let s = sta, g = 0;
+      while (s >= G.STAMINA_COST.cast) {
+        s -= G.STAMINA_COST.cast;
+        const c = R.rollCatch({ localeId: id, bait: noBait, hr });
+        if (c) {
+          g += c.value;
+          s -= G.STAMINA_COST.reelTick * (G.fightFor(c.fish, c.ore, 0, hr).durationMs / 1000);
+        }
+      }
+      tot += g;
+    }
+    return tot / runs;
+  };
+
+  console.log('rung  casts   goal range              difficulty (goal / provisioned trip)');
+  let prevMedian = 0;
+  const dips = [], unreachable = [];
+  for (const [hrKey, ids] of Object.entries(G.LADDER)) {
+    if (!ids.length) continue;
+    const hr = +hrKey, sta = G.BASE_MAX_STAMINA + bestMealSta(hr) + 80;
+    const rows = ids.map(id => {
+      const goal = R.questGoal(id, hr);
+      return { id, goal, ratio: goal / grossPerTrip(id, hr, sta) };
+    }).sort((a, b) => a.ratio - b.ratio);
+    for (const r of rows) if (r.ratio > 1) unreachable.push(`${r.id} HR${hr}`);
+    const median = rows[Math.floor(rows.length / 2)].ratio;
+    const goals = rows.map(r => r.goal).sort((a, b) => a - b);
+    if (median < prevMedian) dips.push(`HR${hr}`);
+    console.log(`HR${String(hr).padEnd(4)}${String(G.goalCasts(hr)).padEnd(8)}` +
+      `${(goals[0] + 'z .. ' + goals[goals.length - 1] + 'z').padEnd(24)}` +
+      `median ${median.toFixed(2)}   range ${rows[0].ratio.toFixed(2)}-${rows[rows.length - 1].ratio.toFixed(2)}` +
+      (median < prevMedian ? '   <-- DIPS' : ''));
+    prevMedian = median;
+  }
+  console.log('');
+  console.log('rungs where difficulty dips: ' + (dips.length ? dips.join(', ') : 'none'));
+  console.log('quests needing more than 10 Endurance: ' +
+    (unreachable.length ? unreachable.join(', ') : 'none'));
+}
+
 line('The long pole — how many trips to fill the guide?');
 {
   const found = new Set();

@@ -288,11 +288,38 @@
     return ev;
   }
 
+  // The mean cast value across everything the rung opens. A goal leans partly on
+  // this rather than purely on its own locale — see questGoal.
+  function rungCastValue(hr) {
+    const ids = G.localesAtHR(hr);
+    const vals = ids.map(id => expectedCastValue(id, hr)).filter(Boolean);
+    return vals.length ? vals.reduce((a, v) => a + v, 0) / vals.length : 0;
+  }
+
   // The zenny a trip here must bring home to clear the quest.
+  //
+  // Sized purely on the locale's own worth, this could not climb: the yield
+  // spread across a rank is about 4.6x, so which rung a quest sat on mattered far
+  // less than which locale it happened to be. Deserted Island on HR5 asked more
+  // than anything on HR6. So the goal is a BLEND — mostly the locale, partly the
+  // rung it sits on — which keeps a rich locale asking more than a poor one while
+  // letting rung order decide the overall climb.
+  //
+  // Then it is clamped to what the water can actually produce. A poor locale
+  // pulled up toward its rung's mean would be asking for zenny that is not in it
+  // at any stamina — Volcanic Hollow is Whetfish-only and cannot pay a Dunes goal
+  // however long you stand there. The ceiling is a heavily provisioned trip, so
+  // clearing a poor locale is meant to be a long grind, not an impossibility.
+  const GOAL_LOCALE_SHARE = 0.55;
+  const GOAL_CEILING_CASTS = 32;
+
   function questGoal(localeId, hr) {
     const ev = expectedCastValue(localeId, hr);
     if (!ev) return 0;
-    return Math.round(ev * G.goalCasts(hr) / G.GOAL_ROUND) * G.GOAL_ROUND;
+    const rung = rungCastValue(hr) || ev;
+    const blended = ev * GOAL_LOCALE_SHARE + rung * (1 - GOAL_LOCALE_SHARE);
+    const sized = Math.min(blended * G.goalCasts(hr), ev * GOAL_CEILING_CASTS);
+    return Math.round(sized / G.GOAL_ROUND) * G.GOAL_ROUND;
   }
 
   // Every species a locale can ever produce, across all its ranks and bait tables.
@@ -361,7 +388,7 @@
 
   window.MF_ROLL = {
     ranksAt, isOpen, localeUnlocked, basePool, speciesAt, speciesByRank,
-    expectedCastValue, questGoal,
+    expectedCastValue, rungCastValue, questGoal,
     hireCost, pestChance, rollPest, rollSchool, rollFish, rollOre, rollCatch, rollEncounter, fullGuide,
     fishById, localeById,
   };
