@@ -163,7 +163,7 @@
       }).join('');
 
       const total = caughtAll.length + extra.length;
-      return `<section class="panel">
+      return `<section class="panel watered" style="--water:${G.waterOf(id)}">
         <h3 class="panel-head">${loc.name}
           <span class="cnt">${total} / ${known.length} species &middot; ${A.caughtTotalAt(id)} caught</span></h3>
         <div class="panel-body">

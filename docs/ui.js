@@ -218,8 +218,8 @@
   function showCollectables(view) {
     collectView = view;
     for (const [name, tab, panel] of [['fish', 'subFish', 'viewFish'],
-                                     ['ingredients', 'subIngredients', 'viewIngredients'],
-                                     ['locales', 'subLocales', 'viewLocales']]) {
+                                     ['locales', 'subLocales', 'viewLocales'],
+                                     ['ingredients', 'subIngredients', 'viewIngredients']]) {
       el(tab).classList.toggle('active', view === name);
       el(panel).classList.toggle('active', view === name);
     }
@@ -228,8 +228,8 @@
     else window.MF_GUIDE.renderLocaleCatch();
   }
   el('subFish').onclick = () => showCollectables('fish');
-  el('subIngredients').onclick = () => showCollectables('ingredients');
   el('subLocales').onclick = () => showCollectables('locales');
+  el('subIngredients').onclick = () => showCollectables('ingredients');
 
   // Theme modal
   el('themeBtn').onclick = () => {

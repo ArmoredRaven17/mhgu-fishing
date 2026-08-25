@@ -773,3 +773,22 @@ select{
 .setting input{margin:2px 0 0;flex:none}
 .setting b{display:block;font-size:13px;font-weight:600}
 .setting i{display:block;font-style:normal;font-size:11.5px;opacity:.7;line-height:1.45;margin-top:2px}
+
+/* A locale panel wears its own water. The textures are untouched — what changes
+   is the VEIL laid over them, which is already a flat colour drawn from --bg2
+   and --bg1, so mixing the locale's hue into that tints the stone without
+   flattening it. Kept low: the panel still has to read as chrome, and body text
+   still has to sit on it in every theme. */
+.panel.watered{border-color:color-mix(in srgb,var(--water) 38%,var(--line))}
+.panel.watered .panel-head{
+  background-image:
+    linear-gradient(color-mix(in srgb,color-mix(in srgb,var(--water) 26%,var(--bg2)) 82%,transparent),
+                    color-mix(in srgb,color-mix(in srgb,var(--water) 26%,var(--bg2)) 82%,transparent)),
+    url('assets/sidebar-background-texture1.png');
+}
+.panel.watered .panel-body{
+  background-image:
+    linear-gradient(color-mix(in srgb,color-mix(in srgb,var(--water) 14%,var(--bg1)) 60%,transparent),
+                    color-mix(in srgb,color-mix(in srgb,var(--water) 14%,var(--bg1)) 60%,transparent)),
+    url('assets/panel-body-bg.png');
+}
