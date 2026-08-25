@@ -167,7 +167,11 @@
         el('tensionBand').style.left = lo * 100 + '%';
         el('tensionBand').style.width = S.fight.band * 200 + '%';
         el('tensionWrap').classList.remove('hidden', 'strike');
-        el('reelName').textContent = S.hooked.c.name;
+        // You do not get to know what is on the end of it. A fish stays unnamed
+        // through the whole fight — the weight of the line is the only tell, and
+        // finding out is what landing it is for. A monster is exempt: it is
+        // already an unmissable icon in the water, so naming it costs no secret.
+        el('reelName').textContent = S.monster ? S.hooked.c.name : '';
         el('reelHint').textContent = 'Tap Space to keep the line in the middle.';
       }
 
