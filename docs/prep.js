@@ -264,7 +264,7 @@
     const rung = A.questRung();
     const rank = G.rankAt(rung).name;
     bits.push(`<div class="head"><b>${loc.name}</b> - ${rank} - ` +
-      `Objective: <b>${z(R.questGoal(S.localeId, rung))}</b></div>`);
+      `Main Objective: Catch <b>${z(R.questGoal(S.localeId, rung))}</b> in fish</div>`);
 
     // Three fixed lines, always present and always in this order. Stating the
     // good case out loud rather than omitting it is what keeps the block the same
