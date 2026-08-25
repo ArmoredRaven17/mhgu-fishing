@@ -422,6 +422,18 @@
   };
   const climateOf = id => CLIMATE[id] || 'temperate';
 
+  // ── Casting from the keyboard ─────────────────────────────────────────────
+  //
+  // Off by default, because Space is the pond's own button and a stray press
+  // between casts should not spend stamina. Turned on, it is deliberately NOT a
+  // single press — it borrows the reel-in check, shortened. Three taps in quick
+  // succession is short enough to be quicker than reaching for the button and
+  // long enough that nothing you do by accident ever adds up to a cast.
+  const CAST_PRESSES = 3;
+  // How long a part-finished cast holds before it forgets. Without this a tap
+  // now and a tap in a minute would eventually cast on their own.
+  const CAST_PRESS_WINDOW_MS = 900;
+
   // ── The colour of the water ───────────────────────────────────────────────
   //
   // The pond used to be painted from the THEME, which meant every locale looked
@@ -975,6 +987,7 @@
     LADDER, localesAtHR, localesOpenAt, bandOf, openedAtHR, rungsOpenAt, nextHR, MAX_LADDER_HR,
     GOAL_CASTS, GOAL_CASTS_BY_RANK, GOAL_CASTS_BY_HR, goalCasts, GOAL_ROUND,
     CLIMATE, climateOf, WATER, WATER_BY_CLIMATE, waterOf,
+    CAST_PRESSES, CAST_PRESS_WINDOW_MS,
     CLIMATE_RATES, CLIMATE_TICK_MS, DRINK_SECONDS,
     DASH_SECONDS, DASH_MULT, ARMOR_SECONDS,
     BASE_MAX_HP, BASE_MAX_STAMINA, STAMINA_COST,

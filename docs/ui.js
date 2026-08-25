@@ -232,7 +232,12 @@
   el('subLocales').onclick = () => showCollectables('locales');
 
   // Theme modal
-  el('themeBtn').onclick = () => { window.MF_THEME.renderSwatches(); el('themeModal').classList.remove('hidden'); };
+  el('themeBtn').onclick = () => {
+    window.MF_THEME.renderSwatches();
+    el('spaceToCast').checked = !!A.state.spaceToCast;
+    el('themeModal').classList.remove('hidden');
+  };
+  el('spaceToCast').onchange = e => { A.state.spaceToCast = e.target.checked; A.save(); };
   el('themeClose').onclick = () => el('themeModal').classList.add('hidden');
   el('themeModal').onclick = e => { if (e.target.id === 'themeModal') el('themeModal').classList.add('hidden'); };
   el('linksBtn').onclick = () => el('linksModal').classList.remove('hidden');

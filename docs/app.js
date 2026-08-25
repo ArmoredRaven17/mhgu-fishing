@@ -19,6 +19,7 @@
     caught: {},              // variantId -> count
     caughtAt: {},            // localeId -> { fishId: count }, where each came from
     fishedAt: {},            // localeId -> { Low|High|G: true }, which tables you have read
+    spaceToCast: false,      // opt-in: tap Space to cast instead of reaching for the button
     pantry: {},              // ingredientId -> true when found, 'fresh' when fresh
     freshOrder: [],          // which ingredients are fresh, oldest first
     pouch: { potion: 5 },
@@ -57,6 +58,7 @@
     S.owned.no_bait = Infinity;
     S.visited = saved.visited || {};
     S.fishedAt = saved.fishedAt || {};
+    S.spaceToCast = !!saved.spaceToCast;
     prunePlans();          // an old save may already be over a pouch limit
     reconcileFresh();      // ...or carry more fresh ingredients than the cap
     syncHR();

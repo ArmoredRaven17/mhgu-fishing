@@ -62,6 +62,7 @@
         if (!p.buy) trip.carried[p.id] = (trip.carried[p.id] || 0) + G.SUPPLY_EACH;
 
     S.stats.trips++;
+    castTaps = 0;
     // Setting out is what reveals a locale's water at this rank — see revealedRanks.
     A.markFished(S.localeId, questHR);
     A.save();
@@ -187,7 +188,7 @@
     const school = boss ? [] : R.rollSchool({
       localeId: trip.localeId, bait: trip.bait, hr: trip.questHR, lureLevel: S.upgrades.lure,
     });
-    if (!boss && !school.length) { trip.busy = false; render(); return; }
+    if (!boss && !school.length) { releaseCast(); render(); return; }
 
     if (boss) {
       S.stats.bosses++;
@@ -204,14 +205,14 @@
     // up there is nothing left to award; if it is still running, the cast simply
     // never happened and the rod has to go back in the player's hands.
     if (!trip) return;
-    if (res.cancelled) { trip.busy = false; render(); return; }
+    if (res.cancelled) { releaseCast(); render(); return; }
 
     // Pulled the line back before anything took it. That costs the cast — you
     // still threw it — but not the bait, since nothing was ever offered a hook.
     if (res.reason === 'reeled-in') {
       trip.sta -= G.STAMINA_COST.cast;
       el('castPrompt').textContent = 'You reel the line back in.';
-      trip.busy = false; A.save(); render();
+      releaseCast(); A.save(); render();
       if (trip.sta <= 0) return finish('out of stamina');
       return;
     }
@@ -226,7 +227,7 @@
         trip.hp -= hurt;
         el('castPrompt').textContent =
           `${boss.name} throws you off and is gone — ${hurt} HP.`;
-        trip.busy = false; A.save(); render();
+        releaseCast(); A.save(); render();
         if (trip.hp <= 0) return cartOut(boss);
         if (trip.sta <= 0) return finish('out of stamina');
         return;
@@ -235,7 +236,7 @@
       trip.haul.push({ name: boss.name, value: boss.reward, icon: bossSVG(boss, 22) });
       A.addXP(boss.xp);
       el('castPrompt').textContent = `${boss.name} caught. Worth ${z(boss.reward)}.`;
-      trip.busy = false; A.save(); render();
+      releaseCast(); A.save(); render();
       return;
     }
 
@@ -306,7 +307,7 @@
       trip.notes = [];
     }
 
-    trip.busy = false;
+    releaseCast();
     A.save();
     render();
     if (trip.hp <= 0) return cartOut(null);
@@ -503,6 +504,55 @@
 
   const bossSVG = (boss, size = 52) =>
     `<img src="assets/MonsterIcons/${boss.icon}" alt="${boss.name}" width="${size}" height="${size}">`;
+
+  // ── Casting from the keyboard ─────────────────────────────────────────────
+  //
+  // Opt-in, and never a single press. Space belongs to the POND — striking and
+  // reeling — so a one-tap cast would fire on every stray press left over from
+  // the fight you just finished. This borrows the reel-in check instead, at
+  // three taps rather than five, and forgets a part-finished cast after a short
+  // window so taps minutes apart never add up to one.
+  //
+  // Bound with addEventListener rather than window.onkeydown, because that
+  // property is the pond's and fishing.js overwrites it for the length of a
+  // cast. The busy check is what keeps the two from ever both acting.
+  let castTaps = 0, castTapAt = 0, castLockUntil = 0;
+
+  // Handing the cast button back. The lockout is the important half: a player
+  // still hammering Space at the end of a reel would otherwise roll those
+  // presses straight into the next cast, which is the exact accident the whole
+  // three-tap check exists to prevent. Taps only start counting once the water
+  // has been quiet for a moment.
+  function releaseCast() {
+    if (trip) trip.busy = false;
+    castTaps = 0;
+    castLockUntil = performance.now() + 450;
+  }
+
+  function castKey(e) {
+    if (e.code !== 'Space' || e.repeat) return;
+    const S = A.state;
+    if (!S.spaceToCast || !trip || trip.busy) return;      // the pond has Space
+    if (!el('quest').classList.contains('active')) return;
+    if (el('castBtn').disabled) return;
+    e.preventDefault();
+
+    const now = performance.now();
+    if (now < castLockUntil) { castTaps = 0; return; }
+    if (now - castTapAt > G.CAST_PRESS_WINDOW_MS) castTaps = 0;
+    castTapAt = now;
+    castTaps++;
+
+    const need = G.CAST_PRESSES;
+    if (castTaps < need) {
+      el('castPrompt').textContent =
+        `Casting… ${'●'.repeat(castTaps)}${'○'.repeat(need - castTaps)}`;
+      return;
+    }
+    castTaps = 0;
+    cast().then(() => window.MF_UI.refresh());
+  }
+  window.addEventListener('keydown', castKey);
 
   window.MF_QUEST = { begin, cast, retire, render, useItem, equipBait,
     get active() { return !!trip; } };
