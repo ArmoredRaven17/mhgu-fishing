@@ -18,6 +18,11 @@
   const el = id => document.getElementById(id);
   const G = () => window.MF_GAME;
 
+  // Asked the OS for less movement? Then the pond does not spawn a wake at all —
+  // the CSS would strip its animation, leaving marks that never fade or leave.
+  const STILL = window.matchMedia
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   let raf = null;
   let state = null;
 
@@ -77,6 +82,25 @@
         };
       });
 
+      // A drift of bubbles, so the water has something of its own going on that
+      // is not the fish. Each is given its own size, lane, pace and phase, which
+      // is what stops fourteen identical circles reading as a pattern. They are
+      // pure decoration — created here rather than in the markup because the
+      // pond is emptied and rebuilt on every cast.
+      const bubbles = document.createElement('div');
+      bubbles.className = 'bubbles';
+      for (let i = 0; i < 14; i++) {
+        const b = document.createElement('i');
+        const size = 3 + Math.random() * 7;
+        b.style.cssText =
+          `left:${Math.random() * 100}%;top:${Math.random() * 100}%;` +
+          `width:${size}px;height:${size}px;` +
+          `animation-duration:${7 + Math.random() * 9}s;` +
+          `animation-delay:${-Math.random() * 12}s`;
+        bubbles.appendChild(b);
+      }
+      pond.appendChild(bubbles);
+
       const bobber = document.createElement('div');
       bobber.className = 'bobber';
       pond.appendChild(bobber);
@@ -93,6 +117,7 @@
         progress: 0,
         tension: 0,
         fight: null,
+        wakeIn: 0,                 // throttles the trail it leaves while gliding
         baited: spec.bait && spec.bait.id !== 'no_bait',
         monster: !!spec.monster,
         resolve,
@@ -213,11 +238,37 @@
         // a fast one. Fish chase where the bobber IS, not where it is headed,
         // because that is what a fish can see.
         const glide = 1 - Math.exp(-dt * P.glideRate);
+        const wasX = S.bx, wasY = S.by;
         S.bx += (S.tx - S.bx) * glide;
         S.by += (S.ty - S.by) * glide;
 
         bobber.style.left = S.bx * 100 + '%';
         bobber.style.top = S.by * 100 + '%';
+
+        // Moving or sitting still, measured on what it ACTUALLY covered this
+        // frame rather than on how far it still has to go — the glide eases out,
+        // so a bobber a whisker from its destination is already at rest.
+        const moved = Math.hypot(S.bx - wasX, S.by - wasY);
+        const travelling = moved > 0.0008;
+        bobber.classList.toggle('travelling', travelling);
+
+        // Drop a fading mark behind it while it travels. Throttled, because one
+        // per frame is a solid smear rather than a wake.
+        //
+        // Removed on a timer rather than on animationend. animationend is not a
+        // promise: it never fires if the animation is suppressed — which is
+        // exactly what prefers-reduced-motion does to this rule — and every mark
+        // would then sit in the pond forever. A timer always comes.
+        S.wakeIn -= dt;
+        if (travelling && !STILL && S.wakeIn <= 0) {
+          S.wakeIn = 0.045;
+          const w = document.createElement('div');
+          w.className = 'wake';
+          w.style.left = wasX * 100 + '%';
+          w.style.top = wasY * 100 + '%';
+          pond.appendChild(w);
+          setTimeout(() => w.remove(), 700);
+        }
 
         if (S.phase === 'swim') {
           for (const sw of S.swimmers) {

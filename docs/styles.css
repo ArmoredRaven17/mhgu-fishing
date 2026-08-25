@@ -400,7 +400,28 @@ select{
      pointer is only ever something sat on top of the fish you are watching. */
   cursor:none;
 }
-/* A few still ripples so the water is not a flat plate. */
+/* Two moving layers, so the water reads as a body rather than a painted plate.
+   Both are cosmetic and neither is hit-tested — the fish are the only thing in
+   here you can interact with.
+
+   BENEATH the fish: a slow swell. Two soft lobes of the locale's own colour,
+   one lifted toward white and one sunk toward black, drifting and breathing on
+   a long alternating cycle. This is what gives the surface depth.
+
+   ABOVE the fish: the flecks, now drifting. Three tiles at different sizes
+   moving different distances in different directions, which is enough parallax
+   to read as current without ever showing a repeat. Keeping them over the fish
+   is deliberate — the fish are under the water, so the surface passes across
+   them.
+
+   The timings are deliberately long. Water that hurries looks like static. */
+.pond::before{
+  content:"";position:absolute;inset:-25%;pointer-events:none;opacity:.34;
+  background:
+    radial-gradient(38% 52% at 32% 38%, color-mix(in srgb,var(--water) 62%,#fff) 0%, transparent 62%),
+    radial-gradient(44% 42% at 71% 66%, color-mix(in srgb,var(--water) 60%,#000) 0%, transparent 66%);
+  animation:pond-swell 23s ease-in-out infinite alternate;
+}
 .pond::after{
   content:"";position:absolute;inset:0;pointer-events:none;opacity:.22;
   background-image:
@@ -408,6 +429,20 @@ select{
     radial-gradient(circle at 71% 66%, color-mix(in srgb,var(--water) 60%,#fff) 0 1px, transparent 2px),
     radial-gradient(circle at 43% 82%, color-mix(in srgb,var(--water) 60%,#fff) 0 1px, transparent 2px);
   background-size:180px 180px,220px 220px,260px 260px;
+  animation:pond-drift 48s linear infinite;
+}
+@keyframes pond-swell{
+  from{transform:translate3d(-3%,-2%,0) scale(1.00)}
+  to  {transform:translate3d(4%,3%,0)   scale(1.09)}
+}
+@keyframes pond-drift{
+  from{background-position:0 0, 0 0, 0 0}
+  to  {background-position:180px 180px, -220px 220px, 260px -260px}
+}
+/* Anyone who has asked the OS for less movement gets the still pond back. */
+@media (prefers-reduced-motion:reduce){
+  .pond::before,.pond::after,.bubbles i,.wake,.bobber::before,.bobber::after{animation:none}
+  .bubbles i,.bobber::before,.bobber::after{opacity:0}
 }
 
 .swimmer{
@@ -423,12 +458,61 @@ select{
 .swimmer.monster img{width:64px;height:64px}
 
 /* The bobber is the theme's own money colour, and goes grey when it dips. */
+/* Bubbles. Built in JS so each gets its own size, lane, pace and phase — the
+   shared bits live here. They rise and fade rather than travelling far, which is
+   what a bubble looks like from directly above. */
+.bubbles{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.bubbles i{
+  position:absolute;border-radius:50%;opacity:0;
+  background:radial-gradient(circle at 35% 32%,
+    color-mix(in srgb,var(--water) 30%,#fff) 0%,
+    color-mix(in srgb,var(--water) 70%,#fff) 55%,
+    transparent 72%);
+  animation-name:bubble;animation-timing-function:ease-in-out;
+  animation-iteration-count:infinite;
+}
+@keyframes bubble{
+  0%  {opacity:0;   transform:translate3d(0,6px,0)   scale(.55)}
+  22% {opacity:.55}
+  70% {opacity:.42}
+  100%{opacity:0;   transform:translate3d(3px,-16px,0) scale(1.25)}
+}
+
+/* The wake: one mark dropped per throttled frame while the bobber is travelling,
+   left where it WAS and fading in place. Removes itself on animationend. */
+.wake{
+  position:absolute;width:9px;height:9px;border-radius:50%;
+  transform:translate(-50%,-50%);pointer-events:none;
+  background:color-mix(in srgb,var(--money) 45%,transparent);
+  animation:wake .55s ease-out forwards;
+}
+@keyframes wake{
+  from{opacity:.5;  transform:translate(-50%,-50%) scale(.7)}
+  to  {opacity:0;   transform:translate(-50%,-50%) scale(1.9)}
+}
+
 .bobber{
   position:absolute;width:16px;height:16px;border-radius:50%;
   transform:translate(-50%,-50%);background:var(--money);
   border:2px solid rgba(0,0,0,.45);
   box-shadow:0 0 0 3px color-mix(in srgb,var(--money) 25%,transparent);
   transition:background .12s, box-shadow .12s, width .1s, height .1s;
+}
+/* Sitting still, it works rings out across the water. Two of them, half a cycle
+   apart, so one is always opening. They stop while it travels — a float being
+   dragged does not ring, it leaves a wake, and running both at once reads as
+   noise. */
+.bobber::before,.bobber::after{
+  content:"";position:absolute;left:50%;top:50%;width:100%;height:100%;
+  border-radius:50%;pointer-events:none;
+  border:1.5px solid color-mix(in srgb,var(--money) 55%,transparent);
+  animation:bobber-ring 2.6s ease-out infinite;
+}
+.bobber::after{animation-delay:1.3s}
+.bobber.travelling::before,.bobber.travelling::after{animation-play-state:paused;opacity:0}
+@keyframes bobber-ring{
+  from{opacity:.6; transform:translate(-50%,-50%) scale(1)}
+  to  {opacity:0;  transform:translate(-50%,-50%) scale(3.6)}
 }
 .bobber.nudged{width:20px;height:20px}
 .bobber.under{
