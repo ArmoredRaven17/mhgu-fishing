@@ -774,21 +774,44 @@ select{
 .setting b{display:block;font-size:13px;font-weight:600}
 .setting i{display:block;font-style:normal;font-size:11.5px;opacity:.7;line-height:1.45;margin-top:2px}
 
-/* A locale panel wears its own water. The textures are untouched — what changes
-   is the VEIL laid over them, which is already a flat colour drawn from --bg2
-   and --bg1, so mixing the locale's hue into that tints the stone without
-   flattening it. Kept low: the panel still has to read as chrome, and body text
-   still has to sit on it in every theme. */
-.panel.watered{border-color:color-mix(in srgb,var(--water) 38%,var(--line))}
+/* A locale panel wears its own water, on a charcoal base in EVERY theme.
+   Fixing the base is what makes the tint mean the same thing everywhere — laid
+   over --bg2 it was a whisper on Forbidden and a wash on Rathalos.
+
+   Fixing it also makes the panel a dark surface on a light theme, which the
+   theme's own tokens are not expecting: on Khezu --text is pure black, --money
+   is a mid grey and --card is a black wash, and all three vanish on charcoal.
+   So the panel stops borrowing them and carries its own ink. Everything below is
+   scoped to .watered and changes nothing anywhere else in the app.
+
+   The one colour it keeps is the locale's: a fish you have caught is lit in the
+   water it came out of. */
+.panel.watered{
+  --base:#1E2025;                                  /* Forbidden, the family default */
+  --ink:#f0f0f0;
+  --ink-dim:#c9c9c9;
+  --lit:color-mix(in srgb,var(--water) 42%,#fff);  /* light on charcoal, whatever the hue */
+  color:var(--ink);
+  border-color:color-mix(in srgb,var(--water) 34%,#000);
+}
 .panel.watered .panel-head{
+  color:var(--ink);
   background-image:
-    linear-gradient(color-mix(in srgb,color-mix(in srgb,var(--water) 26%,var(--bg2)) 82%,transparent),
-                    color-mix(in srgb,color-mix(in srgb,var(--water) 26%,var(--bg2)) 82%,transparent)),
+    linear-gradient(color-mix(in srgb,color-mix(in srgb,var(--water) 26%,var(--base)) 82%,transparent),
+                    color-mix(in srgb,color-mix(in srgb,var(--water) 26%,var(--base)) 82%,transparent)),
     url('assets/sidebar-background-texture1.png');
 }
 .panel.watered .panel-body{
   background-image:
-    linear-gradient(color-mix(in srgb,color-mix(in srgb,var(--water) 14%,var(--bg1)) 60%,transparent),
-                    color-mix(in srgb,color-mix(in srgb,var(--water) 14%,var(--bg1)) 60%,transparent)),
+    linear-gradient(color-mix(in srgb,color-mix(in srgb,var(--water) 14%,var(--base)) 92%,transparent),
+                    color-mix(in srgb,color-mix(in srgb,var(--water) 14%,var(--base)) 92%,transparent)),
     url('assets/panel-body-bg.png');
 }
+.panel.watered .catch-list li{background:rgba(255,255,255,.07);color:var(--ink)}
+.panel.watered .catch-list .n{color:var(--ink-dim);opacity:1}
+.panel.watered .rank-head{color:var(--ink-dim);border-bottom-color:rgba(255,255,255,.16);opacity:1}
+.panel.watered .rank-head .cnt{color:var(--ink-dim)}
+.panel.watered .chip{background:rgba(255,255,255,.07);color:var(--ink-dim);opacity:.62}
+.panel.watered .chip.has{opacity:1;color:var(--lit);border-color:rgba(255,255,255,.20)}
+.panel.watered .missing{color:var(--ink-dim);opacity:.9}
+.panel.watered .missing.done{color:var(--lit);opacity:1}

@@ -452,7 +452,7 @@
     dunes:             '#1F8C93',   // an oasis against the sand
     deserted_island:   '#1C90B8',   // bright tropical shallows
     misty_peaks:       '#3F8F7C',   // blue-green
-    ancestral_steppe:  '#8A8270',   // craggy grey-tan, more rock than water
+    ancestral_steppe:  '#C0B190',   // craggy tan, and the lighter of the two greys
     primal_forest:     '#245C4A',   // deep shade, almost black-green
     frozen_seaway:     '#6FA8C4',   // pale glacial blue
     volcanic_hollow:   '#B4552A',   // lit from underneath
