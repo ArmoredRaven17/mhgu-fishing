@@ -204,6 +204,34 @@
     e.preventDefault();
   }, true);
 
+  // ── Camp tabs ─────────────────────────────────────────────────────────────
+  //
+  // Prep is three decisions and only one is ever live, so they share the panel
+  // rather than each taking a slice of the height. Purely a show/hide: every
+  // pane stays rendered, so nothing has to be rebuilt on a tab press and the
+  // scroll position of the locale list survives a trip to the canteen.
+  function campTab(name) {
+    for (const [n, tab, pane] of [['locale', 'tabLocale', 'paneLocale'],
+                                  ['canteen', 'tabCanteen', 'paneCanteen'],
+                                  ['items', 'tabItems', 'paneItems']]) {
+      el(tab).classList.toggle('active', n === name);
+      el(pane).classList.toggle('active', n === name);
+    }
+  }
+  el('tabLocale').onclick = () => campTab('locale');
+  el('tabCanteen').onclick = () => campTab('canteen');
+  el('tabItems').onclick = () => campTab('items');
+
+  function itemsTab(name) {
+    for (const [n, tab, pane] of [['bait', 'subBait', 'paneBait'],
+                                  ['item', 'subItem', 'paneItem']]) {
+      el(tab).classList.toggle('active', n === name);
+      el(pane).classList.toggle('active', n === name);
+    }
+  }
+  el('subBait').onclick = () => itemsTab('bait');
+  el('subItem').onclick = () => itemsTab('item');
+
   el('navCamp').onclick = () => show('camp');
   el('navGuide').onclick = () => show('guide');
   el('navShop').onclick = () => show('shop');

@@ -185,10 +185,70 @@ body{
 /* Stacked, the two panels cannot each own a slice of the height — the second
    would simply be below the fold with nothing to scroll it. So when they stack,
    the grid scrolls as one and the panels go back to their natural height. */
+/* Camp is one tabbed panel and one fixed column. The tabs carry the three prep
+   decisions; the column carries the quest you are making them against and the
+   button that ends the screen. The tab panel is the WIDER of the two because it
+   holds the meal table, which needs three columns of its own. */
+.tabs-panel{display:flex;flex-direction:column;min-height:0}
+.tab-head{padding:0;gap:0}
+.ptab{
+  flex:1;appearance:none;background:transparent;border:0;cursor:pointer;
+  color:inherit;font:inherit;font-size:15px;font-weight:600;
+  padding:9px 10px;opacity:.55;border-bottom:2px solid transparent;
+}
+.ptab:hover{opacity:.85}
+.ptab.active{opacity:1;border-bottom-color:var(--accent-hover)}
+/* Only the live pane is laid out. The rest keep their DOM so nothing re-renders
+   on a tab press and the locale list holds its scroll position. */
+.tabs-panel .pane{display:none}
+.tabs-panel .pane.active{display:flex;flex-direction:column;flex:1;min-height:0}
+#paneLocale{overflow-y:auto}
+/* One panel per rung. A rung is a set of quests that open together and are
+   cleared together, so it reads as a thing rather than as a heading with rows
+   loose underneath it — and the rung you are ON is the one that gets the accent. */
+.rung-panels{display:grid;gap:12px}
+.rung-panel{background:var(--bg2)}
+.rung-head{
+  font-size:14px;font-weight:600;padding:7px 12px;
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+}
+.rung-head .rmeta{font-size:11.5px;font-weight:400;opacity:.75;white-space:nowrap}
+.rung-panel.current{border-color:color-mix(in srgb,var(--accent-hover) 55%,var(--line))}
+.rung-panel > .panel-body{padding:8px 10px 10px}
+#paneCanteen .meal-wrap{max-height:none;flex:1;min-height:0}
+#paneCanteen .mealstats,#paneCanteen .mealfresh,#paneCanteen .hint{flex:none}
+#paneCanteen .mealstats{margin:0 0 2px}
+#paneCanteen .hint{margin:0 0 8px}
+/* The Items pane is itself two tabs, so its own subtabs sit above a pane that
+   takes the rest and scrolls. */
+#paneItems .subtabs{flex:none;margin:0 0 8px}
+#paneItems .subtab{display:flex;align-items:center;gap:8px}
+#paneItems .subtab .slots{font-size:11.5px;font-weight:400;opacity:.8}
+#paneItems .subpane{display:none}
+#paneItems .subpane.active{display:block;flex:1;min-height:0;overflow-y:auto}
+
+/* The right column is a stack: Quest takes the six lines it needs and Services
+   the little it needs, both fixed, so the quest never moves while you work. */
+.camp-right{display:flex;flex-direction:column;gap:14px;min-height:0}
+.camp-right > .panel{display:flex;flex-direction:column;min-height:0}
+.camp-right > .quest-panel,
+.camp-right > .services-panel{flex:0 0 auto}
+.camp-right > .quest-panel > .panel-body,
+.camp-right > .services-panel > .panel-body{flex:none;min-height:auto;overflow:visible}
+/* The slot count rides in the sub-tab now that the pouch owns a tab. */
+.panel-head .slots{margin-left:auto;font-size:12px;font-weight:400;opacity:.85}
+
 @media (max-width:900px){
   .camp-grid{grid-template-columns:minmax(0,1fr);overflow-y:auto;align-items:start}
   .camp-grid > .panel{min-height:auto}
+  .camp-right{min-height:auto}
+  .camp-right > .panel{min-height:auto}
   .camp-grid > .panel > .panel-body{flex:none;min-height:auto;overflow:visible}
+  .tabs-panel{min-height:auto}
+  .tabs-panel .pane.active{flex:none;min-height:auto}
+  #paneLocale{overflow:visible}
+  #paneCanteen .meal-wrap{max-height:34vh;flex:none}
+  #paneItems .subpane.active{flex:none;min-height:auto;overflow:visible}
   .depart{position:sticky;bottom:0}
 }
 
@@ -264,25 +324,54 @@ select{
   padding:10px 12px 12px;border-top:1px solid var(--line);
   background:var(--bg2);
 }
-/* Leads the panel, so it reads at a size that matches its importance rather than
-   the footnote size it had when it sat above the Depart button. */
+/* Its own panel now, rather than a block leading the Loadout. The separating
+   rule and the space under it went with the move — a panel already ends where it
+   ends, and the border was drawing a second line just inside the real one. */
 .depart-summary{
   font-size:14.5px;line-height:1.45;display:grid;gap:4px;align-content:start;
-  margin:0 0 14px;padding-bottom:12px;border-bottom:1px solid var(--line);
+  margin:0;
 }
-/* The headline is the only part whose length varies enough to wrap, and a locale
-   name that wraps was the last thing making the block change height. Reserve the
-   two lines it can take, so every quest reads at exactly the same size. */
-.depart-summary .head{min-height:2.9em}
+/* Locale and Rank are rows like everything else now, so nothing in the block
+   wraps and the height no longer needs reserving against a long locale name. */
+/* The lightest green that still clears 4.5:1 on the sand. A brighter one reads
+   better as "green" but sand is a light warm ground and green sits close to it —
+   #22CC44, the Randomizer's own green pill, manages 1.9:1 here. */
+.depart-summary .goal{color:#146023;font-weight:700}
 /* Fixed label column, so the readings line up down the block instead of each
    starting wherever its own label happens to end. */
 .depart-summary .line{display:grid;grid-template-columns:126px minmax(0,1fr);gap:8px;align-items:baseline}
 .depart-summary .k{opacity:.65}
-/* --danger is a fixed hex, so on some swatches it sat too close to the ground to
-   read. --money is derived from the chosen colour the same way every other shade
-   is — bright on dark themes, dark ink on the light one — so these readings stay
-   legible whatever the theme. Covers all three: monster, small monsters, temps. */
-.depart-summary .warn{color:var(--money);font-weight:600}
+/* ── The quest card ────────────────────────────────────────────────────────
+   Sand and brown ink, taken from the Quest Randomizer's result card, which is
+   itself the game's own quest card. Sampled from that PNG rather than guessed:
+   #E0D0B0 is its most common pixel and the point samples across the paper sit
+   around #DED4B5.
+
+   Fixing the ground is what earns the colours below. The readings used to be
+   painted in --money — one tint for all three — because a theme-derived colour
+   was the only thing guaranteed to stay legible on a ground that changed with
+   the palette. On a fixed sand they can say what they actually mean: red for a
+   large monster, blue for small ones, orange for heat, teal for cold. */
+/* The HEAD is left alone — it stays the theme's stone plate like every other
+   panel head in the app, so the chrome still reads as one set. Only the card
+   inside it is sand. */
+.quest-panel .panel-body{
+  --sand:#DFD4B4;
+  --ink:#4D391F;
+  color:var(--ink);
+  background-image:
+    linear-gradient(var(--sand),var(--sand)),
+    url('assets/panel-body-bg.png');
+}
+.depart-summary .k{color:var(--ink);opacity:.78;font-weight:700}
+.depart-summary .warn{font-weight:700}
+/* Standard colours, darkened from the Randomizer's pills only where the pill hex
+   itself would not clear 4.5:1 on sand — a pill has white text on colour, this is
+   colour on paper, and the two do not want the same value. */
+.depart-summary .danger{color:#B01E15}   /* large monster */
+.depart-summary .pests{color:#14528F}    /* small monsters */
+.depart-summary .hot{color:#8C3F00}      /* elevated temperature */
+.depart-summary .cold{color:#0D5A72}     /* lower temperature */
 
 /* ── Quest ─────────────────────────────────────────────────────────────── */
 .quest-head{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:14px}
@@ -336,12 +425,29 @@ select{
 .meal-wrap{max-height:34vh;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg1)}
 .meal-table{width:100%;border-collapse:collapse;font-size:12.5px}
 .meal-table td{padding:4px 6px;vertical-align:middle}
-.meal-table tr{cursor:pointer;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
-.meal-table tr:last-child{border-bottom:0}
-.meal-table tr:hover{background:#ffffff10}
-.meal-table tr.sel{background:color-mix(in srgb,var(--money) 18%,transparent)}
-.meal-table tr.sel .nm{font-weight:700}
-.meal-table tr.cant{opacity:.4;cursor:not-allowed}
+/* Scoped to tbody, all of it — the header row is not a meal and must not take a
+   pointer, a hover or the row rule. */
+.meal-table tbody tr{cursor:pointer;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.meal-table tbody tr:last-child{border-bottom:0}
+.meal-table tbody tr:hover{background:#ffffff10}
+.meal-table tbody tr.sel{background:color-mix(in srgb,var(--money) 18%,transparent)}
+.meal-table tbody tr.sel .nm{font-weight:700}
+.meal-table tbody tr.cant{opacity:.4;cursor:not-allowed}
+/* Floating header. The rule under it is a box-shadow rather than a border,
+   because border-collapse drops the borders of a sticky cell and the line
+   scrolls away with the rows instead of staying put. */
+.meal-table thead th{
+  position:sticky;top:0;z-index:2;
+  background:var(--bg2);
+  padding:6px;font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.55px;
+  /* Dim the INK, never the element. opacity here fades the background with the
+     text, and rows then show through the header as they scroll under it. */
+  color:color-mix(in srgb,var(--text) 78%,transparent);
+  text-align:right;white-space:nowrap;
+  box-shadow:inset 0 -1px 0 var(--line);
+}
+.meal-table thead th:first-child{text-align:left}
 /* The name gives way, not the price — what a meal costs is half of what you are
    comparing, and a greedy nowrap name was pushing it out of the panel. */
 .meal-table .nm{white-space:normal;line-height:1.25}

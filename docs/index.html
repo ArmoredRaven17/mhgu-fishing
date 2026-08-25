@@ -6,7 +6,7 @@
 <title>MHGU Fishing</title>
 <!-- Whetfish: the first thing almost anyone catches here. -->
 <link rel="icon" type="image/png" href="assets/FishIcons/MH4G-Fish_Icon_Yellow.png">
-<link rel="stylesheet" href="styles.css?v=160">
+<link rel="stylesheet" href="styles.css?v=179">
 </head>
 <body>
 
@@ -45,28 +45,64 @@
     <section id="camp" class="screen active">
       <div class="camp-grid">
 
-        <div class="panel">
-          <div class="panel-head">Locale</div>
-          <div class="panel-body">
-            <ul id="localeList" class="locale-list"></ul>
+        <!-- Prep is three steps, so it is three tabs. Only one matters at a time
+             and each wants the whole panel: the locale list is long, the meal
+             table is wide, and a pouch is only useful if you can see rows of it.
+             The quest itself is NOT in here — it is the thing all three choices
+             are made against, so it stays on screen throughout. -->
+        <div class="panel tabs-panel">
+          <div class="panel-head tab-head">
+            <button id="tabLocale" class="ptab active">Locale</button>
+            <button id="tabCanteen" class="ptab">Canteen</button>
+            <button id="tabItems" class="ptab">Items</button>
           </div>
-        </div>
 
-        <div class="panel">
-          <div class="panel-head">Loadout</div>
-          <div class="panel-body">
+          <div id="paneLocale" class="panel-body pane active">
+            <div id="localeList" class="rung-panels"></div>
+          </div>
 
-            <div class="field"><span>Quest</span></div>
-            <div id="departSummary" class="depart-summary"></div>
-
-            <div class="field"><span>Meal</span></div>
-            <div class="meal-wrap table-wrap">
-              <table class="meal-table"><tbody id="mealTable"></tbody></table>
-            </div>
+          <div id="paneCanteen" class="panel-body pane">
             <p id="mealStats" class="mealstats"></p>
             <p id="mealFresh" class="mealfresh"></p>
             <p class="hint">A meal provides temporary buffs to HP and/or Stamina</p>
+            <div class="meal-wrap table-wrap">
+              <table class="meal-table">
+                <thead><tr>
+                  <th>Name</th><th>Health</th><th>Stamina</th><th>Cost</th>
+                </tr></thead>
+                <tbody id="mealTable"></tbody>
+              </table>
+            </div>
+          </div>
 
+          <div id="paneItems" class="panel-body pane">
+            <div class="subtabs">
+              <button id="subBait" class="subtab active">Bait Pouch
+                <b id="tackleCount" class="slots">0 / 5</b></button>
+              <button id="subItem" class="subtab">Item Pouch
+                <b id="pouchCount" class="slots">0 / 6</b></button>
+            </div>
+            <div id="paneBait" class="subpane active">
+              <ul id="tackleList" class="pouch"></ul>
+            </div>
+            <div id="paneItem" class="subpane">
+              <ul id="pouchList" class="pouch"></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="camp-right">
+
+        <div class="panel quest-panel">
+          <div class="panel-head">Quest</div>
+          <div class="panel-body">
+            <div id="departSummary" class="depart-summary"></div>
+          </div>
+        </div>
+
+        <div class="panel services-panel">
+          <div class="panel-head">Services</div>
+          <div class="panel-body">
             <label class="field slotrow hire">
               <span>Hunter for Hire</span>
               <span class="hire-right">
@@ -75,23 +111,12 @@
               </span>
             </label>
             <p class="hint" id="hireHint"></p>
-
-            <div class="field slotrow">
-              <span>Bait Pouch</span>
-              <b id="tackleCount" class="slots">0 / 5</b>
-            </div>
-            <ul id="tackleList" class="pouch"></ul>
-
-            <div class="field slotrow">
-              <span>Item Pouch</span>
-              <b id="pouchCount" class="slots">0 / 6</b>
-            </div>
-            <ul id="pouchList" class="pouch"></ul>
-
           </div>
           <div class="depart">
             <button id="departBtn" class="btn accent block">Depart</button>
           </div>
+        </div>
+
         </div>
 
       </div>
@@ -316,21 +341,21 @@
   </div>
 </div>
 
-<script src="data/ores.js?v=160"></script>
-<script src="data/fish.js?v=160"></script>
-<script src="data/locales.js?v=160"></script>
-<script src="data/meals.js?v=160"></script>
-<script src="data/canteen.js?v=160"></script>
-<script src="data/themes.js?v=160"></script>
-<script src="theme.js?v=160"></script>
-<script src="game.js?v=160"></script>
-<script src="roll.js?v=160"></script>
-<script src="app.js?v=160"></script>
-<script src="guide.js?v=160"></script>
-<script src="prep.js?v=160"></script>
-<script src="fishing.js?v=160"></script>
-<script src="quest.js?v=160"></script>
-<script src="ui.js?v=160"></script>
-<script src="savefile.js?v=160"></script>
+<script src="data/ores.js?v=179"></script>
+<script src="data/fish.js?v=179"></script>
+<script src="data/locales.js?v=179"></script>
+<script src="data/meals.js?v=179"></script>
+<script src="data/canteen.js?v=179"></script>
+<script src="data/themes.js?v=179"></script>
+<script src="theme.js?v=179"></script>
+<script src="game.js?v=179"></script>
+<script src="roll.js?v=179"></script>
+<script src="app.js?v=179"></script>
+<script src="guide.js?v=179"></script>
+<script src="prep.js?v=179"></script>
+<script src="fishing.js?v=179"></script>
+<script src="quest.js?v=179"></script>
+<script src="ui.js?v=179"></script>
+<script src="savefile.js?v=179"></script>
 </body>
 </html>

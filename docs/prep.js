@@ -35,16 +35,19 @@
       const seen = A.visitedAt(r.hr);
       const doneHere = list.filter(l => seen[l.id]).length;
 
-      // Every rung says its rank, because the same locale on two rungs is two
-      // different quests and the rank is the thing that tells them apart.
-      const head = `<li class="rung ${isCurrent ? 'current' : ''}">
+      // Every rung is its own panel, and every one says its rank — the same
+      // locale on two rungs is two different quests, and the rank is the only
+      // thing that tells them apart.
+      const head = `<div class="panel-head rung-head">
         <span>HR ${r.hr} &middot; ${r.rank.name}</span>
         <span class="rmeta">${isCurrent
           ? `${doneHere} / ${list.length} to reach ${nextLabel(S.hr)}`
           : `${doneHere} / ${list.length}`}</span>
-      </li>`;
+      </div>`;
 
-      return head + list.map(l => {
+      return `<section class="panel rung-panel ${isCurrent ? 'current' : ''}">
+        ${head}
+        <div class="panel-body"><ul class="locale-list">` + list.map(l => {
         const climate = G.climateOf(l.id);
         const tags = [];
         if (CLIMATE_LABEL[climate]) tags.push(`<span class="tag ${climate}">${CLIMATE_LABEL[climate]}</span>`);
@@ -65,7 +68,7 @@
           </div>
           <div class="ltags">${tags.join('')}</div>
         </li>`;
-      }).join('');
+      }).join('') + `</ul></div></section>`;
     }).join('');
 
     el('localeList').querySelectorAll('li[data-id]').forEach(li => {
@@ -259,33 +262,41 @@
     // hire themselves, so it is not restated here.
     const upfront = meal.cost + (S.hired ? R.hireCost(S.localeId, A.questRung()) : 0);
 
-    // The headline: where, what water, and what it takes to clear it.
-    // The quest's own rank, single, from the rung you picked.
+    // Every row is the same shape: a bold category, a colon, and the reading.
+    // The KIND rides along with it, because on the quest card each one gets its
+    // own standard colour rather than all of them sharing a single warn tint — a
+    // large monster and a cold snap are not the same news.
+    const line = (label, text, kind) =>
+      `<div class="line"><span class="k">${label}:</span>` +
+      `<span class="${kind ? 'warn ' + kind : ''}">${text}</span></div>`;
+
+    // Where, at what rank, and what it takes to clear it. The quest's own rank,
+    // single, from the rung you picked.
     const rung = A.questRung();
     const rank = G.rankAt(rung).name;
-    bits.push(`<div class="head"><b>${loc.name}</b> - ${rank} - ` +
-      `Main Objective: Catch <b>${z(R.questGoal(S.localeId, rung))}</b> in fish</div>`);
+    bits.push(line('Locale', loc.name));
+    bits.push(line('Rank', rank));
+    bits.push(line('Main Objective',
+      `Catch <b class="goal">${z(R.questGoal(S.localeId, rung))}</b> in fish`));
 
-    // Three fixed lines, always present and always in this order. Stating the
+    // Three fixed readings, always present and always in this order. Stating the
     // good case out loud rather than omitting it is what keeps the block the same
     // height whichever locale is selected — an omitted line used to make the
     // whole panel jump as you clicked down the list.
-    const line = (label, text, warn) =>
-      `<div class="line"><span class="k">${label}</span>` +
-      `<span class="${warn ? 'warn' : ''}">${text}</span></div>`;
-
     const danger = loc.boss.length > 0;
     const pests = !!(loc.pests && loc.pests.length);
 
     bits.push(line('Large Monster',
-      danger ? 'DANGER - Intruder may appear' : 'No Large Monster sighted', danger));
+      danger ? 'DANGER - Intruder may appear' : 'No Large Monster sighted',
+      danger && 'danger'));
     bits.push(line('Small Monsters',
-      pests ? 'Small Monsters have been sighted' : 'No Small Monsters sighted', pests));
+      pests ? 'Small Monsters have been sighted' : 'No Small Monsters sighted',
+      pests && 'pests'));
     bits.push(line('Temperature',
       climate === 'hot' ? 'Elevated temperature in area'
         : climate === 'cold' ? 'Lower temperatures in area'
         : 'Comfortable Temps',
-      climate !== 'temperate'));
+      climate === 'hot' ? 'hot' : climate === 'cold' ? 'cold' : ''));
 
     el('departSummary').innerHTML = bits.map(b => `<div>${b}</div>`).join('');
     el('departBtn').disabled = !A.localeOpen(S.localeId) || S.zenny < upfront;
