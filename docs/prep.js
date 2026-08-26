@@ -51,7 +51,8 @@
         const climate = G.climateOf(l.id);
         const tags = [];
         if (CLIMATE_LABEL[climate]) tags.push(`<span class="tag ${climate}">${CLIMATE_LABEL[climate]}</span>`);
-        if (l.boss.length) tags.push('<span class="tag boss">Danger</span>');
+        // What was SIGHTED on this rung, not what has ever lived here.
+        if (A.sightingAt(l.id, r.hr).boss) tags.push('<span class="tag boss">Danger</span>');
         if (seen[l.id]) tags.push('<span class="tag done">Completed</span>');
 
         // The pool you would actually fish on THIS rung, not on your own HR.
@@ -165,9 +166,13 @@
     const item = S.tradeItem ? G.pouchItemById.get(S.tradeItem) : null;
     const cost = R.tradeCost(S.localeId, A.questRung(), item);
     el('tradeCost').textContent = item ? z(cost) : '—';
+    // Say what THIS cart can do, not what a trade cart does in general — the
+    // ladder is bought a rung at a time and the numbers are the whole reason to.
+    const cart = G.cartAt(A.cartLevel());
     el('tradeHint').textContent =
       'Hand the Trade Cart an item, they search for more of that item as you fish. ' +
-      'Item is returned';
+      'Item is returned. ' +
+      `${cart.name}: holds ${cart.cap}, one per ${cart.perExtra} fish landed.`;
   }
 
   // Cats gather while you fish. What they pick up is held until you are home —
@@ -338,8 +343,9 @@
     // good case out loud rather than omitting it is what keeps the block the same
     // height whichever locale is selected — an omitted line used to make the
     // whole panel jump as you clicked down the list.
-    const danger = loc.boss.length > 0;
-    const pests = !!(loc.pests && loc.pests.length);
+    const sighting = A.sightingAt(S.localeId, rung);
+    const danger = !!sighting.boss;
+    const pests = sighting.pests && !!(loc.pests && loc.pests.length);
 
     bits.push(line('Large Monster',
       danger ? 'DANGER - Intruder may appear' : 'No Large Monster sighted',

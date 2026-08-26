@@ -24,6 +24,20 @@ for (const f of [['data', 'ores.js'], ['data', 'fish.js'], ['data', 'locales.js'
   require(join(DOCS, ...f));
 
 const { MF_GAME: G, MF_ROLL: R, MF_FISH: F, MF_LOCALES: L, CF_ORES: O } = global.window;
+
+// roll.js asks the app which monsters were sighted this cycle, because WHICH one
+// is at a locale is decided in camp and only WHETHER it comes at you is decided
+// per cast. The sim has no app, so it stands in for one — and re-rolls per trip,
+// exactly as returning to camp does. Without this every encounter reads as none
+// and the sim would quietly report a world with no monsters in it.
+let sightings = {};
+global.window.MF_APP = {
+  sightingAt: (localeId, hr) =>
+    sightings[G.sightingKey(localeId, hr)] || { boss: null, pests: false },
+};
+const rollSightingsFor = (localeId, hr) => {
+  sightings[G.sightingKey(localeId, hr)] = G.rollSighting(localeId, hr);
+};
 const TRIPS = Number(process.argv[2]) || 4000;
 
 const baits = G.buildBaits();
@@ -194,6 +208,7 @@ const bossWinChance = (boss) => {
 
 function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
   if (!R.isOpen(localeId, hr)) return null;
+  rollSightingsFor(localeId, hr);      // a fresh report, same as reaching camp
   const bait = baitBy.get(lo.baitId);
   const climate = G.climateOf(localeId);
   const rates = G.CLIMATE_RATES[climate];
@@ -222,6 +237,7 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
   // and the hire that turns them away — actually cost you.
   const used = { potions: 0, rations: 0, drinks: 0 };
 
+  let sinceBoss = 0;   // fish landed since one last showed; it is what draws them
   while (sta > 0 && hp > 0 && casts < 500) {
     // Walking away is always available, and it is the whole decision: what you
     // are carrying is only yours once you are home. A real player does not decide
@@ -231,8 +247,9 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
     if (hp <= bailBelowHP && potions <= 0 && supplyHeals <= 0) break;
     casts++;
 
-    const enc = R.rollEncounter(localeId, bait, hr, Math.random, gear.rod, gear.armor);
+    const enc = R.rollEncounter(localeId, bait, hr, Math.random, gear.rod, gear.armor, null, sinceBoss);
     if (enc) {
+      sinceBoss = 0;
       bosses++;
       const secs = enc.durationMs / 1000;
       sta -= (G.STAMINA_COST.cast + secs * G.STAMINA_COST.reelTick * rates.staminaMult) * longHaul;
@@ -251,6 +268,7 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
 
     haul += c.value;
     landed++;
+    sinceBoss++;
 
     // Climate first, so a drink taken now counts for this cast — the order the
     // app uses. A drink cancels whichever penalty the locale applies, which the
@@ -286,7 +304,8 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
       else if (supplyRations > 0) { supplyRations--; sta = Math.min(maxSta, sta + SUPPLY_STAMINA); }
     }
   }
-  return { haul, casts, landed, carted: hp <= 0, bosses, bossWins, pests, used };
+  return { haul: haul + G.creelBonus(landed, hr), casts, landed,
+           carted: hp <= 0, bosses, bossWins, pests, used };
 }
 
 function profile(localeId, lo, hr, trips = TRIPS) {

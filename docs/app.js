@@ -33,12 +33,16 @@
     // separate from stats.bosses, which is one number for the whole campaign and
     // cannot say which animal it was.
     monsters: {},            // name -> { met, landed, ranks: { Low|High|G: true } }
+    // What is out there this time. Keyed `localeId@hr`, because a locale sits on
+    // several rungs and the rank decides who can appear on each.
+    sightings: {},           // `${localeId}@${hr}` -> { boss: name|null, pests }
     mats: {},                // monster part id -> count; forge stock, never carried
     // You start with the Old Angler Rod in hand. Bare hands were playable at Low
     // Rank but read as a missing step rather than a deliberate one, and a game
     // about fishing should not open with you not owning a rod.
     gearOwned: { rod_old: 0 },   // rod/armor id -> level owned, 0..LEVELS
     gear: { rod: { id: 'rod_old', lvl: 0 }, armor: null },   // equipped: {id, lvl} or null
+    cartLevel: 0,            // the Trade Cart you have paid up to, 0..TRADE_CART_MAX
     upgrades: { vitality: 0, endurance: 0, line: 0, lure: 0 },  // retired; refunded on load
     localeId: 'jurassic_frontier',
     // Which RUNG of the ladder the selected quest is. The same locale sits on a
@@ -61,7 +65,7 @@
   function hydrate(saved) {
     S = { ...defaults(), ...saved };
     // Nested objects need merging, not replacing, or a new field breaks an old save.
-    for (const k of ['caught', 'caughtAt', 'pantry', 'pouch', 'owned', 'upgrades', 'plan', 'tackle', 'stats', 'mats', 'gearOwned', 'monsters'])
+    for (const k of ['caught', 'caughtAt', 'pantry', 'pouch', 'owned', 'upgrades', 'plan', 'tackle', 'stats', 'mats', 'gearOwned', 'monsters', 'sightings'])
       S[k] = { ...defaults()[k], ...(saved[k] || {}) };
     S.owned.no_bait = Infinity;
     // Departing used to subtract from counts that were never there, which wrote
@@ -81,6 +85,7 @@
     // save from before the record existed rather than blanking what it holds.
     for (const id of Object.keys(S.pouch)) if (G.materialById.has(id)) S.matsSeen[id] = true;
     migrateGear();         // ...or predate gear entirely and still hold slider levels
+    rollSightings();       // a fresh report every time you are stood in camp
     syncEquipped();        // a save can point at gear it no longer owns
     prunePlans();          // an old save may already be over a pouch limit
     reconcileFresh();      // ...or carry more fresh ingredients than the cap
@@ -312,6 +317,31 @@
     return out;
   }
 
+  // ── Sightings ─────────────────────────────────────────────────────────────
+  //
+  // Rolled when you are IN camp — on load, and on coming home — and then left
+  // alone. Never called from a render path: the locale list redraws on every
+  // click, and a roll there would reshuffle the danger tags under your hand.
+  //
+  // Every open rung is rolled, not just the one you are on, so the board you
+  // compare locales across is one report rather than a mix of several.
+  function rollSightings() {
+    const out = {};
+    for (const r of G.rungsOpenAt(S.hr) || []) {
+      for (const id of r.locales) {
+        const loc = window.MF_ROLL && window.MF_ROLL.localeById.get(id);
+        if (!loc || (!loc.hasFishing && !G.SHOW_DESIGNED_LOCALES)) continue;
+        out[G.sightingKey(id, r.hr)] = G.rollSighting(id, r.hr);
+      }
+    }
+    S.sightings = out;
+  }
+
+  // What is reported at a locale on a rung. Missing means never rolled — a rung
+  // that opened since the last roll — so it reads as quiet rather than throwing.
+  const sightingAt = (localeId, hr) =>
+    S.sightings[G.sightingKey(localeId, hr)] || { boss: null, pests: false };
+
   // ── The monster log ───────────────────────────────────────────────────────
   //
   // Met is every time one took the line; landed is every time you kept it. The
@@ -504,6 +534,41 @@
     return true;
   }
 
+  // ── The Trade Cart ────────────────────────────────────────────────────────
+  //
+  // A ladder rather than a thing you equip: you own up to a level and that is
+  // that. Parts follow the ROD rule — any monster material of the tier's rank —
+  // so upgrading it never marches you at one particular monster.
+  const cartLevel = () => Math.min(G.TRADE_CART_MAX, S.cartLevel || 0);
+  const cartNext = () => (cartLevel() < G.TRADE_CART_MAX ? G.cartAt(cartLevel() + 1) : null);
+  const cartOpen = () => S.hr >= G.TRADE_CART_UNLOCK_HR;
+  const cartParts = (tier) =>
+    G.MONSTER_MATS.filter(m => m.rank === tier.rank).map(m => ({ mat: m, need: tier.matCount }));
+  const cartPartsHeld = (tier) =>
+    cartParts(tier).reduce((n, p) => n + (S.mats[p.mat.id] || 0), 0);
+
+  function canUpgradeCart() {
+    const next = cartNext();
+    if (!next || !cartOpen()) return false;
+    return S.zenny >= next.cost && cartPartsHeld(next) >= next.matCount;
+  }
+  function upgradeCart() {
+    if (!canUpgradeCart()) return false;
+    const next = cartNext();
+    let need = next.matCount;
+    for (const p of cartParts(next)) {
+      if (need <= 0) break;
+      const take = Math.min(need, S.mats[p.mat.id] || 0);
+      if (!take) continue;
+      S.mats[p.mat.id] -= take;
+      if (!S.mats[p.mat.id]) delete S.mats[p.mat.id];
+      need -= take;
+    }
+    if (!spend(next.cost)) return false;
+    S.cartLevel = cartLevel() + 1;
+    return true;
+  }
+
   const levelCost = id => gearById(id).levelCost(gearLevel(id));
   const canLevel = id =>
     gearOwned(id) && gearLevel(id) < gearMax(id)
@@ -563,9 +628,11 @@
     record, guideTotal, guideFound, recordIngredient, reconcileFresh, rerollFresh, pantryCount, freshCount, fresh,
     fishedLocales, caughtAtLocale, caughtTotalAt, markFished, revealedRanks,
     recordMonster, monsterLog, monsterMet,
+    rollSightings, sightingAt,
     spend, earn, buyBait, buyItem, canBuyBait, canBuyItem,
     gearById, gearOwned, gearLevel, gearMax, levelUnlockHR,
     forgeParts, partsHeld, partsNeeded, canForge, forge,
+    cartLevel, cartNext, cartOpen, cartParts, cartPartsHeld, canUpgradeCart, upgradeCart,
     levelCost, canLevel, levelUp, equip, syncEquipped,
     baitStock, itemStock, planned, setPlan, slotsUsed, localeOpen,
     seeMaterial, matSeen, everFished,

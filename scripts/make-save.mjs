@@ -57,7 +57,7 @@ const STAGES = {
   endgame: {
     hr: G.MAX_LADDER_HR, rank: 'Gplus', ranks: RANKS,
     zenny: 500000, holdBack: [],
-    gearLevel: () => G.ARMOR_LEVELS, ownAllGear: true,
+    gearLevel: () => G.ARMOR_LEVELS, ownAllGear: true, cartLevel: G.TRADE_CART_MAX,
     stock: id => Math.min(G.STOCK_CAP, G.ownCap(id)),
     parts: 30,
     stats: { trips: 250, carts: 12, casts: 9000, landed: 7400, lost: 1600, bosses: 180, pests: 900 },
@@ -65,7 +65,7 @@ const STAGES = {
   lowrank: {
     hr: 3, rank: 'Low', ranks: ['Low'],
     zenny: 14500, holdBack: ['misty_peaks'],
-    gearLevel: () => 2, ownAllGear: false,
+    gearLevel: () => 2, ownAllGear: false, cartLevel: 0,
     // A Low Rank pouch is a working pouch, not a warehouse.
     stock: id => Math.min(G.ownCap(id), 12),
     parts: 4,
@@ -164,6 +164,7 @@ for (const [name, b] of Object.entries(G.BOSS)) {
 
 const state = {
   hr: S.hr,
+  cartLevel: S.cartLevel || 0,
   rank: S.rank,
   xp: 0,
   zenny: S.zenny,

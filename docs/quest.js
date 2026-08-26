@@ -73,6 +73,7 @@
       gutsUsed: false,     // Guts is once a trip, and this is the once
       traded,              // what the Trade Cart is working on, or null
       landed: 0,           // fish actually landed — what the cart is paid in
+      sinceBoss: 0,        // ...and how many since a large monster last turned up
       drinkLeft: 0,
       hotDrinkLeft: 0,   // a Hot Drink specifically, which Tropic Hunter reads
       dashLeft: 0,
@@ -288,13 +289,15 @@
 
     const rod = S.gear.rod, armor = S.gear.armor;
     const ctx = { climate: trip.climate, hotDrink: trip.hotDrinkLeft > 0 };
-    const boss = R.rollEncounter(trip.localeId, trip.bait, trip.questHR, Math.random, rod, armor, ctx);
+    const boss = R.rollEncounter(trip.localeId, trip.bait, trip.questHR, Math.random, rod, armor, ctx,
+      trip.sinceBoss);
     const school = boss ? [] : R.rollSchool({
       localeId: trip.localeId, bait: trip.bait, hr: trip.questHR, rod, armor,
     });
     if (!boss && !school.length) { releaseCast(); render(); return; }
 
     if (boss) {
+      trip.sinceBoss = 0;   // it came; whatever drew it in has been spent
       S.stats.bosses++;
       el('castPrompt').textContent = boss.desc;
     }
@@ -385,6 +388,7 @@
     if (res.landed) {
       S.stats.landed++;
       trip.landed++;
+      trip.sinceBoss++;
       const isNew = A.record(c.id, trip.localeId, c.fish.id);
       const paid = Math.round(c.value * (1 + trip.fresh.zenny)
         * G.payMult(trip.questHR) * (1 + G.effectPower(S.gear.armor, 'zenny')));
@@ -593,7 +597,10 @@
         + (gatheredLost ? ` The Palicos lose the ${gatheredLost} material${gatheredLost === 1 ? '' : 's'} they had gathered.` : '')
         + (cartLost ? ` The Trade Cart goes with you, and your ${cartLost} with it.` : ''),
       items: [],
-      onClose: () => { window.MF_UI.show('camp'); window.MF_UI.refresh(); },
+      onClose: () => {
+        A.rollSightings(); A.save();     // a fresh report, once, back in camp
+        window.MF_UI.show('camp'); window.MF_UI.refresh();
+      },
     });
   }
 
@@ -645,7 +652,10 @@
     const items = trip.haul.map(c => [c.name, z(c.value)])
       .concat(found.map(f => [f.name, 'ingredient']));
     const gained = trip.value;
-    A.earn(gained);
+    // Counted, not valued: a creel full of cheap fish earns it exactly as a
+    // creel full of dear ones does. Only reachable here, so carting loses it.
+    const creel = G.creelBonus(trip.landed, questHR);
+    A.earn(gained + creel);
     // Only what you actually SPENT leaves your stock; the rest never left it.
     // Supply items are not yours to keep, so they are simply not counted.
     spendCarried();
@@ -671,6 +681,10 @@
     if (!completed && short > 0)
       extra.push(`${z(short)} short of the ${z(goal)} needed to clear ${localeName}.`);
     if (promoted) extra.push(`Every locale fished. You are now HR ${promoted}, ${G.rankAt(promoted).name}.`);
+    if (creel) {
+      extra.push(`A full creel — ${G.CREEL.target} fish landed, ${z(creel)} bonus.`);
+      items.push(['Full creel', z(creel)]);
+    }
     if (cart) {
       extra.push(cart.extra
         ? `The Trade Cart returns your ${cart.name} and ${cart.extra} more.`
@@ -691,7 +705,10 @@
         + (found.length ? ` You also picked up ${found.length} ingredient${found.length === 1 ? '' : 's'}.` : '')
         + (extra.length ? ' ' + extra.join(' ') : ''),
       items,
-      onClose: () => { window.MF_UI.show('camp'); window.MF_UI.refresh(); },
+      onClose: () => {
+        A.rollSightings(); A.save();     // a fresh report, once, back in camp
+        window.MF_UI.show('camp'); window.MF_UI.refresh();
+      },
     });
   }
 
@@ -735,7 +752,8 @@
   function handOverTrade() {
     if (!trip || !trip.traded) return null;
     const id = trip.traded.id;
-    const extra = R.tradeExtra(trip.landed, G.effectPower(A.state.gear.armor, 'trade'));
+    const extra = R.tradeExtra(trip.landed, G.effectPower(A.state.gear.armor, 'trade'),
+                               A.cartLevel());
     const have = A.state.pouch[id] || 0;
     const room = Math.max(0, G.ownCap(id) - have);
     const back = Math.min(1 + extra, room);

@@ -180,15 +180,59 @@
       }));
     }
 
+
+    // ── The Trade Cart ──────────────────────────────────────────────────────
+    //
+    // The whole ladder is listed, not just the next rung, because the two knobs
+    // leapfrog: which upgrade is worth buying depends on how long you fish, and
+    // you cannot see that from one row. `at 40 fish` is the honest common
+    // yardstick — the creel target, and about what a full trip lands.
+    const cartRows = [];
+    const lvl = A.cartLevel();
+    if (!A.cartOpen()) {
+      cartRows.push(gearSection('Trade Cart'));
+      cartRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
+        + `The Trade Cart starts running at HR ${G.TRADE_CART_UNLOCK_HR}.</td></tr>`);
+    } else {
+      cartRows.push(gearSection('Trade Cart'));
+      for (const t of G.TRADE_CART) {
+        const owned = t.lvl <= lvl;
+        const next = t.lvl === lvl + 1;
+        const at40 = Math.min(t.cap, Math.floor(40 / t.perExtra));
+        const held = t.rank ? A.cartPartsHeld(t) : 0;
+        const enough = held >= (t.matCount || 0);
+        const mats = t.rank
+          ? `<span class="mat ${enough ? 'ok' : 'short'}"><b>${t.matCount}&times;</b> `
+            + `<i>any ${t.rank} Rank part</i> <span class="held">${held} held</span></span>`
+          : '<span class="none">&mdash;</span>';
+        // Say which knob each rung moves, since that is the whole decision.
+        const knob = t.knob === 'cap' ? 'Holds more' : t.knob === 'rate' ? 'Fills faster' : '';
+        cartRows.push(gearRowHTML({
+          icon: '', name: t.name,
+          skills: knob ? `<span class="ent">${knob}</span>` : '',
+          detail: `<span class="ent">Holds ${t.cap}, one per ${t.perExtra} fish landed`
+            + ` &mdash; ${at40} back on a 40-fish trip</span>`,
+          mats: owned ? '<span class="none">&mdash;</span>' : mats,
+          price: owned ? '&mdash;' : z(t.cost),
+          have: owned ? (t.lvl === lvl ? 'In use' : 'Owned') : '&mdash;',
+          buys: next ? [{ label: 'Upgrade', attr: 'data-cart="1"',
+                          disabled: !A.canUpgradeCart() }] : [],
+          worn: t.lvl === lvl,
+        }));
+      }
+    }
+    el('cartTable').innerHTML = cartRows.join('');
+
     el('rodTable').innerHTML = rodRows.join('');
     el('armorTable').innerHTML = armorRows.join('');
 
-    for (const table of ['rodTable', 'armorTable']) {
+    for (const table of ['rodTable', 'armorTable', 'cartTable']) {
       const wire = (attr, fn) => el(table).querySelectorAll(`[${attr}]`).forEach(btn =>
         btn.onclick = () => { fn(btn.getAttribute(attr)); A.save(); renderSmithy(); renderHeader(); });
       wire('data-forge', id => A.forge(id));
       wire('data-level', id => A.levelUp(id));
       wire('data-equip', id => A.equip(id));
+      wire('data-cart', () => A.upgradeCart());
     }
   }
 
@@ -199,7 +243,8 @@
   function showSmithy(view) {
     smithyView = view;
     for (const [name, tab, panel] of [['rods', 'subRods', 'viewRods'],
-                                     ['armor', 'subArmor', 'viewArmor']]) {
+                                     ['armor', 'subArmor', 'viewArmor'],
+                                     ['cart', 'subCart', 'viewCart']]) {
       el(tab).classList.toggle('active', view === name);
       el(panel).classList.toggle('active', view === name);
     }
@@ -406,6 +451,7 @@
   el('navCombos').onclick = () => show('combos');
   el('subRods').onclick = () => showSmithy('rods');
   el('subArmor').onclick = () => showSmithy('armor');
+  el('subCart').onclick = () => showSmithy('cart');
   el('navSmithy').onclick = () => show('smithy');
   el('navShop').onclick = () => show('shop');
 

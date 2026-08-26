@@ -323,6 +323,56 @@
   el('pool').onchange = () => { poolReadout(); };
   el('bait').onchange = () => { poolReadout(); };
 
+  // Which locales hold something, sampled over many cycles rather than shown from
+  // one roll — a single board says nothing about whether a rung is reliably worth
+  // visiting, and that is the whole question this change was made to answer.
+  function sampleSightings() {
+    const CYCLES = 2000;
+    const lines = ['sampled over ' + CYCLES + ' cycles', ''];
+    const ladder = [];
+    for (let hr = 1; hr <= G.MAX_LADDER_HR; hr++) {
+      const rung = G.localesAtHR(hr) || [];
+      if (rung.length) ladder.push([hr, rung]);
+    }
+    for (const [hr, rung] of ladder) {
+      const rank = G.curveRank(hr);
+      const per = {}, who = {};
+      let rungAny = 0;
+      for (let i = 0; i < CYCLES; i++) {
+        let any = false;
+        for (const id of rung) {
+          const s2 = G.rollSighting(id, hr);
+          if (s2.boss) {
+            any = true;
+            per[id] = (per[id] || 0) + 1;
+            (who[id] = who[id] || {})[s2.boss] = ((who[id] || {})[s2.boss] || 0) + 1;
+          }
+        }
+        if (any) rungAny++;
+      }
+      lines.push('HR' + String(hr).padEnd(3) + rank.padEnd(6)
+        + 'rung holds something ' + (100 * rungAny / CYCLES).toFixed(0) + '% of cycles');
+      for (const id of rung) {
+        const loc = (window.MF_LOCALES || []).find(l => l.id === id);
+        const n = per[id] || 0;
+        const home = new Set((loc.boss || []));
+        const names = Object.entries(who[id] || {}).sort((a, b) => b[1] - a[1])
+          .map(([nm, c]) => nm + (home.has(nm) ? '' : '*') + ' ' + (100 * c / CYCLES).toFixed(0) + '%');
+        lines.push('     ' + loc.name.padEnd(19)
+          + (100 * n / CYCLES).toFixed(0).padStart(4) + '%   '
+          + (names.join(', ') || '-'));
+      }
+    }
+    lines.push('');
+    lines.push('* = a visitor, not a resident. Sole homes always hold one: '
+      + [...G.soleHomes].join(', '));
+    el('armorBody').innerHTML =
+      '<pre style="margin:0;white-space:pre;font:11px ui-monospace,monospace">'
+      + lines.join(String.fromCharCode(10)) + '</pre>';
+    el('armorModal').classList.remove('hidden');
+  }
+  el('sightings').onclick = sampleSightings;
+
   el('sweep').onclick = sweep;
   el('cast').onclick = cast;
   el('reset').onclick = () => {

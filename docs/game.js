@@ -817,7 +817,60 @@
   // Priced off the locale like the other services, plus a cut of what the item is
   // worth: multiplying a Purecrystal should not cost what multiplying a Huskberry
   // costs, or the cart would be a free printing press for the rarest thing you own.
-  const TRADE = { ofHunter: 0.6, cut: 0.18, perExtra: 5, max: 5 };
+  const TRADE = { ofHunter: 0.6, cut: 0.18 };
+
+  // ── The Trade Cart ────────────────────────────────────────────────────────
+  //
+  // What the cart brings back is `min(cap, landed / perExtra)`, and the whole
+  // design turns on the fact that ONLY THE LOWER OF THOSE TWO EVER BINDS. Raise
+  // the cap while the rate is the limit and nothing happens at all, so the two
+  // ladders have to leapfrog: every cap step lands just above what the current
+  // rate produces, every rate step just above the current cap. Tuned that way all
+  // six upgrades are felt instead of three being dead money.
+  //
+  // The consequence is the point of the whole thing. On a short trip (~30 fish)
+  // only the RATE steps pay; on a long one (~50) mostly the CAP steps do. A cap
+  // upgrade is money wasted on someone who hits the quest goal and goes home,
+  // which is a reason to stay out that lives in the economy rather than in a
+  // bonus bolted on top of it.
+  //
+  // NAMES ARE PLACEHOLDERS. Raven set the ends — Shabby to Grand — and the five
+  // between are mine until he says otherwise.
+  const TRADE_CART_UNLOCK_HR = 3;
+  const TRADE_CART = [
+    { lvl: 0, name: 'Shabby Trade Cart',   cap: 3,  perExtra: 10 },
+    { lvl: 1, name: 'Humble Trade Cart',   cap: 5,  perExtra: 10, knob: 'cap',  rank: 'Low',  cost: 1200,  matCount: 2 },
+    { lvl: 2, name: 'Sturdy Trade Cart',   cap: 5,  perExtra: 6,  knob: 'rate', rank: 'Low',  cost: 2400,  matCount: 2 },
+    { lvl: 3, name: 'Solid Trade Cart',    cap: 8,  perExtra: 6,  knob: 'cap',  rank: 'High', cost: 7000,  matCount: 3 },
+    { lvl: 4, name: 'Fine Trade Cart',     cap: 8,  perExtra: 4,  knob: 'rate', rank: 'High', cost: 12000, matCount: 3 },
+    { lvl: 5, name: 'Splendid Trade Cart', cap: 12, perExtra: 4,  knob: 'cap',  rank: 'G',    cost: 26000, matCount: 3 },
+    { lvl: 6, name: 'Grand Trade Cart',    cap: 12, perExtra: 3,  knob: 'rate', rank: 'G',    cost: 45000, matCount: 3 },
+  ];
+  const TRADE_CART_MAX = TRADE_CART.length - 1;
+  const cartAt = lvl => TRADE_CART[Math.min(TRADE_CART_MAX, Math.max(0, lvl | 0))];
+
+  // ── The full creel ────────────────────────────────────────────────────────
+  //
+  // A flat bonus for coming home with a lot of FISH, counted rather than valued.
+  // Counting is the point: it is what makes a run of cheap little catches worth
+  // staying for, which is the only reason a player would keep casting once the
+  // quest goal is met. Value-weighting it would just pay you more for the trips
+  // that already paid best.
+  //
+  // Paid at camp, so a cart loses it with the haul — the fuller the creel, the
+  // more the next cast is risking.
+  //
+  // 40 is deliberately flat across the game rather than scaled per rank. Trips
+  // get SHORTER as rank rises — about 54 fish at HR1 against 40 at HR12, because
+  // fights run longer and the climates bite harder — so a rising target would be
+  // unreachable by G Rank and a falling one reads as the game getting easier.
+  // Flat means Low Rank fills it every time and G Rank has to work for it.
+  const CREEL = {
+    target: 40,
+    bonus: { Low: 800, High: 1500, G: 2500 },   // ~10% of a fished-out trip's net
+  };
+  const creelBonus = (landed, hr) =>
+    landed >= CREEL.target ? (CREEL.bonus[curveRank(hr)] || 0) : 0;
 
   const BASE_MAX_HP = 100;
   const BASE_MAX_STAMINA = 110;
@@ -1231,7 +1284,7 @@
     ludroth:    { name: 'Royal Ludroth', Low: 'R.Ludroth Scale', High: 'R.Ludroth Scale+', G: 'R.Ludroth Shard',  icon: 'MH4G-Scale_Icon_Yellow.png' },
     nibelsnarf: { name: 'Nibelsnarf',    Low: 'Nibelsnarf Hide', High: 'Nibelsnarf Hide+', G: 'Nibelsnarf Piel',  icon: 'MH4G-Hide_Icon_Brown.png' },
     plesioth:   { name: 'Plesioth',      Low: null,              High: 'Plesioth Scale+',  G: 'Plesioth Shard',   icon: 'MH4G-Scale_Icon_Blue.png' },
-    zamtrios:   { name: 'Zamtrios',      Low: null,              High: 'Zamtrios Scale+',  G: 'Zamtrios Shard',   icon: 'MH4G-Scale_Icon_Light_Blue.png' },
+    zamtrios:   { name: 'Zamtrios',      Low: 'Zamtrios Scale',  High: 'Zamtrios Scale+',  G: 'Zamtrios Shard',   icon: 'MH4G-Scale_Icon_Light_Blue.png' },
     agnaktor:   { name: 'Agnaktor',      Low: 'Agnaktor Scale',  High: 'Agnaktor Hide+',   G: 'Agnaktor Piel',    icon: 'MH4G-Hide_Icon_Red.png' },
     lagiacrus:  { name: 'Lagiacrus',     Low: 'Lagiacrus Scale', High: 'Lagiacrus Scale+', G: 'Lagiacrus Shard',  icon: 'MH4G-Scale_Icon_Light_Blue.png' },
     lavasioth:  { name: 'Lavasioth',     Low: null,              High: 'Lavasioth Scale+', G: 'Lavasioth Shard',  icon: 'MH4G-Scale_Icon_Grey.png' },
@@ -1295,8 +1348,9 @@
     trade:    { tiers: ['Fair Trade', "Trader's Favour"],                       per: 0.25,
                 blurbs: ['The Trade Cart will obtain more items',
                          'The Trade Cart will obtain far more items'] },
-    combo:    { tiers: ['Steady Mixer', 'Master Mixer'],                        per: 0.08,
-                blurbs: ['Increases your combo success chances',
+    combo:    { tiers: ['Steady Mixer', 'Steady Mixer+', 'Master Mixer'],       per: 0.08,
+                blurbs: ['Slightly increases your combo success chances',
+                         'Increases your combo success chances',
                          'Greatly increases your combo success chances'] },
     // The one skill the real game already wrote all three lines for, and the
     // source of the Slightly / - / Greatly pattern the rest of these follow.
@@ -1339,16 +1393,16 @@
                 blurbs: ['Cool Drinks last 50% longer',
                          'Cool Drinks last twice as long',
                          'Negates the damage incurred from heat and lava'] },
-    // A shorter ladder than heat, and not by oversight: Zamtrios has no Low tier,
-    // so cold protection skips the middle rung heat gets.
-    cold:     { tiers: ['Cold Resist', 'Cold Cancel'],                          climate: 'cold',
+    cold:     { tiers: ['Cold Resist', 'Cold Resist+', 'Cold Cancel'],          climate: 'cold',
                 blurbs: ['Hot Drinks last 50% longer',
+                         'Hot Drinks last twice as long',
                          'Negates all cold'] },
     // Everything Heat Resist does, and a wider line on top of it while you are
     // somewhere hot — more so with a Hot Drink in hand, which is the wrong drink
     // for the weather and exactly what the real skill rewards.
-    hotblood: { tiers: ['Heat Hunter', 'Tropic Hunter'],                        climate: 'hot', bandInHeat: true,
+    hotblood: { tiers: ['Heat Hunter', 'Heat Hunter+', 'Tropic Hunter'],        climate: 'hot', bandInHeat: true,
                 blurbs: ['You are more comfortable in Hot regions and like Hot Drinks',
+                         'You are at home in Hot regions and like Hot Drinks',
                          'You thrive in Hot Regions and enjoy Hot Drinks'] },
     guts:     { tiers: ['Guts'],             flag: true,
                 blurbs: ['Once per trip, instead of carting from any HP, you will be left with 1 HP.'] },
@@ -1623,11 +1677,16 @@
   // Each monster's place inside its own rank, 0 easiest to 1 hardest, scaling
   // demand, pay, duration and how hard it fights back together.
   //
-  // `floor` is the earliest rank it turns up at, and it is not a guess: MHGU
-  // gives Plesioth, Zamtrios and Lavasioth no plain-tier scale at all — their
-  // materials start at `+` — which is the game itself saying they are High Rank
-  // animals. Cephalos, R.Ludroth, Nibelsnarf, Agnaktor and Lagiacrus have the
-  // full trio.
+  // `floor` is the earliest rank it turns up at. MHGU gives Plesioth, Zamtrios
+  // and Lavasioth no plain-tier scale at all — their materials start at `+` —
+  // which is the game itself saying they are High Rank animals; Cephalos,
+  // R.Ludroth, Nibelsnarf, Agnaktor and Lagiacrus have the full trio.
+  //
+  // Zamtrios is the one deliberate departure. Arctic Ridge is the only cold
+  // locale on the Low ladder and Zamtrios the only cold monster, so holding it
+  // to High left that locale unable to hold anything at all — a rung with a
+  // guaranteed dead slot. It is Low here, and `Zamtrios Scale` is ours rather
+  // than the game's.
   //
   // A monster then RECURS at every rank its locale reaches, harder each time,
   // exactly as a fish picks up richer varieties. That is what closes the forge
@@ -1664,7 +1723,7 @@
     },
     Zamtrios: {
       name: 'Zamtrios', icon: 'MHGU-Zamtrios_Icon.webp', bait: null,
-      floor: 'High', tier: 0.6, line: 'zamtrios',
+      floor: 'Low', tier: 0.6, line: 'zamtrios',
       desc: 'The ice cracks from underneath.',
       note: 'Amphibians that strike from frozen waters, using the cold to stun '
           + 'their prey.',
@@ -1700,18 +1759,38 @@
     return !!b && rankIndex(curveRank(hr)) >= rankIndex(b.floor);
   };
 
-  // Every rank a monster can genuinely be met at: at or above its floor, and on a
-  // rung its locale actually appears on.
-  const bossRanks = (() => {
+  // Every rank a monster can genuinely be met at: at or above its floor, and
+  // somewhere on that rank's rungs it could plausibly turn up.
+  //
+  // "Plausibly" is CLIMATE, not habitat. This used to read `loc.boss` — does it
+  // live on a rung of that rank — which was right before sightings existed and
+  // wrong after, because the whole point of a visitor is that it appears away
+  // from home. Habitat-only kept Agnaktor out of Low Rank purely because
+  // Volcanic Hollow opens at HR5, even though the Dunes are hot and open at HR3
+  // and `Agnaktor Scale` had been sat in MAT_LINES the whole time waiting for a
+  // tier to belong to.
+  // Where a monster could plausibly wander: the climates it genuinely lives in,
+  // read off its real home locales rather than typed. Both the rank it can be met
+  // at and the visitor roll read this, so the two can never disagree.
+  const bossClimates = (() => {
     const LOCALES = window.MF_LOCALES || [];
+    const out = {};
+    for (const name of Object.keys(BOSS))
+      out[name] = new Set(LOCALES
+        .filter(l => (l.boss || []).includes(name))
+        .map(l => climateOf(l.id)));
+    return out;
+  })();
+
+  const bossRanks = (() => {
     const out = {};
     for (const name of Object.keys(BOSS)) out[name] = new Set();
     for (const [hr, ids] of Object.entries(LADDER)) {
       const rank = curveRank(+hr);
       for (const id of ids) {
-        const loc = LOCALES.find(l => l.id === id);
-        for (const name of (loc && loc.boss) || [])
-          if (out[name] && bossAvailable(name, +hr)) out[name].add(rank);
+        const climate = climateOf(id);
+        for (const name of Object.keys(BOSS))
+          if (bossAvailable(name, +hr) && bossClimates[name].has(climate)) out[name].add(rank);
       }
     }
     return out;
@@ -1803,6 +1882,84 @@
   // carry limits: this is your whole stock, that is what fits in the pouch.
   const STOCK_CAP = 99;
 
+
+  // ── Sightings ─────────────────────────────────────────────────────────────
+  //
+  // Which locales are holding a monster THIS time out. Rolled once when you get
+  // back to camp and stored; never at render, because the locale list re-renders
+  // on every click and the danger tags would shuffle under your hand.
+  //
+  // The reason it exists: monsters were pinned to their real habitats, and those
+  // habitats happen to cluster away from the rank-entry rungs. HR1, HR2, HR4 and
+  // HR9 held nothing at all — you were promoted, arrived somewhere new, and met
+  // nothing until the rank's second rung.
+
+  // A locale that is the ONLY place some monster lives always holds one, or that
+  // monster's armor cannot be farmed at a sensible rate. Derived rather than
+  // listed: a hand-kept list of exactly this shape drifted out of step once
+  // already and left three suits nobody could forge.
+  const soleHomes = (() => {
+    const LOCALES = window.MF_LOCALES || [];
+    const onLadder = new Set();
+    for (let hr = 1; hr <= MAX_LADDER_HR; hr++)
+      for (const id of localesAtHR(hr) || []) onLadder.add(id);
+    const out = new Set();
+    for (const name of Object.keys(BOSS)) {
+      const homes = LOCALES.filter(l => onLadder.has(l.id) && (l.boss || []).includes(name));
+      if (homes.length === 1) out.add(homes[0].id);
+    }
+    return out;
+  })();
+
+  // How likely a locale is to be holding something. Sole homes always are. The
+  // rest sit near a third, leaning on how many monsters call the place home —
+  // Deserted Island with three residents reads as worse than the Marshlands with
+  // none, which is the character those places already have.
+  const SIGHT = {
+    base: 0.22,          // a locale nothing lives in
+    perResident: 0.14,   // ...and what each resident adds
+    visitor: 0.20,       // chance the one sighted is a wanderer, not a resident
+    pests: 0.7,          // small monsters are about, or the place is quiet
+  };
+
+  function sightChance(localeId, rank) {
+    if (soleHomes.has(localeId)) return 1;
+    const loc = (window.MF_LOCALES || []).find(l => l.id === localeId);
+    const residents = ((loc && loc.boss) || []).filter(n => bossMeetableAt(n, rank));
+    return Math.min(0.9, SIGHT.base + SIGHT.perResident * residents.length);
+  }
+
+  // Everything that could be sighted here, split into the ones that live here and
+  // the ones that could only be passing through.
+  function sightCandidates(localeId, rank) {
+    const loc = (window.MF_LOCALES || []).find(l => l.id === localeId);
+    const home = ((loc && loc.boss) || []).filter(n => bossMeetableAt(n, rank));
+    const climate = climateOf(localeId);
+    const visiting = Object.keys(BOSS).filter(n =>
+      !home.includes(n) && bossMeetableAt(n, rank) && bossClimates[n].has(climate));
+    return { home, visiting };
+  }
+
+  // One locale's report for one rung. `rng` is passed in so a save can be rolled
+  // deterministically in a test without touching Math.random.
+  function rollSighting(localeId, hr, rng = Math.random) {
+    const rank = curveRank(hr);
+    const { home, visiting } = sightCandidates(localeId, rank);
+    const pool = home.length || visiting.length;
+    const boss = (pool && rng() < sightChance(localeId, rank))
+      ? (() => {
+          // Residents are the norm; a wanderer is worth remarking on. With no
+          // residents at all, whatever turns up is by definition passing through.
+          const wander = !home.length || (visiting.length && rng() < SIGHT.visitor);
+          const from = wander ? visiting : home;
+          return from.length ? from[Math.floor(rng() * from.length)] : null;
+        })()
+      : null;
+    return { boss, pests: rng() < SIGHT.pests };
+  }
+
+  const sightingKey = (localeId, hr) => `${localeId}@${hr}`;
+
   const PEST = {
     chancePerCast: 0.20,
     hireCut: 0.85,                          // how much of that a hire removes
@@ -1832,10 +1989,27 @@
   // without meeting the thing the locale is warned about. By HR12 the odds are
   // three and a half times what they are on the first rung.
   const ENCOUNTER_RANK_SCALE = 2.5;
-  const encounterChance = (name, hr) => {
+
+  // It also climbs WITHIN a trip. Every fish you land is another few minutes of
+  // splashing about in one spot, and the longer that goes on the likelier
+  // something large notices; meeting one puts the count back to nothing, because
+  // whatever was drawn in has now arrived.
+  //
+  // This replaces a flat per-cast roll, which made a Danger tag a coin flip
+  // repeated forty times — the sighting said something was out there and then
+  // half the time nothing ever came. A ramp says the opposite: a short trip can
+  // slip out unnoticed, a long one almost certainly cannot. The opening rate is
+  // deliberately BELOW the old flat one so that staying briefly is genuinely
+  // safer than it used to be, not merely differently random.
+  const ENCOUNTER_START = 0.5;   // of the rung rate, on the first cast of a trip
+  const ENCOUNTER_PER_CATCH = 0.2;  // ...and what each landed fish since adds
+  const ENCOUNTER_MAX = 8;       // ceiling, so a marathon trip stays a trip
+
+  const encounterChance = (name, hr, sinceBoss = 0) => {
     const base = ENCOUNTER_CHANCE[name] ?? 0;
     const rung = Math.min(1, Math.max(0, ((hr || 1) - 1) / 11));
-    return base * (1 + rung * ENCOUNTER_RANK_SCALE);
+    const drawn = Math.min(ENCOUNTER_MAX, 1 + Math.max(0, sinceBoss) * ENCOUNTER_PER_CATCH);
+    return base * (1 + rung * ENCOUNTER_RANK_SCALE) * ENCOUNTER_START * drawn;
   };
 
   // Losing a boss fight COSTS YOU HP rather than ending the trip outright. What
@@ -1857,7 +2031,8 @@
     ITEM_EFFECT, effectOf, ITEM_GROUPS,
     COMBO_BASE_ITEM, COMBO_BASES, SPECIES_RECIPE, ORE_MAT,
     comboWorth, comboRecipe, comboMaterial, comboBase, comboRate,
-    BOOKS, bookById, bookBonus, PALICO, TRADE,
+    BOOKS, bookById, bookBonus, PALICO, TRADE, CREEL, creelBonus,
+    TRADE_CART, TRADE_CART_MAX, TRADE_CART_UNLOCK_HR, cartAt,
     MATERIALS, materialById, isBuyableMat, isQuestRewardMat, MAT_BUYABLE, pouchItems, pouchItemById,
     POUCH_SLOTS, TACKLE_SLOTS, BAIT_CARRY, carryLimit, ownCap, SUPPLY_RANK, SUPPLY_EACH,
     DESIGNED_POOLS, ARENA_POOL, RANK_ORDER, rankIndex, SHOW_DESIGNED_LOCALES,
@@ -1877,14 +2052,16 @@
     RODS, rodById, ROD_LEVELS, ROD_PER_LEVEL,
     rodSink, rodBand, rodLift, rodBites, rodSchool, rodStat,
     GEAR_LEVEL_HR, RANK_PAY, payMult, RANK_PEAK,
-    bossAt, bossAvailable, bossRanks, bossMeetableAt, RANK_TOP_RATE, BOSS_SECONDS, BOSS_ESCAPE_MULT, BOSS_REWARD_MULT,
+    bossAt, bossAvailable, bossRanks, bossMeetableAt, RANK_TOP_RATE,
+    SIGHT, soleHomes, bossClimates, sightChance, sightCandidates, rollSighting, sightingKey, BOSS_SECONDS, BOSS_ESCAPE_MULT, BOSS_REWARD_MULT,
     CANTEEN, INGREDIENT_CHANCE, ingredientById, ingredientPool, rollIngredient,
     recipeFor, mealAvailable, mealsAvailable,
     MEAL_TIERS, mealPower, mealUnlockHR,
     FRESH, FRESH_CHANCE, FRESH_MAX, FRESH_LABEL, isFresh, freshBonus, freshLines, freshShort,
     freshPick,
     POND, REEL_START, RUNG_TIGHTEN, fightFor, BOSS, BOSS_BAND_FLOOR, PEST, HIRE, ENCOUNTER_CHANCE,
-    ENCOUNTER_RANK_SCALE, encounterChance, STOCK_CAP,
+    ENCOUNTER_RANK_SCALE, ENCOUNTER_START, ENCOUNTER_PER_CATCH, ENCOUNTER_MAX,
+    encounterChance, STOCK_CAP,
     BOSS_LOSS, bossLossDamage,
   };
 })();

@@ -221,36 +221,24 @@
   // Plesioth only bites where monster_habitat actually puts it, and Frog raises
   // its odds sharply — the game's own description calls Frog "the ideal bait for
   // certain aquatic monsters".
-  function rollEncounter(localeId, bait, hr = 1, rng = Math.random, rod = null, armor = null, ctx = null) {
+  function rollEncounter(localeId, bait, hr = 1, rng = Math.random, rod = null, armor = null, ctx = null, sinceBoss = 0) {
     const loc = localeById.get(localeId);
-    if (!loc || !loc.boss.length) return null;
-    // A locale lists everything that lives there across all three ranks, but a
-    // monster is only in the water from its own floor rank up — you do not meet
-    // Lavasioth on a High rung of the Hollow just because it is on the list.
-    const here = loc.boss.filter(name => G.bossAvailable(name, hr));
-    if (!here.length) return null;
+    if (!loc) return null;
 
-    // ONE roll for the locale, then which. Rolling each monster separately made
-    // somewhere with three of them three times as dangerous as somewhere with
-    // one, which turned the Desert and Ruined Pinnacle into 86% cart rates the
-    // moment they stopped being one-monster locales. How dangerous a place is
-    // should be a property of the place, not a count of its residents.
-    const odds = here.map(name => {
-      let c = G.encounterChance(name, hr);
-      if (G.BOSS[name]?.bait && bait.id === G.BOSS[name].bait) c *= 4;
-      return c;
-    });
-    const worst = Math.max(...odds);
-    if (rng() >= worst) return null;
+    // WHICH monster is here was decided back in camp and shown on the locale
+    // card; this only decides whether it comes at you on this particular cast.
+    // Reading loc.boss directly instead would ignore the report the player was
+    // given, and would put a monster in every locale that has ever had one.
+    const A = window.MF_APP;
+    const name = A && A.sightingAt ? A.sightingAt(localeId, hr).boss : null;
+    if (!name || !G.bossAvailable(name, hr)) return null;
 
-    // Which one it is, weighted by how readily each shows itself.
-    const total = odds.reduce((a, b) => a + b, 0);
-    let r = rng() * total;
-    for (let i = 0; i < here.length; i++) {
-      r -= odds[i];
-      if (r <= 0) return G.bossAt(here[i], hr, rod, armor, ctx);
-    }
-    return G.bossAt(here[here.length - 1], hr, rod, armor, ctx);
+    // `sinceBoss` is fish landed since the last one showed up: the longer you
+    // have been working this spot, the more likely you have been noticed.
+    let chance = G.encounterChance(name, hr, sinceBoss);
+    if (G.BOSS[name]?.bait && bait.id === G.BOSS[name].bait) chance *= 4;
+    if (rng() >= chance) return null;
+    return G.bossAt(name, hr, rod, armor, ctx);
   }
 
   // ── Small monsters ────────────────────────────────────────────────────────
@@ -295,9 +283,13 @@
   // What the cart hands back on top of what you gave it.
   // Fair Trade raises both what the cart brings back and the ceiling on it —
   // raising only the rate would stop mattering the moment you hit the cap.
-  const tradeExtra = (landed, bonus = 0) =>
-    Math.max(0, Math.min(Math.round(G.TRADE.max * (1 + bonus)),
-      Math.floor(landed * (1 + bonus) / G.TRADE.perExtra)));
+  // Fair Trade lifts BOTH the ceiling and the rate, so the armor skill is never
+  // swallowed by whichever of the two happens to be binding.
+  const tradeExtra = (landed, bonus = 0, cartLvl = 0) => {
+    const c = G.cartAt(cartLvl);
+    return Math.max(0, Math.min(Math.round(c.cap * (1 + bonus)),
+      Math.floor(landed * (1 + bonus) / c.perExtra)));
+  };
 
   // What the cats can turn up HERE, weighted by the GAME'S OWN rates. Each
   // locale page lists its gathering, mining and bug nodes per rank with a
@@ -406,6 +398,10 @@
   function rollPest(localeId, hr, hired, rng = Math.random, repel = 0) {
     const loc = localeById.get(localeId);
     if (!loc || !loc.pests || !loc.pests.length) return null;
+    // Small monsters are sighted or they are not, same as the large ones — which
+    // is what finally makes "No Small Monsters sighted" a line that can appear.
+    const A = window.MF_APP;
+    if (A && A.sightingAt && !A.sightingAt(localeId, hr).pests) return null;
     if (rng() >= pestChance(hired, repel)) return null;
     const total = loc.pests.reduce((a, p) => a + p.w, 0);
     let x = rng() * total, hit = loc.pests[loc.pests.length - 1];
