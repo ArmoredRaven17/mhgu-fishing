@@ -73,7 +73,7 @@
       gutsUsed: false,     // Guts is once a trip, and this is the once
       traded,              // what the Trade Cart is working on, or null
       landed: 0,           // fish actually landed — what the cart is paid in
-      sinceBoss: 0,        // ...and how many since a large monster last turned up
+      sinceBoss: 0,        // casts since one last turned up; the check cadence
       drinkLeft: 0,
       hotDrinkLeft: 0,   // a Hot Drink specifically, which Tropic Hunter reads
       dashLeft: 0,
@@ -286,6 +286,9 @@
     trip.busy = true; render();
     const S = A.state;
     S.stats.casts++;
+    // Counts CASTS, not landings: a check falls due on the cast whether or
+    // not the line comes back with anything.
+    trip.sinceBoss++;
 
     const rod = S.gear.rod, armor = S.gear.armor;
     const ctx = { climate: trip.climate, hotDrink: trip.hotDrinkLeft > 0 };
@@ -297,7 +300,7 @@
     if (!boss && !school.length) { releaseCast(); render(); return; }
 
     if (boss) {
-      trip.sinceBoss = 0;   // it came; whatever drew it in has been spent
+      trip.sinceBoss = 0;   // it came; the count starts again
       S.stats.bosses++;
       el('castPrompt').textContent = boss.desc;
     }
@@ -388,7 +391,6 @@
     if (res.landed) {
       S.stats.landed++;
       trip.landed++;
-      trip.sinceBoss++;
       const isNew = A.record(c.id, trip.localeId, c.fish.id);
       const paid = Math.round(c.value * (1 + trip.fresh.zenny)
         * G.payMult(trip.questHR) * (1 + G.effectPower(S.gear.armor, 'zenny')));

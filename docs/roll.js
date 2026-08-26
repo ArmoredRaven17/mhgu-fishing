@@ -221,7 +221,7 @@
   // Plesioth only bites where monster_habitat actually puts it, and Frog raises
   // its odds sharply — the game's own description calls Frog "the ideal bait for
   // certain aquatic monsters".
-  function rollEncounter(localeId, bait, hr = 1, rng = Math.random, rod = null, armor = null, ctx = null, sinceBoss = 0) {
+  function rollEncounter(localeId, bait, hr = 1, rng = Math.random, rod = null, armor = null, ctx = null, castsSince = 0) {
     const loc = localeById.get(localeId);
     if (!loc) return null;
 
@@ -233,9 +233,9 @@
     const name = A && A.sightingAt ? A.sightingAt(localeId, hr).boss : null;
     if (!name || !G.bossAvailable(name, hr)) return null;
 
-    // `sinceBoss` is fish landed since the last one showed up: the longer you
-    // have been working this spot, the more likely you have been noticed.
-    let chance = G.encounterChance(name, hr, sinceBoss);
+    // Every monster checks in on its own cadence; on any other cast this is
+    // simply 0 and nothing gets rolled.
+    let chance = G.encounterChance(name, hr, castsSince);
     if (G.BOSS[name]?.bait && bait.id === G.BOSS[name].bait) chance *= 4;
     if (rng() >= chance) return null;
     return G.bossAt(name, hr, rod, armor, ctx);

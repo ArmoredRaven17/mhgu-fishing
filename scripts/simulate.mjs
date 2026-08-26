@@ -260,7 +260,7 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
   // and the hire that turns them away — actually cost you.
   const used = { potions: 0, rations: 0, drinks: 0, stamina: {} };
 
-  let sinceBoss = 0;   // fish landed since one last showed; it is what draws them
+  let castsSince = 0;  // casts since one last showed; it sets the check cadence
   while (sta > 0 && hp > 0 && casts < 500) {
     // Walking away is always available, and it is the whole decision: what you
     // are carrying is only yours once you are home. A real player does not decide
@@ -270,9 +270,10 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
     if (hp <= bailBelowHP && potions <= 0 && supplyHeals <= 0) break;
     casts++;
 
-    const enc = R.rollEncounter(localeId, bait, hr, Math.random, gear.rod, gear.armor, null, sinceBoss);
+    castsSince++;
+    const enc = R.rollEncounter(localeId, bait, hr, Math.random, gear.rod, gear.armor, null, castsSince);
     if (enc) {
-      sinceBoss = 0;
+      castsSince = 0;
       bosses++;
       const secs = enc.durationMs / 1000;
       sta -= (G.STAMINA_COST.cast + secs * G.STAMINA_COST.reelTick * rates.staminaMult) * longHaul;
@@ -291,7 +292,6 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
 
     haul += c.value;
     landed++;
-    sinceBoss++;
 
     // Climate first, so a drink taken now counts for this cast — the order the
     // app uses. A drink cancels whichever penalty the locale applies, which the

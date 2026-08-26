@@ -1995,32 +1995,44 @@
     Lagiacrus: 0.008, Lavasioth: 0.022,
   };
 
-  // ...and it climbs with the rung. At the flat rate a Plesioth turned up on
-  // roughly one trip in five, which at G Rank meant going a very long time
-  // without meeting the thing the locale is warned about. By HR12 the odds are
-  // three and a half times what they are on the first rung.
-  const ENCOUNTER_RANK_SCALE = 2.5;
-
-  // It also climbs WITHIN a trip. Every fish you land is another few minutes of
-  // splashing about in one spot, and the longer that goes on the likelier
-  // something large notices; meeting one puts the count back to nothing, because
-  // whatever was drawn in has now arrived.
+  // ── When a monster checks in ──────────────────────────────────────────────
   //
-  // This replaces a flat per-cast roll, which made a Danger tag a coin flip
-  // repeated forty times — the sighting said something was out there and then
-  // half the time nothing ever came. A ramp says the opposite: a short trip can
-  // slip out unnoticed, a long one almost certainly cannot. The opening rate is
-  // deliberately BELOW the old flat one so that staying briefly is genuinely
-  // safer than it used to be, not merely differently random.
-  const ENCOUNTER_START = 0.75;  // of the rung rate, on the first cast of a trip
-  const ENCOUNTER_PER_CATCH = 0.2;  // ...and what each landed fish since adds
-  const ENCOUNTER_MAX = 8;       // ceiling, so a marathon trip stays a trip
-
-  const encounterChance = (name, hr, sinceBoss = 0) => {
+  // Every monster has a number of casts between CHECKS, and each check is one
+  // roll for whether it shows itself. This replaced a per-cast roll, which was
+  // sound on paper and dreadful in play: at roughly a percent a cast the maths
+  // works out over sixty-five casts, but nothing ever visibly happens, and two
+  // full playtest trips in a row met nothing at all. Ten rolls at a third each
+  // carry the same expectation and can actually be felt.
+  //
+  // The interval is per monster and derived from the old per-cast rates, so the
+  // relative rarity Raven had already tuned survives the change: Lavasioth was
+  // the readiest to surface and still is, Plesioth the shyest and still is.
+  // Clamped to 4..10 so nothing checks in on top of itself or goes missing.
+  const ENCOUNTER_CHECK_K = 0.072;
+  const encounterCheckEvery = name => {
     const base = ENCOUNTER_CHANCE[name] ?? 0;
+    if (!base) return Infinity;
+    return Math.min(10, Math.max(4, Math.round(ENCOUNTER_CHECK_K / base)));
+  };
+
+  // What one check is worth. It climbs with the rung — deeper water, bolder
+  // animals — so a G Rank locale is not merely richer but genuinely busier.
+  const ENCOUNTER_ODDS = 0.30;
+  const ENCOUNTER_RANK_SCALE = 1.0;
+
+  // Staying out longer still matters, but through the number of CHECKS rather
+  // than through a rising rate: forty casts is six chances at Royal Ludroth,
+  // twenty is three. `castsSince` is casts since one last turned up, and it is
+  // reset by meeting one — whatever was circling has arrived and gone.
+  //
+  // Returns 0 on a cast where no check is due, so the caller stays a single
+  // `rng() < chance` and does not have to know about the cadence.
+  const encounterChance = (name, hr, castsSince = 0) => {
+    if (!ENCOUNTER_CHANCE[name]) return 0;
+    const every = encounterCheckEvery(name);
+    if (castsSince <= 0 || castsSince % every !== 0) return 0;
     const rung = Math.min(1, Math.max(0, ((hr || 1) - 1) / 11));
-    const drawn = Math.min(ENCOUNTER_MAX, 1 + Math.max(0, sinceBoss) * ENCOUNTER_PER_CATCH);
-    return base * (1 + rung * ENCOUNTER_RANK_SCALE) * ENCOUNTER_START * drawn;
+    return Math.min(0.9, ENCOUNTER_ODDS * (1 + rung * ENCOUNTER_RANK_SCALE));
   };
 
   // Losing a boss fight COSTS YOU HP rather than ending the trip outright. What
@@ -2071,7 +2083,7 @@
     FRESH, FRESH_CHANCE, FRESH_MAX, FRESH_LABEL, isFresh, freshBonus, freshLines, freshShort,
     freshPick,
     POND, REEL_START, RUNG_TIGHTEN, fightFor, BOSS, BOSS_BAND_FLOOR, PEST, HIRE, ENCOUNTER_CHANCE,
-    ENCOUNTER_RANK_SCALE, ENCOUNTER_START, ENCOUNTER_PER_CATCH, ENCOUNTER_MAX,
+    ENCOUNTER_RANK_SCALE, ENCOUNTER_ODDS, encounterCheckEvery,
     encounterChance, STOCK_CAP,
     BOSS_LOSS, bossLossDamage,
   };
