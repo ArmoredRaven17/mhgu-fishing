@@ -22198,8 +22198,10 @@ window.MF_LOCALES = [
   },
   "gatherRows": 1009,
   "boss": [
-   "Plesioth"
-  ],
+      "Royal Ludroth",
+      "Plesioth",
+      "Lagiacrus"
+    ],
   "pests": [
    {
     "name": "Jaggi",
@@ -28318,7 +28320,10 @@ window.MF_LOCALES = [
    ]
   },
   "gatherRows": 1248,
-  "boss": [],
+  "boss": [
+      "Cephadrome",
+      "Nibelsnarf"
+    ],
   "pests": [
    {
     "name": "Hermitaur",
@@ -34880,8 +34885,10 @@ window.MF_LOCALES = [
   },
   "gatherRows": 1255,
   "boss": [
-   "Plesioth"
-  ],
+      "Royal Ludroth",
+      "Plesioth",
+      "Lagiacrus"
+    ],
   "pests": [
    {
     "name": "Bnahabra",
@@ -47421,8 +47428,9 @@ window.MF_LOCALES = [
   },
   "gatherRows": 1269,
   "boss": [
-   "Lavasioth"
-  ],
+      "Agnaktor",
+      "Lavasioth"
+    ],
   "pests": [
    {
     "name": "Remobra",
@@ -59050,7 +59058,10 @@ window.MF_LOCALES = [
    ]
   },
   "gatherRows": 813,
-  "boss": [],
+  "boss": [
+      "Agnaktor",
+      "Lavasioth"
+    ],
   "pests": [
    {
     "name": "Great Thunderbug",
@@ -67731,7 +67742,9 @@ window.MF_LOCALES = [
    ]
   },
   "gatherRows": 585,
-  "boss": [],
+  "boss": [
+      "Zamtrios"
+    ],
   "pests": [
    {
     "name": "Zamite",
@@ -73089,8 +73102,10 @@ window.MF_LOCALES = [
   },
   "gatherRows": 649,
   "boss": [
-   "Plesioth"
-  ],
+      "Cephadrome",
+      "Nibelsnarf",
+      "Plesioth"
+    ],
   "pests": [
    {
     "name": "Genprey",
@@ -78772,8 +78787,9 @@ window.MF_LOCALES = [
   },
   "gatherRows": 777,
   "boss": [
-   "Plesioth"
-  ],
+      "Plesioth",
+      "Lagiacrus"
+    ],
   "pests": [
    {
     "name": "Great Thunderbug",
@@ -84044,8 +84060,10 @@ window.MF_LOCALES = [
   },
   "gatherRows": 729,
   "boss": [
-   "Plesioth"
-  ],
+      "Royal Ludroth",
+      "Plesioth",
+      "Lagiacrus"
+    ],
   "pests": [
    {
     "name": "Conga",

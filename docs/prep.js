@@ -192,8 +192,8 @@
     // Fresh HP and Stamina ARE the meal's doing, so they belong in the meal half
     // of the sum rather than as a third term nobody asked for.
     el('mealStats').innerHTML =
-      `HP: <b>${G.BASE_MAX_HP + S.upgrades.vitality * 5}</b> + <b>${m.hp + f.hp}</b>` +
-      `  and  Stamina: <b>${G.BASE_MAX_STAMINA + S.upgrades.endurance * 8}</b> + <b>${m.stamina + f.stamina}</b>`;
+      `HP: <b>${G.BASE_MAX_HP + G.armorStat(S.gear.armor, 'hp')}</b> + <b>${m.hp + f.hp}</b>` +
+      `  and  Stamina: <b>${G.BASE_MAX_STAMINA + G.armorStat(S.gear.armor, 'stamina')}</b> + <b>${m.stamina + f.stamina}</b>`;
 
     // The other two do not show up in a gauge, so they have to be said out loud.
     const lines = G.freshLines(f);

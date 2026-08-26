@@ -21,3 +21,8 @@ extracted/
 
 # Visual Studio local IDE state
 .vs/
+
+# Generated test saves. scripts/make-save.mjs builds these from the live data in
+# one command, so committing them would only create a second copy to go stale —
+# which is the exact failure the generator exists to prevent.
+mhgu-fishing-*.json

@@ -212,7 +212,7 @@
       function hook(sw) {
         S.phase = 'hooked';
         S.hooked = { c: sw.c,
-          fight: sw.c.fight || G().fightFor(sw.c.fish, sw.c.ore, S.lineLevel || 0, S.questHR || 1) };
+          fight: sw.c.fight || G().fightFor(sw.c.fish, sw.c.ore, S.rod, S.questHR || 1, S.armor, S.ctx) };
         if (S.monster) S.hooked.fight = spec.monster.fight;
         S.strikeLeft = S.hooked.fight.strikeWindowMs / 1000;
         bobber.classList.add('under');
@@ -324,7 +324,7 @@
               sw.nibbleIn = P.nibbleEveryMs / 1000;
               sw.node.classList.add('nibble');
               setTimeout(() => sw.node?.classList.remove('nibble'), 220);
-              const chance = P.hookChance + (S.lureLevel || 0) * 0.02;
+              const chance = P.hookChance * (1 + (S.bites || 0));
               if (Math.random() < (S.monster ? 1 : chance)) { hook(sw); break; }
             }
           }
@@ -357,8 +357,10 @@
       }
 
       // Upgrades read once per cast.
-      S.lineLevel = spec.lineLevel || 0;
-      S.lureLevel = spec.lureLevel || 0;
+      S.rod = spec.rod || null;
+      S.armor = spec.armor || null;
+      S.bites = spec.bites || 0;
+      S.ctx = spec.ctx || null;
       S.questHR = spec.questHR || 1;
 
       el('tensionWrap').classList.add('hidden');

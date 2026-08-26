@@ -108,7 +108,14 @@ body{
 
 /* The screens that are one long list scroll as one, since they have no fixed
    furniture of their own to keep in place. */
-#guide.screen.active,#combos.screen.active,#shop.screen.active{overflow-y:auto}
+#guide.screen.active,#combos.screen.active,#shop.screen.active,
+#smithy.screen.active{overflow-y:auto}
+/* The Smithy's two halves each scroll as one list, same as the screen did. */
+#smithy .subview.active{min-height:0}
+/* The per-set strip is a second rank of tabs under the first, so it reads as
+   subordinate to it rather than as a competing row. */
+.subtabs.setline{flex-wrap:wrap;gap:3px;margin-bottom:8px;opacity:.95}
+.subtabs.setline .subtab{font-size:12px;padding:4px 10px}
 
 /* ── Buttons ───────────────────────────────────────────────────────────── */
 .btn{
@@ -808,8 +815,45 @@ select{
 .shop-table .pr{color:var(--money);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .shop-table .hv{text-align:right;opacity:.75;font-variant-numeric:tabular-nums;white-space:nowrap}
 .shop-table .bt{text-align:right;width:1%;white-space:nowrap}
+
+/* The Smithy's extra column: what a piece is made of. It gets its own space
+   because "which monster do I still have to find?" is the only question this
+   screen is really asked, and a column answers it down the page in one look. */
+.smithy-table .mt{white-space:nowrap;font-size:12px;width:1%}
+.smithy-table .mt .mat{display:inline-flex;align-items:center;gap:5px}
+.smithy-table .mt .mat img{width:18px;height:18px;object-fit:contain;image-rendering:pixelated}
+.smithy-table .mt .mat b{font-variant-numeric:tabular-nums;opacity:.85}
+.smithy-table .mt .mat i{opacity:.7}
+.smithy-table .mt .held{opacity:.55;font-size:11px}
+/* Being short is the state worth catching from across the table, so it is the
+   one that takes a colour. Having enough simply reads normally. */
+.smithy-table .mt .short .held{color:#e2907f;opacity:.95}
+.smithy-table .mt .ok .held{color:#7fd18d;opacity:.95}
+/* What you are wearing is marked by the row itself rather than a word beside the
+   name — you should be able to find it without reading. */
+.smithy-table tr.worn{background:color-mix(in srgb,var(--accent) 22%,transparent)}
+.smithy-table tr.worn:hover{background:color-mix(in srgb,var(--accent) 30%,transparent)}
+.smithy-table tr.worn .nm{font-weight:700}
+.smithy-table tr.worn .ic{box-shadow:inset 3px 0 0 var(--accent-hover)}
+.smithy-table .none{opacity:.35}
+/* Skill name and skill description are two columns of STACKED entries, one per
+   skill. Both use the same entry height so the two stacks stay in step — without
+   it a three-line description would push its own column out of alignment with the
+   name beside it. */
+.smithy-table .sk,.smithy-table .dt{vertical-align:top;padding-top:7px}
+.smithy-table .sk{white-space:nowrap;width:1%;font-size:12px}
+.smithy-table .dt{white-space:normal;max-width:44ch}
+.smithy-table .sk .ent,.smithy-table .dt .ent{
+  display:flex;align-items:center;min-height:2.6em;line-height:1.3;
+}
+.smithy-table .sk .ent{font-weight:600;opacity:.95}
+.smithy-table .dt .ent{opacity:.72}
+
 @media (max-width:640px){
   .shop-table .dt{display:none}
+  /* The material column outlives the description here — it is the one you cannot
+     work the screen without. */
+  .smithy-table .mt .held{display:none}
 }
 
 .card{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;display:grid;gap:5px}
@@ -990,8 +1034,30 @@ select{
 #materialGrid{display:grid;gap:12px;align-items:start;
   grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
 .mat-list .unknown{letter-spacing:2px;opacity:.55;font-weight:600}
+/* Same masking the Combos and Materials pages use, so an unfound thing reads the
+   same wherever you meet it. */
+.ingr-list .unknown{letter-spacing:2px;opacity:.55;font-weight:600}
 
 /* Whatever just bit you, shown in the line that says so. */
 .pest-icon{
   width:20px;height:20px;object-fit:contain;vertical-align:-5px;margin-right:4px;
 }
+
+/* ── Monster log ─────────────────────────────────────────────────────────
+   A list rather than a card grid: one line per monster, read down the page. */
+.mon-table .ic{width:32px;padding-right:0}
+.mon-table .ic img{width:28px;height:28px;object-fit:contain;display:block;image-rendering:pixelated}
+.mon-table .nm{white-space:nowrap;font-weight:600}
+.mon-table .dt{opacity:.68;font-size:12px;max-width:38ch}
+.mon-table .rk{white-space:nowrap;font-size:11.5px;opacity:.75;width:1%}
+.mon-table .tally{white-space:nowrap;font-size:12px;width:1%}
+.mon-table .tally b{font-weight:700}
+.mon-table .tally i{font-style:normal;opacity:.35;margin:0 2px}
+.mon-table .tally .rate{opacity:.5;margin-left:6px;font-size:11px}
+.mon-table .pr{color:var(--money);text-align:right;font-variant-numeric:tabular-nums;
+  white-space:nowrap;width:1%}
+.mon-table .wh{font-size:11px;opacity:.5;white-space:nowrap}
+/* One you have not met gives away nothing — not even its silhouette. */
+.mon-table tr.unmet{opacity:.4}
+.mon-table tr.unmet img{filter:grayscale(1)}
+.mon-table tr.unmet .nm{font-weight:400;letter-spacing:1px}

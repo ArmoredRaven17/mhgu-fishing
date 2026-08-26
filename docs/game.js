@@ -40,6 +40,8 @@
   // The HR each table rank opens at. Everything that unlocks does so on one of
   // these three, so a bait, a fish and an ore all speak the same language.
   const RANK_HR = { Low: 1, High: 4, G: 9 };
+  // The rank a CURVE should use: G Rank+ is G Rank, played past the ladder's end.
+  const curveRank = hr => { const r = rankAt(hr).id; return r === 'Gplus' ? 'G' : r; };
   const ORE_RANK_HR = [1, 4, 9];            // by ores.js rank 0/1/2
 
   // Fish and varieties take their unlock from the data — the rank a fish first
@@ -111,7 +113,16 @@
   // A variant's icon is the fish icon in that ore's colour — a real asset, not a
   // CSS filter. Two ore pairs share a colour (Iron/Lightcrystal grey, Eltalite/
   // Allfire red); the names still distinguish them.
-  const variantIcon = ore => `MH4G-Fish_Icon_${ore.color.replace(/ /g, '_')}.png`;
+  // Icons are keyed by the ore's COLOUR, so Iron shares a file with Lightcrystal
+  // and Eltalite with Allfire. These two wanted their own shade without moving
+  // the ore beside them, so each has a file of its own — the real glyph with only
+  // its body shades shifted, outline and proportions untouched.
+  const ORE_ICON = {
+    iron: 'MH4G-Fish_Icon_Grey_Dark.png',       // Grey, a touch darker
+    eltalite: 'MH4G-Fish_Icon_Red_Light.png',   // Red, a touch lighter
+  };
+  const variantIcon = ore =>
+    ORE_ICON[ore.id] || `MH4G-Fish_Icon_${ore.color.replace(/ /g, '_')}.png`;
 
   // Ore colours as hex, for tinting. The real MH4G-Fish_Icon_<Color>.png set is
   // not in hand — Kiranico blocks crawling and the wiki is not trustworthy — so
@@ -122,7 +133,15 @@
     Yellow: '#e3c545', Purple: '#a05fc0', 'Light Blue': '#6fc9e0',
     Orange: '#e08b41', Pink: '#e07ba8', Grey: '#98a0a8', Cyan: '#3fd0c4',
   };
-  const oreHex = ore => ORE_HEX[ore.color] || ORE_HEX.Grey;
+  // A few ores want their own shade rather than their colour family's. Iron and
+  // Lightcrystal are both Grey and Eltalite and Allfire are both Red, so nudging
+  // the family would move two ores at once — these override just the one.
+  // Matched to the icon shifts above, so a chip and its fish never disagree.
+  const ORE_TINT = {
+    iron: '#848c94',        // Grey #98a0a8, a touch darker
+    eltalite: '#e26461',    // Red  #d64a4a, a touch lighter
+  };
+  const oreHex = ore => ORE_TINT[ore.id] || ORE_HEX[ore.color] || ORE_HEX.Grey;
 
   // Rarer ores are rarer catches. Weights are within-rank; the rank gate decides
   // which ores are in the running at all.
@@ -644,7 +663,7 @@
     premium_sashimi:  ['worm',             'unique_mushroom'],
     small_goldenfish: ['worm',             'honey'],
     brocadefish:      ['worm',             'paintberry'],
-    sushifish:        ['mega_fishing_fly', 'insect_husk'],
+    sushifish:        ['insect_husk',      'honey'],
     goldenfish:       ['mega_fishing_fly', 'gold_cricket'],
     speartuna:        ['mega_fishing_fly', 'stinkhopper'],
     silverfish:       ['mega_fishing_fly', 'silver_cricket'],
@@ -773,8 +792,11 @@
     return bonus;
   }
 
-  const comboRate = (b, carried) =>
-    Math.min(100, comboBase(b) + bookBonus(carried || {}));
+  // Steady Mixer stacks with the Books, in the same units they use: percentage
+  // points on the success rate, not a multiplier of it.
+  const comboRate = (b, carried, armor = null) =>
+    Math.min(100, comboBase(b) + bookBonus(carried || {})
+      + Math.round(effectPower(armor, 'combo') * 100));
 
   // ── Palicos ───────────────────────────────────────────────────────────────
   //
@@ -1000,22 +1022,23 @@
   const mealsAvailable = (held, hr) => MEALS.filter(m => mealAvailable(m, held, hr));
 
   // ── Permanent upgrades ────────────────────────────────────────────────────
-  const UPGRADES = [
-    { id: 'vitality', name: 'Vitality',  max: 20, per: 5,
-      icon: 'assets/ItemIcons/MH4G-Medicine_Icon_Green.png',
-      cost: n => Math.round(1200 * Math.pow(1.38, n)), desc: '+5 max HP per level.' },
-    { id: 'endurance', name: 'Endurance', max: 20, per: 8,
-      icon: 'assets/ItemIcons/MH4G-Meat_Icon_Orange.png',
-      cost: n => Math.round(1000 * Math.pow(1.36, n)), desc: '+8 max Stamina per level.' },
-    { id: 'line', name: 'Line Strength', max: 10, per: 1,
-      icon: 'assets/BaitIcons/MH4G-Bait_Icon_Yellow.png',
-      cost: n => Math.round(2600 * Math.pow(1.55, n)),
-      desc: 'The line slackens more slowly, giving you longer between pulls.' },
-    { id: 'lure', name: 'Lure Quality', max: 10, per: 1,
-      icon: 'assets/ItemIcons/MH4G-Book_Icon_Yellow.png',
-      cost: n => Math.round(3000 * Math.pow(1.58, n)),
-      desc: 'Draws a bigger school and makes fish readier to take the hook.' },
+  // The four upgrade sliders that used to live here — Vitality, Endurance, Line
+  // Strength and Lure Quality — are gone. Gear replaced them: HP and stamina are
+  // armor, the line and the lure are the rod. Kept only as a refund table, so a
+  // save that already spent money on them gets it back rather than losing it.
+  const RETIRED_UPGRADES = [
+    { id: 'vitality',  cost: n => Math.round(1200 * Math.pow(1.38, n)) },
+    { id: 'endurance', cost: n => Math.round(1000 * Math.pow(1.36, n)) },
+    { id: 'line',      cost: n => Math.round(2600 * Math.pow(1.55, n)) },
+    { id: 'lure',      cost: n => Math.round(3000 * Math.pow(1.58, n)) },
   ];
+  // Everything a save sank into them, back to the nearest zenny.
+  const refundUpgrades = (up = {}) => {
+    let z = 0;
+    for (const u of RETIRED_UPGRADES)
+      for (let n = 0; n < (up[u.id] || 0); n++) z += u.cost(n);
+    return z;
+  };
 
   // ── The pond ──────────────────────────────────────────────────────────────
   //
@@ -1061,6 +1084,12 @@
   const BAND_WIDE = 0.22;      // half-width for the cheapest thing in the water
   const BAND_TIGHT = 0.055;    // ...and for the most valuable
   const BAND_FLOOR = 0.045;    // never narrower than this, whatever the rung
+  // How much the rung itself closes the band, on top of what the catch is worth.
+  // This is the dial that decides whether G Rank asks anything of you: the value
+  // scale spans all 240 variants, but what you actually catch clusters near the
+  // cheap end, so a typical G-rank fish was getting a quarter of the track and
+  // 0.28 was not enough to be felt. Low Rank is untouched — rung is 0 there.
+  const RUNG_TIGHTEN = 0.50;
 
   // Where a variant sits between the cheapest and dearest in the game, 0..1, on a
   // log scale because value spans two orders of magnitude. Measured off the real
@@ -1086,39 +1115,71 @@
   // a harder fight on a G-rank rung than on a Low one: deeper water, rougher day.
   // It tightens the band and quickens the sink on top of whatever the fish's own
   // value already asked for.
-  function fightFor(fish, ore, lineLevel, hr = 1) {
+  // Presses per second the line asks of you: a floor every rank resets to, plus
+  // whatever the catch in your hands is worth.
+  //
+  // This used to run off `rarity` and `ore.rank`, which were far too coarse — a
+  // 47z Whetfish and a 52z Pin Tuna came out identical — and off one continuous
+  // ramp from HR1 to HR12, which meant nothing happened at a rank boundary. The
+  // whole game lived between 3.9 and 6.3 presses/second across a 550x spread in
+  // value, and Low Rank was flat end to end.
+  //
+  // It is a SAWTOOTH now, because that is what the game it is imitating does:
+  // each rank drops you back to easy prey and then climbs to a peak the last
+  // rank never reached. You take Low Rank gear into early High Rank and it
+  // carries you; it is High Rank's own late fish that demand the next rod.
+  const RATE_FLOOR = 3.1;                                  // cheapest thing in the water
+  const RATE_SPAN = 4.4;                                   // ...added at the dearest
+  const RANK_DEMAND = { Low: 1, High: 1.2, G: 1.38 };      // the peak each rank climbs to
+  const RANK_RAMP = 0.13;                                  // drift across the rungs inside one
+  const rankRung = hr => {
+    const rank = curveRank(hr);
+    const base = RANK_HR[rank] || 1;
+    const next = rank === 'Low' ? RANK_HR.High : rank === 'High' ? RANK_HR.G : MAX_LADDER_HR + 1;
+    return Math.min(1, Math.max(0, (hr - base) / Math.max(1, next - base - 1)));
+  };
+
+  function fightFor(fish, ore, rod, hr = 1, armor = null, ctx = null) {
     const r = fish.rarity, o = ore.rank;
     const durationMs = 3200 + r * 700 + o * 1400;
+    const rank = curveRank(hr);
+    const within = rankRung(hr);
     const rung = Math.min(1, Math.max(0, (hr - 1) / 11));   // HR1..HR12 -> 0..1
+    const vt = valueT(fish, ore);
+    const lift = 0.085 + rodLift(rod);
+    const rate = RATE_FLOOR
+      + vt * RATE_SPAN * (RANK_DEMAND[rank] || 1) * (1 + within * RANK_RAMP);
     return {
       durationMs,
-      // How fast the line falls slack when you stop pulling. This is the ONLY
-      // thing Line Strength touches: a proportional cut, so a strong line buys
-      // you time on every fish rather than a fixed amount that means nothing on
-      // the hard ones.
-      sinkPerSec: Math.max(0.18,
-        (0.30 + r * 0.014 + o * 0.022) * (1 + rung * 0.25) * (1 - lineLevel * 0.035)),
-      // What one press buys. Flat, so the rhythm is the skill, not the timing.
-      liftPerPress: 0.085,
+      // How fast the line falls slack when you stop pulling — the thing that sets
+      // how hard you have to work. The rod cuts it proportionally, so a better rod
+      // buys you time on every fish rather than a fixed amount that would mean
+      // everything on a cheap one and nothing on a dear one.
+      sinkPerSec: Math.max(0.16, rate * lift * (1 - rodSink(rod))),
+      // What one press buys. Nearly flat, so the rhythm stays the skill; the rod
+      // adds a little, which is the only reason a press is ever worth more.
+      liftPerPress: lift,
       // Half-width of the good stretch either side of centre, set by what the
       // fish is WORTH. Rarity and ore rank were far too coarse for this: a 47z
       // Iron Whetfish and a 52z Iron Pin Tuna came out identical, and the most
       // valuable fish in the game only pulled the band in from 46% of the track
       // to 28%. Value spans 47z to 8,293z, so it is read on a log scale — every
       // step up in what you are holding visibly tightens the stretch.
-      // Line Strength deliberately does NOT widen this. Widening the target makes
-      // the fight easier to be sloppy at; slowing the sink gives you more time to
-      // be precise in. The second is still a test of the same skill.
+      // The rod widens it and so does Sure Grip. Both were withheld before, on the
+      // grounds that a wider target only makes it easier to be sloppy — but with
+      // the demand now resetting and climbing per rank there has to be something
+      // that answers a tight band, or the dearest G Rank fish are simply refused.
       band: Math.min(0.34, Math.max(BAND_FLOOR,
-        (BAND_WIDE - valueT(fish, ore) * (BAND_WIDE - BAND_TIGHT)) * (1 - rung * 0.28))),
+        (BAND_WIDE - vt * (BAND_WIDE - BAND_TIGHT)) * (1 - rung * RUNG_TIGHTEN)
+          * (1 + rodBand(rod) + effectPower(armor, 'band') + heatBand(armor, ctx)))),
       // Ground is only gained inside that stretch. A clean fight runs a little
       // under the nominal duration, so playing well beats the stamina you paid.
-      progressPerSec: 1000 / (durationMs * 0.6),
+      progressPerSec: (1000 / (durationMs * 0.6)) * (1 + effectPower(armor, 'progress')),
       // ...and the fish takes ground back whenever you are outside it. Slightly
       // faster than you gain, so a fight you keep slipping out of is one you lose
       // even if the line never reaches either extreme. This is the fish's half of
       // the contest rather than another way for you to be punished.
-      escapePerSec: (1000 / (durationMs * 0.6)) * 1.3,
+      escapePerSec: (1000 / (durationMs * 0.6)) * 1.3 * (1 - effectPower(armor, 'escape')),
       // The window has to be long enough to NOTICE, not just long enough to
       // react to. Anything under a second is a reflex test you can only pass by
       // already expecting it, which is the opposite of watching for a bite.
@@ -1128,23 +1189,581 @@
 
   // Bosses are a different animal: they sink fast, hold a narrow stretch, and
   // they cart you on a loss.
+  // The band a monster leaves you, and the floor under it. The same rule the fish
+  // follow — the better the catch, the less room you get — had never been applied
+  // here: Plesioth pays 14,000z against a Guardfish variant's 8,300z and was
+  // handing you a 26% band where the fish gets 9%, three times the room for
+  // nearly twice the money.
+  //
+  // They still sit a little above the fish floor rather than under it, because
+  // band is not the whole of the difficulty. A monster fight runs 26-32 seconds
+  // against a fish's seven, and holding a hairline for half a minute is a
+  // different thing from hitting one for a moment. BOSS_BAND_FLOOR is the
+  // minimum there is any point playing.
+  const BOSS_BAND_FLOOR = 0.05;
+
+  // ── Gear ──────────────────────────────────────────────────────────────────
+  //
+  // Two slots, a rod and a suit of armor, and between them they replace all four
+  // of the old upgrade sliders. Vitality and Endurance became armor; Line
+  // Strength and Lure Quality became the rod.
+  //
+  // The reason is progression you can feel. Four sliders you nudged a level at a
+  // time never read as equipment, and their effect was small enough that a
+  // player could skip them entirely and still clear G Rank — which is exactly
+  // what happened. Gear you forge from something you caught, in tiers named for
+  // the rank they belong to, is legible in a way a slider is not.
+  //
+  // Rod is a LADDER: strictly better as you climb.
+  // Armor is a CHOICE: comparable defence within a rank, differing by effect.
+
+  // What a monster gives up when you land it. One part per rank, and the real
+  // MHGU part at that: the game's own naming already carries the rank, base for
+  // Low, `+` for High and Shard/Piel for G, so nothing here is invented.
+  const MAT_LINES = {
+    cephalos:   { name: 'Cephalos',      Low: 'Cephalos Scale',  High: 'Cephalos Scale+',  G: 'Cephalos Shard',   icon: 'MH4G-Scale_Icon_Light_Blue.png' },
+    ludroth:    { name: 'Royal Ludroth', Low: 'R.Ludroth Scale', High: 'R.Ludroth Scale+', G: 'R.Ludroth Shard',  icon: 'MH4G-Scale_Icon_Yellow.png' },
+    nibelsnarf: { name: 'Nibelsnarf',    Low: 'Nibelsnarf Hide', High: 'Nibelsnarf Hide+', G: 'Nibelsnarf Piel',  icon: 'MH4G-Hide_Icon_Brown.png' },
+    plesioth:   { name: 'Plesioth',      Low: null,              High: 'Plesioth Scale+',  G: 'Plesioth Shard',   icon: 'MH4G-Scale_Icon_Blue.png' },
+    zamtrios:   { name: 'Zamtrios',      Low: null,              High: 'Zamtrios Scale+',  G: 'Zamtrios Shard',   icon: 'MH4G-Scale_Icon_Light_Blue.png' },
+    agnaktor:   { name: 'Agnaktor',      Low: 'Agnaktor Scale',  High: 'Agnaktor Hide+',   G: 'Agnaktor Piel',    icon: 'MH4G-Hide_Icon_Red.png' },
+    lagiacrus:  { name: 'Lagiacrus',     Low: 'Lagiacrus Scale', High: 'Lagiacrus Scale+', G: 'Lagiacrus Shard',  icon: 'MH4G-Scale_Icon_Light_Blue.png' },
+    lavasioth:  { name: 'Lavasioth',     Low: null,              High: 'Lavasioth Scale+', G: 'Lavasioth Shard',  icon: 'MH4G-Scale_Icon_Grey.png' },
+  };
+  const matId = (line, rank) => `${line}_${rank.toLowerCase()}`;
+  const bossMat = (line, rank) => {
+    const L = MAT_LINES[line];
+    const nm = L && L[rank];
+    return nm ? { id: matId(line, rank), name: nm, icon: L.icon, line, rank } : null;
+  };
+  const MONSTER_MATS = (() => {
+    const out = [];
+    for (const [line, L] of Object.entries(MAT_LINES))
+      for (const rank of ['Low', 'High', 'G'])
+        if (L[rank]) out.push(bossMat(line, rank));
+    return out;
+  })();
+  const monsterMatById = new Map(MONSTER_MATS.map(m => [m.id, m]));
+
+  // ── Effects ───────────────────────────────────────────────────────────────
+  //
+  // Names follow one rule: Base -> Base+ -> a new name at G. A line that only
+  // exists from High Rank skips the `+` and runs Base -> new name. Anything with
+  // no levels at all is simply itself.
+  //
+  // A real MHGU skill keeps its real name ONLY where the effect genuinely is
+  // that thing. Guts, Heat Cancel, Cold Cancel and Defense Up are real and mean
+  // here what they mean there. Hero's Talisman was kept and then given up: once
+  // it stopped negating damage and started keeping small monsters away, it was a
+  // different skill, so it became Fisherman's Talisman. Whim is about
+  // tools breaking and Fate about quest rewards, so neither was allowed to stand
+  // in for bait saving or trade yield — those got names of their own. Every
+  // invented name here was checked against the game's real skill list first.
+  const EFFECTS = {
+    band:     { tiers: ['Sure Grip', 'Sure Grip+', "Master's Grip"],            per: 0.18,
+                blurbs: ['Slightly widens the sweet spot when catching a fish',
+                         'Widens the sweet spot when catching a fish',
+                         'Greatly widens the sweet spot when catching a fish'] },
+    escape:   { tiers: ['Tireless Arm', 'Iron Arm'],                            per: 0.12,
+                blurbs: ["The fish's escape bar fills more slowly when outside of the sweet spot",
+                         "The fish's escape bar fills much more slowly when outside of the sweet spot"] },
+    progress: { tiers: ['Quick Reel', 'Quick Reel+', 'Peerless Reel'],          per: 0.12,
+                blurbs: ['The capture bar fills more quickly while in the sweet spot',
+                         'The capture bar fills considerably more quickly while in the sweet spot',
+                         'The capture bar fills much more quickly while in the sweet spot'] },
+    bites:    { tiers: ['Baited Water', 'Feeding Frenzy'],                      per: 0.15,
+                blurbs: ['Fish are more eager to bite the line',
+                         'Fish are far more eager to bite the line'] },
+    zenny:    { tiers: ['Fair Price'],                                          per: 0.15,
+                blurbs: ['Every catch is worth a little more'] },
+    saver:    { tiers: ['Sparing Hand', 'Sparing Hand+', 'Bottomless Pouch'],   per: 0.12,
+                blurbs: ['A chance to not use bait/items when used',
+                         'A good chance to not use bait/items when used',
+                         'A high chance to not use bait/items when used'] },
+    // Sometimes / often / very often is the game's own ladder for a chance-based
+    // skill — Good Luck, Great Luck, Miraculous Luck, word for word.
+    gather:   { tiers: ['Beachcomber', 'Beachcomber+', 'Master Beachcomber'],   per: 0.20,
+                blurbs: ['When gathering, Palicos sometimes find more items',
+                         'When gathering, Palicos often find more items',
+                         'When gathering, Palicos very often find more items'] },
+    trade:    { tiers: ['Fair Trade', "Trader's Favour"],                       per: 0.25,
+                blurbs: ['The Trade Cart will obtain more items',
+                         'The Trade Cart will obtain far more items'] },
+    combo:    { tiers: ['Steady Mixer', 'Master Mixer'],                        per: 0.08,
+                blurbs: ['Increases your combo success chances',
+                         'Greatly increases your combo success chances'] },
+    // The one skill the real game already wrote all three lines for, and the
+    // source of the Slightly / - / Greatly pattern the rest of these follow.
+    defense:  { tiers: ['Defense Up (S)', 'Defense Up (M)', 'Defense Up (L)'],  per: 0.18,
+                blurbs: ['When attacked by a monster, you take slightly less damage',
+                         'When attacked by a monster, you take less damage',
+                         'When attacked by a monster, you take greatly reduced damage'] },
+    stamina:  { tiers: ['Long Haul', 'Long Haul+', 'Second Wind'],              per: 0.08,
+                blurbs: ['Casting and reeling cost slightly less stamina',
+                         'Casting and reeling cost less stamina',
+                         'Casting and reeling cost greatly reduced stamina'] },
+    effectup: { tiers: ['Effect Up', 'Effect Up+', 'Effective Use'],            per: 0.25,
+                blurbs: ['Slightly increases the effects of items',
+                         'Increases the effects of items',
+                         'Greatly increases the effects of items'] },
+    // Lagiacrus charges the water and the small stuff stops coming. Cuts how
+    // heavily the common varieties are weighted, so the mix shifts up rather than
+    // every catch being worth more — a different lever from Fair Price.
+    cull:     { tiers: ['Shock Bobber', 'Shock Bobber+', 'Deathly Shock Bobber'],
+                // How many of the cheapest varieties are driven off entirely. The
+                // bar RISES with the level rather than the weights merely thinning,
+                // so each rung takes the next-worst thing out of the water.
+                floor: [1, 2, 3],
+                blurbs: ['Repels the lowest variety of fish',
+                         'Repels the two lowest varieties of fish',
+                         'Repels the three lowest varieties of fish'] },
+    // Each rung is a different thing rather than the same thing louder, so each
+    // says only its own part. The top line is MHGU's own wording for Heat Cancel.
+    heat:     { tiers: ['Heat Resist', 'Heat Resist+', 'Heat Cancel'],          climate: 'hot',
+                blurbs: ['Cool Drinks last 50% longer',
+                         'Cool Drinks last twice as long',
+                         'Negates the damage incurred from heat and lava'] },
+    // A shorter ladder than heat, and not by oversight: Zamtrios has no Low tier,
+    // so cold protection skips the middle rung heat gets.
+    cold:     { tiers: ['Cold Resist', 'Cold Cancel'],                          climate: 'cold',
+                blurbs: ['Hot Drinks last 50% longer',
+                         'Negates all cold'] },
+    // Everything Heat Resist does, and a wider line on top of it while you are
+    // somewhere hot — more so with a Hot Drink in hand, which is the wrong drink
+    // for the weather and exactly what the real skill rewards.
+    hotblood: { tiers: ['Heat Hunter', 'Tropic Hunter'],                        climate: 'hot', bandInHeat: true,
+                blurbs: ['You are more comfortable in Hot regions and like Hot Drinks',
+                         'You thrive in Hot Regions and enjoy Hot Drinks'] },
+    guts:     { tiers: ['Guts'],             flag: true,
+                blurbs: ['Once per trip, instead of carting from any HP, you will be left with 1 HP.'] },
+    repel:    { tiers: ["Fisherman's Talisman"],  per: 0.35,
+                blurbs: ['Repels small monsters, making attacks from them less common'] },
+    // Divine Blessing was defined here and dropped: in the real game it softens an
+    // attack, and you are attacked far too rarely out here for a chance-based cut
+    // to be worth a line's worth of armor. Defense Up already does that job.
+  };
+  // Level 1/2/3 picks tier name 0/1/2. A two-tier line hands out levels 1 and 3,
+  // which is what makes it read Sure Grip -> Master's Grip with no `+` between.
+  const effectName = (key, lvl) => {
+    const e = EFFECTS[key];
+    if (!e) return '';
+    return e.tiers[Math.min(e.tiers.length - 1, Math.max(0, lvl - 1))];
+  };
+  const effectBlurb = (key, lvl = 1) => {
+    const e = EFFECTS[key];
+    if (!e) return '';
+    const i = Math.min((e.blurbs || e.tiers).length - 1, Math.max(0, lvl - 1));
+    return (e.blurbs && e.blurbs[i]) || e.blurb || '';
+  };
+  const isFlagEffect = key => !!EFFECTS[key]?.flag;
+
+  // ── Armor ─────────────────────────────────────────────────────────────────
+  //
+  // One line per monster, named the way MHGU names them: base at Low, S at High,
+  // X at G. Each line carries a PRIMARY effect that gets stronger as you climb,
+  // and picks up a SECOND effect only at G. Which second is fixed per line, so a
+  // set keeps an identity and committing to one means something.
+  //
+  // Lines whose monster does not exist below High Rank start there — the same
+  // rule the materials already state.
+  // TWO skills on every suit, both climbing together: base at Low, improved at
+  // High, maxed at G. A G suit then picks up a THIRD at level 1, or one of the
+  // skills that has no levels at all.
+  //
+  // The third skill at LEVEL ONE is what makes the whole ladder visible. Under the
+  // old shape a second effect only ever appeared at level 3, so the tier-1 name of
+  // anything that was not somebody's primary — Sure Grip, Cold Resist, Fair Price,
+  // Steady Mixer — existed in the code and could never be seen in the game. Now
+  // every effect has a line carrying it up from 1, and the G thirds fill in the
+  // ones whose own line starts at High Rank.
+  const ARMOR_LINES = {
+    //           two that climb together        one more at G, level 1
+    cephalos:   { a: 'heat',     b: 'progress', third: 'bites',    name: 'Cephalos' },    // Heat Res 20; Attack 20 / Water Atk 18 = you pull harder
+    ludroth:    { a: 'stamina',  b: 'gather',   third: 'effectup', name: 'Ludroth' },     // Hunger 20, Stamina 20, Stam Recov 20
+    nibelsnarf: { a: 'effectup', b: 'saver',    third: 'repel',    name: 'Nibelsnarf' },  // Gluttony 22 (Gourmand/Scavenger), Eating 30
+    agnaktor:   { a: 'defense',  b: 'hotblood', third: 'band',     name: 'Agnaktor' },    // Guard Up 20, Guard 15; HotBlooded 20 = Tropic Hunter
+    lagiacrus:  { a: 'band',     b: 'cull',     third: 'zenny',    name: 'Lagiacrus' },   // Elemental 20 + Pierce Up 10 = authority over the water itself
+    plesioth:   { a: 'trade',    b: 'bites',    third: 'gather',   name: 'Plesioth' },    // Capturer 20 = more reward items from what you land
+    zamtrios:   { a: 'cold',     b: 'combo',    third: 'stamina',  name: 'Zamtrios' },    // ColdBlooded 20; Artillery 22 = loaded ordnance
+    lavasioth:  { a: 'escape',   b: 'stamina',  third: 'guts',     name: 'Lavasioth' },   // Crisis/Survivor = will not be shaken off; Endurance 20
+  };
+  const RANK_LEVEL = { Low: 1, High: 2, G: 3 };
+  // S is the MIDDLE of a line, not "the High Rank one". A line with only two
+  // suits has no middle, so it runs base then X — the same shape the skill names
+  // take, where a two-tier skill goes Sure Grip -> Master's Grip with no `+`.
+  const armorSuffix = (i, n) => (i === 0 && n > 1) ? '' : (i === n - 1 ? ' X' : ' S');
+  // What a suit is worth defensively, before its levels. HP and stamina replace
+  // Vitality and Endurance outright, so a G suit at full level lands near where
+  // twenty levels of each used to.
+  const ARMOR_BASE = {
+    Low:  { hp: 15, stamina: 10, guard: 0.05 },
+    High: { hp: 40, stamina: 26, guard: 0.11 },
+    G:    { hp: 70, stamina: 44, guard: 0.17 },
+  };
+  const ARMOR_PER_LEVEL = { hp: 4, stamina: 3, guard: 0.008 };
+  // Levels are money only, and locked behind HR so a suit cannot be pushed far
+  // ahead of the rank it belongs to. Same shape as the Books of Fishing Combos.
+  const ARMOR_LEVELS = 5;
+  const GEAR_LEVEL_HR = { Low: [1, 2, 2, 3, 3], High: [4, 5, 6, 6, 7], G: [9, 10, 11, 12, 12] };
+
+  // ARMORS itself is built further down, once BOSS exists — a tier depends on
+  // whether its monster can actually be met at that rank, and that cannot be
+  // known up here.
+
+  // ── Rods ──────────────────────────────────────────────────────────────────
+  //
+  // A straight ladder, one per rank, with money-only levels between. The levels
+  // are the "range of ability" inside a rank; the tiers are the jumps between
+  // them. Forged from the rank's own monster parts, from whichever line you have
+  // been hunting — any line's part of the right rank will do, so the rod never
+  // forces you onto a monster you dislike.
+  const RODS = [
+    // The one you start holding. No cost and no parts: it is where everybody
+    // begins, so it is never something to be forged.
+    { id: 'rod_old',    rank: 'Low',  name: 'Old Angler Rod',    cost: 0, starter: true,
+      desc: "It's not much, but it will catch a few fish",
+      sink: 0.05, band: 0.02, lift: 0.000, bites: 0.00, school: 0,
+      levelCost: n => Math.round(500 * Math.pow(1.45, n)),
+      matCount: 0, icon: 'assets/BaitIcons/MH4G-Bait_Icon_Grey.png' },
+    { id: 'rod_angler', rank: 'Low',  name: 'Angler Rod',        cost: 3200,
+      desc: 'This is the standard rod for anglers',
+      sink: 0.12, band: 0.06, lift: 0.002, bites: 0.02, school: 0,
+      levelCost: n => Math.round(1100 * Math.pow(1.45, n)),
+      matCount: 2, icon: 'assets/BaitIcons/MH4G-Bait_Icon_White.png' },
+    { id: 'rod_mega',   rank: 'High', name: 'Mega Angler Rod',   cost: 12000,
+      desc: 'A fine fishing rod, made with an eye for quality',
+      sink: 0.22, band: 0.12, lift: 0.006, bites: 0.05, school: 1,
+      levelCost: n => Math.round(4200 * Math.pow(1.45, n)),
+      matCount: 3, icon: 'assets/BaitIcons/MH4G-Bait_Icon_Yellow.png' },
+    { id: 'rod_master', rank: 'G',    name: 'Master Angler Rod', cost: 44000,
+      desc: 'The pinnacle in fishing rods. Some say it even rivals Hunter weapons.',
+      sink: 0.36, band: 0.20, lift: 0.014, bites: 0.10, school: 2,
+      levelCost: n => Math.round(14000 * Math.pow(1.45, n)),
+      matCount: 3, icon: 'assets/BaitIcons/MH4G-Bait_Icon_Red.png' },
+  ];
+  const rodById = new Map(RODS.map(r => [r.id, r]));
+  const ROD_PER_LEVEL = { sink: 0.022, band: 0.018, lift: 0.0018, bites: 0.012 };
+  const ROD_LEVELS = 5;
+
+  // A rod as it currently stands: its tier plus however many levels are on it.
+  // `rod` everywhere below is {id, lvl}; a missing rod is bare hands, which is
+  // deliberately playable at Low Rank and nowhere else.
+  const rodStat = (rod, key) => {
+    const r = rod && rodById.get(rod.id);
+    if (!r) return 0;
+    return r[key] + (ROD_PER_LEVEL[key] || 0) * (rod.lvl || 0);
+  };
+  const rodSink  = rod => Math.min(0.62, rodStat(rod, 'sink'));
+  const rodBand  = rod => rodStat(rod, 'band');
+  const rodLift  = rod => rodStat(rod, 'lift');
+  const rodBites = rod => rodStat(rod, 'bites');
+  const rodSchool = rod => {
+    const r = rod && rodById.get(rod.id);
+    return r ? r.school + Math.floor((rod.lvl || 0) / 3) : 0;
+  };
+
+  // What the armor you are wearing actually grants, as {effectKey: level}.
+  function armorEffects(armor) {
+    const a = armor && armorById.get(armor.id);
+    const out = {};
+    if (!a) return out;
+    for (const e of a.effects) out[e.key] = Math.max(out[e.key] || 0, e.lvl);
+    return out;
+  }
+  // Effect strength, already multiplied out. Flags come back as 0 or 1.
+  function effectPower(armor, key) {
+    const lvl = armorEffects(armor)[key] || 0;
+    if (!lvl) return 0;
+    const e = EFFECTS[key];
+    return e.flag ? 1 : e.per * lvl;
+  }
+  // How many levels of an effect a suit carries, 0 if none. Climate wants this
+  // rather than effectPower: 1 and 2 lengthen a drink, 3 removes the need for one.
+  const effectLevel = (armor, key) => armorEffects(armor)[key] || 0;
+
+  // What one drink is worth while wearing this, and whether the climate can touch
+  // you at all. Level 3 is Heat Cancel / Cold Cancel: no drink needed, ever.
+  const climateFor = (armor, climate) => {
+    let lvl = 0;
+    for (const [key, e] of Object.entries(EFFECTS))
+      if (e.climate === climate) lvl = Math.max(lvl, effectLevel(armor, key));
+    return { lvl, immune: lvl >= 3, drinkMult: lvl >= 3 ? 1 : 1 + 0.5 * lvl };
+  };
+
+  // Tropic Hunter's half that is not resistance. Standing in the heat widens the
+  // line by what Sure Grip of the same level would give; a Hot Drink while you are
+  // there doubles it. A Hot Drink anywhere else is worth the single step, which is
+  // what makes carrying the wrong drink deliberately a real choice.
+  function heatBand(armor, ctx) {
+    if (!ctx) return 0;
+    const lvl = effectLevel(armor, 'hotblood');
+    if (!lvl) return 0;
+    const hot = ctx.climate === 'hot';
+    const drink = !!ctx.hotDrink;
+    const steps = hot && drink ? 2 : (hot || drink ? 1 : 0);
+    return EFFECTS.band.per * lvl * steps;
+  }
+
+  // Which varieties Shock Bobber drives off: the N cheapest of whatever is in the
+  // water here, N rising with the level. Never the whole pool — at least two
+  // varieties always stay, or a Low Rank angler wearing it would find nothing
+  // biting at all.
+  const CULL_KEEP = 2;
+  function culledOres(armor, ores) {
+    const lvl = effectLevel(armor, 'cull');
+    if (!lvl || ores.length <= CULL_KEEP) return ores;
+    const n = Math.min(EFFECTS.cull.floor[Math.min(EFFECTS.cull.floor.length - 1, lvl - 1)],
+                       ores.length - CULL_KEEP);
+    const worst = [...ores].sort((a, b) => a.rank - b.rank || a.sell - b.sell)
+      .slice(0, n).map(o => o.id);
+    return ores.filter(o => !worst.includes(o.id));
+  }
+
+  const armorStat = (armor, key) => {
+    const a = armor && armorById.get(armor.id);
+    if (!a) return 0;
+    return a[key] + (ARMOR_PER_LEVEL[key] || 0) * (armor.lvl || 0);
+  };
+
+  // ── Money by rank ─────────────────────────────────────────────────────────
+  //
+  // Value rides on the LOCALE's rank, not the fish's. A rank resets the lineup
+  // back to easy prey, so the cheap variants you meet again on a G rung have to
+  // still be worth pulling out — otherwise half of every G Rank trip is a wasted
+  // cast. The step is the rank; the drift inside it is the rungs.
+  const RANK_PAY = { Low: 1, High: 1.35, G: 1.8 };
+  const RANK_PAY_PER_RUNG = 0.04;
+  function payMult(hr) {
+    const rank = curveRank(hr);
+    return (RANK_PAY[rank] || 1) + RANK_PAY_PER_RUNG * Math.max(0, (hr || 1) - RANK_HR[rank]);
+  }
+
+  // The dearest thing swimming at each rank, read off the real data rather than
+  // typed here, so everything pinned to it stays true when the tables change.
+  const RANK_PEAK = (() => {
+    const out = {};
+    for (const rank of ['Low', 'High', 'G']) {
+      const hr = RANK_HR[rank];
+      const ores = ORES.list.filter(o => oreUnlockHR(o) <= hr);
+      let top = 0;
+      for (const f of FISH.fish) {
+        if (fishUnlockHR(f) > hr) continue;
+        for (const o of ores) top = Math.max(top, variantValue(f, o));
+      }
+      out[rank] = top;
+    }
+    return out;
+  })();
+
+  // Bosses pay about three times the dearest fish of their own rank. That is not
+  // a new rule — Plesioth's 14,000z against a 4,569z peak and Lavasioth's
+  // 26,000z against 8,300z are both almost exactly 3x, so it is the one already
+  // in the numbers, read back out and applied to the rest.
+  const BOSS_REWARD_MULT = 3;
+
+  // ...and they ask MORE of you than that fish did, which is the whole of the
+  // fix. Something paying three times the best catch in the water while demanding
+  // less of your hands than that catch did is what made them feel cheap.
+  //
+  // So it is a MULTIPLE of the rank's hardest fish rather than a number typed
+  // here. Typed numbers were exactly the bug the first time: they were set
+  // against the old curve, the fish curve then moved, and every boss quietly
+  // became easier than the water it swam in. Pinned like this they cannot drift.
+  const RANK_TOP_RATE = (() => {
+    const out = {};
+    for (const rank of ['Low', 'High', 'G']) {
+      const hr = rank === 'Low' ? 3 : rank === 'High' ? 8 : 12;
+      const ores = ORES.list.filter(o => oreUnlockHR(o) <= RANK_HR[rank]);
+      let top = 0;
+      for (const f of FISH.fish) {
+        if (fishUnlockHR(f) > RANK_HR[rank]) continue;
+        for (const o of ores) {
+          const t = fightFor(f, o, null, hr, null);
+          top = Math.max(top, t.sinkPerSec / t.liftPerPress);
+        }
+      }
+      out[rank] = top;
+    }
+    return out;
+  })();
+  const BOSS_RATE_MULT = { lo: 1.04, hi: 1.20 };   // easiest to hardest of a rank
+
+  // How long the fight nominally runs, which is also what it charges in stamina.
+  const BOSS_SECONDS = { Low: 18, High: 26, G: 32 };
+
+  // The fish's half of the contest. Fish take ground back at 1.3x what you gain;
+  // a monster does far worse, and that bar is the reason they are dangerous
+  // rather than merely long.
+  const BOSS_ESCAPE_MULT = { Low: 1.5, High: 1.7, G: 1.9 };
+
+  // Each monster's place inside its own rank, 0 easiest to 1 hardest, scaling
+  // demand, pay, duration and how hard it fights back together.
+  //
+  // `floor` is the earliest rank it turns up at, and it is not a guess: MHGU
+  // gives Plesioth, Zamtrios and Lavasioth no plain-tier scale at all — their
+  // materials start at `+` — which is the game itself saying they are High Rank
+  // animals. Cephalos, R.Ludroth, Nibelsnarf, Agnaktor and Lagiacrus have the
+  // full trio.
+  //
+  // A monster then RECURS at every rank its locale reaches, harder each time,
+  // exactly as a fish picks up richer varieties. That is what closes the forge
+  // loop: Ludroth S needs a High Rank Royal Ludroth to drop an R.Ludroth Scale+.
   const BOSS = {
+    Cephadrome: {
+      name: 'Cephadrome', icon: 'MHGU-Cephadrome_Icon.webp', bait: null,
+      floor: 'Low', tier: 0, line: 'cephalos',
+      desc: 'The sand shifts, and something long moves under it.',
+      note: 'The leaders of Cephalos herds, these individuals are set apart by '
+          + 'their larger size and hard, black scales.',
+    },
+    'Royal Ludroth': {
+      name: 'Royal Ludroth', icon: 'MHGU-Royal_Ludroth_Icon.webp', bait: null,
+      floor: 'Low', tier: 0.25, line: 'ludroth',
+      desc: 'A wet mane breaks the surface beside the bobber.',
+      note: 'Royal Ludroth use their sponge-like neck scales to absorb water and '
+          + 'keep from drying out on land.',
+    },
+    Nibelsnarf: {
+      name: 'Nibelsnarf', icon: 'MHGU-Nibelsnarf_Icon.webp', bait: null,
+      floor: 'Low', tier: 0.5, line: 'nibelsnarf',
+      desc: 'The sand opens under the bobber and takes it whole.',
+      note: 'They burrow beneath the desert and locate prey aurally, then suck '
+          + 'both the target and any surrounding sand into their maws.',
+    },
     Plesioth: {
       // bait: 'frog' — withheld; nothing raises the odds deliberately right now.
       name: 'Plesioth', icon: 'MHGU-Plesioth_Icon.webp', bait: null,
-      durationMs: 26000, reward: 14000,
-      fight: { sinkPerSec: 0.48, liftPerPress: 0.095, band: 0.13,
-               progressPerSec: 1 / 7, strikeWindowMs: 1500 },
-      xp: 260, desc: 'It takes the line and does not let go.',
+      floor: 'High', tier: 0.45, line: 'plesioth',
+      desc: 'It takes the line and does not let go.',
+      note: 'Where wings would be found on other wyverns, it has developed fins '
+          + 'specialized for swimming, and, as a result, cannot fly.',
+    },
+    Zamtrios: {
+      name: 'Zamtrios', icon: 'MHGU-Zamtrios_Icon.webp', bait: null,
+      floor: 'High', tier: 0.6, line: 'zamtrios',
+      desc: 'The ice cracks from underneath.',
+      note: 'Amphibians that strike from frozen waters, using the cold to stun '
+          + 'their prey.',
+    },
+    Agnaktor: {
+      name: 'Agnaktor', icon: 'MHGU-Agnaktor_Icon.webp', bait: null,
+      floor: 'Low', tier: 0.75, line: 'agnaktor',
+      desc: 'Something surfaces glowing, and the rock runs off it.',
+      note: 'Also known as fire-pike wyverns, Agnaktor use their tough beaks and '
+          + 'great strength to burrow effortlessly through rock, and can even '
+          + 'burrow into ceilings.',
+    },
+    Lagiacrus: {
+      name: 'Lagiacrus', icon: 'MHGU-Lagiacrus_Icon.webp', bait: null,
+      floor: 'Low', tier: 0.9, line: 'lagiacrus',
+      desc: 'The water goes still, then bright.',
+      note: 'Feared by sailors as the "Lords of the Seas", Lagiacrus store enough '
+          + 'electricity in their spinal organs to make the oceans surge. '
+          + 'Occasionally they can be found resting on land as well.',
     },
     Lavasioth: {
       name: 'Lavasioth', icon: 'MHGU-Lavasioth_Icon.webp', bait: null,
-      durationMs: 32000, reward: 26000,
-      fight: { sinkPerSec: 0.52, liftPerPress: 0.095, band: 0.115,
-               progressPerSec: 1 / 8, strikeWindowMs: 1400 },
-      xp: 420, desc: 'Something moves under the lava, and the line goes tight.',
+      floor: 'High', tier: 1, line: 'lavasioth',
+      desc: 'Something moves under the lava, and the line goes tight.',
+      note: 'It swims around in lava, sucking in molten rock to spew at its prey. '
+          + 'Its peculiar biology makes it a popular research subject.',
     },
   };
+
+  // Below its floor rank a monster is simply not in the water yet.
+  const bossAvailable = (name, hr) => {
+    const b = BOSS[name];
+    return !!b && rankIndex(curveRank(hr)) >= rankIndex(b.floor);
+  };
+
+  // Every rank a monster can genuinely be met at: at or above its floor, and on a
+  // rung its locale actually appears on.
+  const bossRanks = (() => {
+    const LOCALES = window.MF_LOCALES || [];
+    const out = {};
+    for (const name of Object.keys(BOSS)) out[name] = new Set();
+    for (const [hr, ids] of Object.entries(LADDER)) {
+      const rank = curveRank(+hr);
+      for (const id of ids) {
+        const loc = LOCALES.find(l => l.id === id);
+        for (const name of (loc && loc.boss) || [])
+          if (out[name] && bossAvailable(name, +hr)) out[name].add(rank);
+      }
+    }
+    return out;
+  })();
+  const bossMeetableAt = (name, rank) => !!bossRanks[name] && bossRanks[name].has(rank);
+
+  const ARMORS = (() => {
+    const out = [];
+    for (const [line, L] of Object.entries(ARMOR_LINES)) {
+      // A tier needs BOTH a real part name and a monster you can meet at that
+      // rank to drop it. Reading only the first is what produced three suits
+      // nobody could ever forge.
+      const boss = Object.values(BOSS).find(b => b.line === line);
+      const ranks = ['Low', 'High', 'G'].filter(r =>
+        MAT_LINES[line][r] && (!boss || bossMeetableAt(boss.name, r)));
+      ranks.forEach((rank, i) => {
+        // Rank is the level — base at Low, `+` at High, top name at G — EXCEPT on
+        // a line that has no Low tier at all. Those run 1 then 3, which is the
+        // other half of the naming rule: a skill that only exists from High Rank
+        // reads Sure Grip -> Master's Grip with no `+` between. Without it the
+        // base name of anything carried only by Plesioth, Zamtrios or Lavasioth
+        // could never appear in the game.
+        const lvl = ranks.length === 3 ? RANK_LEVEL[rank] : (i === 0 ? 1 : 3);
+        const eff = [{ key: L.a, lvl }, { key: L.b, lvl }];
+        if (rank === 'G' && L.third) eff.push({ key: L.third, lvl: 1 });
+        out.push({
+          id: `${line}_${rank.toLowerCase()}`, line, rank,
+          name: L.name + armorSuffix(i, ranks.length),
+          slot: 'armor',
+          ...ARMOR_BASE[rank],
+          effects: eff,
+          mat: bossMat(line, rank),
+          matCount: rank === 'Low' ? 2 : 3,
+          cost: rank === 'Low' ? 1800 : rank === 'High' ? 9000 : 34000,
+          levelCost: n => Math.round((rank === 'Low' ? 700 : rank === 'High' ? 3200 : 11000) * Math.pow(1.45, n)),
+        });
+      });
+    }
+    return out;
+  })();
+  const armorById = new Map(ARMORS.map(a => [a.id, a]));
+
+  // The monster as you meet it on THIS rung — stats, pay and the part it drops
+  // all scaled to the rank. `rod` is what you are holding, and it cuts the sink
+  // exactly as it does on a fish; without that a G Rank monster would be
+  // unplayable rather than hard.
+  function bossAt(name, hr, rod, armor = null, ctx = null) {
+    const b = BOSS[name];
+    if (!b) return null;
+    const rank = curveRank(hr);
+    const t = b.tier;
+    const rate = RANK_TOP_RATE[rank]
+      * (BOSS_RATE_MULT.lo + t * (BOSS_RATE_MULT.hi - BOSS_RATE_MULT.lo));
+    const secs = BOSS_SECONDS[rank] * (0.9 + t * 0.2);
+    const lift = 0.095 + rodLift(rod);
+    const progressPerSec = (1 / secs) * (1 + effectPower(armor, 'progress'));
+    return {
+      ...b,
+      rank,
+      durationMs: Math.round(secs * 1000),
+      reward: Math.round(RANK_PEAK[rank] * BOSS_REWARD_MULT * (0.75 + t * 0.5) / 50) * 50,
+      xp: Math.round((60 + RANK_HR[rank] * 22) * (0.8 + t * 0.6)),
+      mat: bossMat(b.line, rank),
+      fight: {
+        sinkPerSec: rate * lift * (1 - rodSink(rod)),
+        liftPerPress: lift,
+        band: Math.max(BOSS_BAND_FLOOR,
+          (0.115 - t * 0.05) * (1 + rodBand(rod) + effectPower(armor, 'band') + heatBand(armor, ctx))),
+        progressPerSec,
+        // The second bar, which bosses never ran at all until now — the reason
+        // they were the easiest thing in the water while paying the most.
+        escapePerSec: progressPerSec * BOSS_ESCAPE_MULT[rank] * (1 - effectPower(armor, 'escape')),
+        strikeWindowMs: Math.max(1200, 1800 - t * 400),
+      },
+    };
+  }
 
   // ── Small monsters ────────────────────────────────────────────────────────
   //
@@ -1178,7 +1797,11 @@
 
   // Encounter chance per cast. Volcano is the outlier on purpose — you go there
   // knowing Lavasioth is the tax on the ore.
-  const ENCOUNTER_CHANCE = { Plesioth: 0.007, Lavasioth: 0.022 };
+  const ENCOUNTER_CHANCE = {
+    Cephadrome: 0.012, 'Royal Ludroth': 0.012, Nibelsnarf: 0.010,
+    Plesioth: 0.007, Zamtrios: 0.010, Agnaktor: 0.012,
+    Lagiacrus: 0.008, Lavasioth: 0.022,
+  };
 
   // ...and it climbs with the rung. At the flat rate a Plesioth turned up on
   // roughly one trip in five, which at G Rank meant going a very long time
@@ -1203,8 +1826,8 @@
 
   window.MF_GAME = {
     RANKS, rankById, rankAt, hrForRank, tableRanksAt, xpFor, hrThreshold,
-    RANK_HR, ORE_RANK_HR, fishUnlockHR, oreUnlockHR, itemUnlockHR, baitUnlockHR, unlockLabel,
-    ORE_PREFIX, variantName, variantId, variantIcon, variantValue, ORE_HEX, oreHex,
+    RANK_HR, ORE_RANK_HR, curveRank, fishUnlockHR, oreUnlockHR, itemUnlockHR, baitUnlockHR, unlockLabel,
+    ORE_PREFIX, variantName, variantId, variantIcon, variantValue, ORE_HEX, ORE_TINT, ORE_ICON, oreHex,
     ORE_WEIGHT, oresAt, ORE_VALUE_MULT,
     buildBaits, baitIconFor,
     ITEM_EFFECT, effectOf, ITEM_GROUPS,
@@ -1221,13 +1844,22 @@
     CLIMATE_RATES, CLIMATE_TICK_MS, DRINK_SECONDS,
     DASH_SECONDS, DASH_MULT, ARMOR_SECONDS,
     BASE_MAX_HP, BASE_MAX_STAMINA, STAMINA_COST,
-    MEALS, mealCost, MEAL_SCALE, UPGRADES, ITEM_PRICE, priceOf,
+    MEALS, mealCost, MEAL_SCALE, ITEM_PRICE, priceOf,
+    RETIRED_UPGRADES, refundUpgrades,
+    MAT_LINES, MONSTER_MATS, monsterMatById, bossMat, matId,
+    EFFECTS, effectName, effectBlurb, isFlagEffect, effectPower, armorEffects,
+    effectLevel, climateFor, heatBand, culledOres,
+    ARMOR_LINES, ARMORS, armorById, armorStat, ARMOR_LEVELS, ARMOR_PER_LEVEL, armorSuffix,
+    RODS, rodById, ROD_LEVELS, ROD_PER_LEVEL,
+    rodSink, rodBand, rodLift, rodBites, rodSchool, rodStat,
+    GEAR_LEVEL_HR, RANK_PAY, payMult, RANK_PEAK,
+    bossAt, bossAvailable, bossRanks, bossMeetableAt, RANK_TOP_RATE, BOSS_SECONDS, BOSS_ESCAPE_MULT, BOSS_REWARD_MULT,
     CANTEEN, INGREDIENT_CHANCE, ingredientById, ingredientPool, rollIngredient,
     recipeFor, mealAvailable, mealsAvailable,
     MEAL_TIERS, mealPower, mealUnlockHR,
     FRESH, FRESH_CHANCE, FRESH_MAX, FRESH_LABEL, isFresh, freshBonus, freshLines, freshShort,
     freshPick,
-    POND, REEL_START, fightFor, BOSS, PEST, HIRE, ENCOUNTER_CHANCE,
+    POND, REEL_START, RUNG_TIGHTEN, fightFor, BOSS, BOSS_BAND_FLOOR, PEST, HIRE, ENCOUNTER_CHANCE,
     ENCOUNTER_RANK_SCALE, encounterChance, STOCK_CAP,
     BOSS_LOSS, bossLossDamage,
   };

@@ -6,8 +6,9 @@
   const el = id => document.getElementById(id);
   const z = n => Math.round(n).toLocaleString() + 'z';
 
-  const SCREENS = ['camp', 'quest', 'guide', 'combos', 'shop'];
-  const TABS = { camp: 'navCamp', guide: 'navGuide', combos: 'navCombos', shop: 'navShop' };
+  const SCREENS = ['camp', 'quest', 'guide', 'combos', 'smithy', 'shop'];
+  const TABS = { camp: 'navCamp', guide: 'navGuide', combos: 'navCombos',
+                 smithy: 'navSmithy', shop: 'navShop' };
 
   function show(name) {
     for (const s of SCREENS) el(s).classList.toggle('active', s === name);
@@ -18,6 +19,7 @@
     if (name === 'guide') showCollectables(collectView);
     if (name === 'combos') window.MF_GUIDE.renderCombos();
     if (name === 'shop') renderShop();
+    if (name === 'smithy') { renderSmithy(); showSmithy(smithyView); }
     if (name === 'camp') window.MF_PREP.renderAll();
   }
 
@@ -48,6 +50,159 @@
   function refresh() {
     renderHeader();
     if (el('camp').classList.contains('active')) window.MF_PREP.renderAll();
+  }
+
+
+  // ── Smithy ────────────────────────────────────────────────────────────────
+  //
+  // Gear only. You forge a piece you do not own from monster parts plus zenny, or
+  // level one you do own with zenny alone. What a piece is MADE OF gets its own
+  // column here rather than a line of description: the whole question a player
+  // brings to this screen is "which monster do I still have to go and find?", and
+  // a column answers that at a glance where a footnote does not.
+  function renderSmithy() {
+    const S = A.state;
+
+    const matCell = (g) => {
+      const parts = A.forgeParts(g.id);
+      if (!parts.length) return '<span class="none">&mdash;</span>';
+      const need = A.partsNeeded(g.id), held = A.partsHeld(g.id);
+      const enough = held >= need;
+      // A rod takes any part of its rank, so listing five of them is noise — say
+      // what it actually wants. Armor wants its own monster, so name it.
+      const label = parts.length === 1
+        ? `${img('assets/ItemIcons/' + parts[0].mat.icon, parts[0].mat.name)}${parts[0].mat.name}`
+        : `<i>any ${g.rank} Rank part</i>`;
+      return `<span class="mat ${enough ? 'ok' : 'short'}">`
+        + `<b>${need}&times;</b> ${label} <span class="held">${held} held</span></span>`;
+    };
+
+    const gearRow = (g, slot) => {
+      const owned = A.gearOwned(g.id);
+      const lvl = A.gearLevel(g.id), max = A.gearMax(g.id);
+      const worn = S.gear[slot] && S.gear[slot].id === g.id;
+      const capped = lvl >= max;
+      const gate = owned && !capped ? A.levelUnlockHR(g.id, lvl) : 0;
+      const locked = gate > S.hr;
+      const cost = !owned ? g.cost : (capped ? 0 : A.levelCost(g.id));
+
+      // One entry per skill in each column, in the same order, so a name and its
+      // description always line up.
+      const armor = g.slot === 'armor';
+      const skills = armor
+        ? g.effects.map(e => `<span class="ent">${G.effectName(e.key, e.lvl)}</span>`).join('')
+        : '';
+      let detail = armor
+        ? g.effects.map(e => `<span class="ent">${G.effectBlurb(e.key, e.lvl)}</span>`).join('')
+        : `<span class="ent">${g.desc || ''}</span>`;
+      if (owned && locked) detail += `<span class="unlock">Next level at HR ${gate}</span>`;
+
+      const buys = [];
+      if (!owned) buys.push({ label: 'Forge', attr: `data-forge="${g.id}"`,
+                              disabled: !A.canForge(g.id) });
+      else {
+        buys.push({ label: 'Upgrade', attr: `data-level="${g.id}"`,
+                    disabled: capped || locked || !A.canLevel(g.id) });
+        if (!worn) buys.push({ label: 'Equip', attr: `data-equip="${g.id}"` });
+      }
+      return gearRowHTML({
+        icon: img(g.icon || 'assets/ItemIcons/' + (g.mat ? g.mat.icon : 'MH4G-Ore_Icon_Grey.png'), g.name),
+        name: g.name,
+        skills, detail,
+        mats: owned ? '<span class="none">&mdash;</span>' : matCell(g),
+        price: !owned ? z(g.cost) : (capped ? '&mdash;' : z(cost)),
+        have: owned ? `Lv ${lvl} / ${max}` : '&mdash;',
+        buys, worn,
+      });
+    };
+
+    // A rod appears once you hold a part of its rank — the same rule armor
+    // follows, and the same reason: the list should be a record of what you have
+    // met, not a catalogue of what exists. The starter is always there, since it
+    // is the rod you are already holding.
+    const heldRanks = new Set(G.MONSTER_MATS
+      .filter(m => (S.mats[m.id] || 0) > 0).map(m => m.rank));
+    const knownRods = G.RODS.filter(g =>
+      g.starter || A.gearOwned(g.id) || heldRanks.has(g.rank));
+    const rodRows = [];
+    rodRows.push(gearSection('Rods'));
+    for (const g of knownRods) rodRows.push(gearRow(g, 'rod'));
+    if (knownRods.length < G.RODS.length) {
+      rodRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
+        + 'Better rods need parts off a large monster. Land one and the smith will show you what it can make.</td></tr>');
+    }
+
+    // A suit stays out of sight until you hold a part of the monster it is made
+    // of. You do not know Lagiacrus armor exists until a Lagiacrus has given you
+    // something, which turns the list into a record of what you have met rather
+    // than a catalogue of everything in the game. Anything already forged stays
+    // listed whatever you have spent since.
+    const knownArmor = G.ARMORS.filter(g =>
+      A.gearOwned(g.id) || (g.mat && (S.mats[g.mat.id] || 0) > 0));
+    // A set at a time. Three tiers of one line side by side is the comparison a
+    // player is actually making — "should I climb this line or start another" —
+    // and eight lines in one list buried it.
+    const lines = Object.keys(G.ARMOR_LINES)
+      .filter(l => knownArmor.some(a => a.line === l));
+    if (!lines.includes(smithyLine)) smithyLine = lines[0] || '';
+
+    el('armorLines').innerHTML = lines.map(l =>
+      `<button class="subtab ${l === smithyLine ? 'active' : ''}" data-line="${l}">${
+        G.ARMOR_LINES[l].name}</button>`).join('');
+    el('armorLines').querySelectorAll('[data-line]').forEach(btn =>
+      btn.onclick = () => { smithyLine = btn.dataset.line; renderSmithy(); });
+
+    const armorRows = [];
+    if (!lines.length) {
+      armorRows.push(gearSection('Angler Armor'));
+      armorRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
+        + 'Nothing to forge yet. Land a large monster and the smith will know what to do with it.</td></tr>');
+    } else {
+      // No header row: the tab above already names the line, and the rows below
+      // already name its skills. Saying both again in between was the same
+      // information three times.
+      for (const g of knownArmor.filter(a => a.line === smithyLine))
+        armorRows.push(gearRow(g, 'armor'));
+    }
+
+    // What you are holding, so the lists above can be read against something.
+    // Never buyable — the only way to get one is to land the thing it came off.
+    const held = G.MONSTER_MATS.filter(m => (S.mats[m.id] || 0) > 0);
+    rodRows.push(gearSection('Monster Parts'));
+    if (!held.length) {
+      rodRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
+        + 'Nothing yet. Parts come off the large monsters you land.</td></tr>');
+    } else {
+      for (const m of held) rodRows.push(gearRowHTML({
+        icon: img('assets/ItemIcons/' + m.icon, m.name), name: m.name,
+        skills: '', detail: `<span class="ent">${m.rank} Rank &mdash; ${G.MAT_LINES[m.line].name}</span>`,
+        mats: '', price: '&mdash;', have: `x${S.mats[m.id]}`, buys: [],
+      }));
+    }
+
+    el('rodTable').innerHTML = rodRows.join('');
+    el('armorTable').innerHTML = armorRows.join('');
+
+    for (const table of ['rodTable', 'armorTable']) {
+      const wire = (attr, fn) => el(table).querySelectorAll(`[${attr}]`).forEach(btn =>
+        btn.onclick = () => { fn(btn.getAttribute(attr)); A.save(); renderSmithy(); renderHeader(); });
+      wire('data-forge', id => A.forge(id));
+      wire('data-level', id => A.levelUp(id));
+      wire('data-equip', id => A.equip(id));
+    }
+  }
+
+  // Which half of the Smithy is showing. Kept out here so a forge or an equip can
+  // re-render without throwing you back to the rods.
+  let smithyView = 'rods';
+  let smithyLine = '';        // which set's tab is open, '' until one is known
+  function showSmithy(view) {
+    smithyView = view;
+    for (const [name, tab, panel] of [['rods', 'subRods', 'viewRods'],
+                                     ['armor', 'subArmor', 'viewArmor']]) {
+      el(tab).classList.toggle('active', view === name);
+      el(panel).classList.toggle('active', view === name);
+    }
   }
 
   // ── Shop ──────────────────────────────────────────────────────────────────
@@ -88,6 +243,25 @@
   // Say when a stock is full, so a row of dead buttons explains itself.
   const stockLabel = n => n >= G.STOCK_CAP ? `${G.STOCK_CAP} max` : String(n);
   const section = label => `<tr class="sect"><th colspan="6">${label}</th></tr>`;
+  const gearSection = label => `<tr class="sect"><th colspan="8">${label}</th></tr>`;
+
+  // The Smithy carries one column the Shop does not: what a piece is made of.
+  // Buried in the description it read as a footnote; in its own column you can
+  // run an eye down the list and see which monster you still have to go and find.
+  const gearRowHTML = ({ icon = '', name, skills = '', detail = '', mats = '',
+                         price, have, buys, worn = false }) => `
+    <tr class="${worn ? 'worn' : ''}">
+      <td class="ic">${icon}</td>
+      <td class="nm">${name}</td>
+      <td class="sk">${skills}</td>
+      <td class="dt">${detail}</td>
+      <td class="mt">${mats}</td>
+      <td class="pr">${price}</td>
+      <td class="hv">${have}</td>
+      <td class="bt"><span class="buys">${buys.map(b =>
+        `<button class="btn tiny" ${b.attr} ${b.disabled ? 'disabled' : ''}>${b.label}</button>`
+      ).join('')}</span></td>
+    </tr>`;
 
   // What a provision does, and — only if it was gated — when it opened up. An
   // item available from the start has no unlock worth mentioning.
@@ -100,18 +274,6 @@
   function renderShop() {
     const S = A.state;
     const rows = [];
-
-    rows.push(section('Upgrades'));
-    for (const u of G.UPGRADES) {
-      const lvl = S.upgrades[u.id], maxed = lvl >= u.max;
-      const cost = maxed ? 0 : A.upgradeCost(u);
-      rows.push(row({
-        icon: img(u.icon, u.name), name: u.name, detail: u.desc,
-        price: maxed ? '&mdash;' : z(cost),
-        have: `${lvl} / ${u.max}`,
-        buys: [{ label: 'Buy', attr: `data-up="${u.id}"`, disabled: maxed || S.zenny < cost }],
-      }));
-    }
 
     for (const [group, label, order] of G.ITEM_GROUPS) {
       // Materials and books sit in the same list as the provisions now, so the
@@ -176,8 +338,6 @@
         if (n) bought(n, b ? b.name : 'bait');
         A.save(); renderShop(); renderHeader();
       });
-    el('shopTable').querySelectorAll('[data-up]').forEach(btn =>
-      btn.onclick = () => { A.buyUpgrade(btn.dataset.up); A.save(); renderShop(); renderHeader(); });
   }
 
   // ── Modal ─────────────────────────────────────────────────────────────────
@@ -244,6 +404,9 @@
   el('navCamp').onclick = () => show('camp');
   el('navGuide').onclick = () => show('guide');
   el('navCombos').onclick = () => show('combos');
+  el('subRods').onclick = () => showSmithy('rods');
+  el('subArmor').onclick = () => showSmithy('armor');
+  el('navSmithy').onclick = () => show('smithy');
   el('navShop').onclick = () => show('shop');
 
   el('hireToggle').onchange = e => { A.state.hired = e.target.checked; A.save(); window.MF_PREP.renderHire(); window.MF_PREP.renderDepart(); };
@@ -257,6 +420,7 @@
     collectView = view;
     for (const [name, tab, panel] of [['fish', 'subFish', 'viewFish'],
                                      ['locales', 'subLocales', 'viewLocales'],
+                                     ['monsters', 'subMonsters', 'viewMonsters'],
                                      ['ingredients', 'subIngredients', 'viewIngredients'],
                                      ['materials', 'subMaterials', 'viewMaterials']]) {
       el(tab).classList.toggle('active', view === name);
@@ -265,10 +429,12 @@
     if (view === 'fish') window.MF_GUIDE.render();
     else if (view === 'ingredients') window.MF_GUIDE.renderPantry();
     else if (view === 'materials') window.MF_GUIDE.renderMaterials();
+    else if (view === 'monsters') window.MF_GUIDE.renderMonsters();
     else window.MF_GUIDE.renderLocaleCatch();
   }
   el('subFish').onclick = () => showCollectables('fish');
   el('subLocales').onclick = () => showCollectables('locales');
+  el('subMonsters').onclick = () => showCollectables('monsters');
   el('subIngredients').onclick = () => showCollectables('ingredients');
   el('subMaterials').onclick = () => showCollectables('materials');
 

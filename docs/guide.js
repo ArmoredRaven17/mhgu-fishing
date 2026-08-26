@@ -49,7 +49,9 @@
     }).join('');
 
     // The bar tracks the whole guide, because that is the goal. The reachable
-    // count sits beside it so a small grid does not read as a broken one.
+    // count sits beside it so a small grid does not read as a broken one — and
+    // says nothing once the whole guide is open, since there is no shortfall left
+    // to explain.
     const total = A.guideTotal(), found = A.guideFound();
     const reachable = fish.length * ores.length;
     document.getElementById('guideCount').textContent = `${found} / ${total}`;
@@ -57,7 +59,7 @@
     const note = document.getElementById('guideReach');
     if (note) note.textContent = reachable < total
       ? `${reachable} reachable at HR ${hr}`
-      : 'all reachable';
+      : '';
   }
 
   // Locked varieties are laid out on a fixed 12 columns so the grid does not
@@ -92,7 +94,8 @@
         <div class="panel-body"><ul class="ingr-list">${
           list.map(i => `<li class="${held[i.id] ? 'have' : ''} ${G.isFresh(held, i.id) ? 'fresh' : ''}">
             <span class="dot"></span>
-            <span class="nm">${i.name}${G.isFresh(held, i.id) ? ' <span class="fresh-tag">Fresh</span>' : ''}</span>
+            <span class="nm">${held[i.id] ? i.name : '<span class="unknown">?????</span>'}${
+              G.isFresh(held, i.id) ? ' <span class="fresh-tag">Fresh</span>' : ''}</span>
             <span class="rk">${RANK_LABEL[i.rank] || i.rank}</span>
           </li>`).join('')
         }</ul></div>
@@ -264,6 +267,59 @@
   //
   // Locked recipes are listed rather than hidden. Knowing a Guardfish Bait needs
   // a Stygian Worm is the point of the page, even at HR1.
+
+  // ── The monster log ───────────────────────────────────────────────────────
+  //
+  // A list, one line per monster, in the order you meet them — so it reads down
+  // the page as a record rather than a wall of cards. Nothing at all is shown
+  // about one you have not met: not its name, not its water, not what it pays.
+  // Same rule the Materials page follows. A monster you HAVE met shows the lot,
+  // because by then you have earned the entry.
+  function renderMonsters() {
+    const wrap = document.getElementById('monsterGrid');
+    if (!wrap) return;
+    const RANKS = ['Low', 'High', 'G'];
+    const names = Object.keys(G.BOSS);
+    const met = names.filter(n => A.monsterMet(n));
+
+    const localesFor = name => (window.MF_LOCALES || [])
+      .filter(l => (l.boss || []).includes(name) && (l.hasFishing || G.SHOW_DESIGNED_LOCALES))
+      .map(l => l.name);
+
+    const rows = names.map(name => {
+      const b = G.BOSS[name];
+      const log = A.monsterLog(name);
+      if (!log) {
+        return `<tr class="unmet">
+          <td class="ic"><img src="assets/MonsterIcons/MHGU-Question_Mark_Icon.webp" alt="" width="28" height="28"></td>
+          <td class="nm">????</td>
+          <td class="dt" colspan="5"></td></tr>`;
+      }
+      // Pay and part are quoted for the highest rank you have ACTUALLY met it at.
+      // Quoting a G Rank purse for a monster you have only fought at Low would be
+      // a promise the water has not made you yet.
+      const top = RANKS.filter(r => log.ranks[r]).pop() || b.floor;
+      const at = G.bossAt(name, G.RANK_HR[top], null, null);
+      const lost = log.met - log.landed;
+      const rate = log.met ? Math.round(100 * log.landed / log.met) : 0;
+      return `<tr>
+        <td class="ic"><img src="assets/MonsterIcons/${b.icon}" alt="" width="28" height="28"></td>
+        <td class="nm">${name}</td>
+        <td class="dt">${b.note || b.desc}</td>
+        <td class="rk">${RANKS.filter(r => log.ranks[r]).join(' &middot; ')}</td>
+        <td class="tally"><b>${log.landed}</b> landed <i>/</i> <b>${lost}</b> lost
+          <span class="rate">${rate}%</span></td>
+        <td class="pr">${at.reward.toLocaleString()}z</td>
+        <td class="wh">${localesFor(name).join(' &middot; ') || '&mdash;'}</td></tr>`;
+    }).join('');
+
+    wrap.innerHTML = `<section class="panel"><h3 class="panel-head">Monster Log
+        <span class="cnt">${met.length} / ${names.length} met</span></h3>
+      <div class="panel-body table-wrap">
+        <table class="shop-table mon-table"><tbody>${rows}</tbody></table>
+      </div></section>`;
+  }
+
   function renderCombos() {
     const wrap = document.getElementById('comboGrid');
     if (!wrap) return;
@@ -282,11 +338,6 @@
       const unlocked = S.hr >= G.baitUnlockHR(b);
       const ready = unlocked && held > 0 && flies > 0;
       const stock = n => n ? `<i class="own">x${n}</i>` : '';
-      // A recipe you have not reached yet keeps its row and its result — you can
-      // see the bait exists and when it opens — but the two things that make it
-      // are withheld rather than greyed out. Dimming says "not now"; ???? says
-      // "not yet", which is the truer statement and gives the page something to
-      // reveal as you climb.
       const hidden = '<span class="ing unknown">????</span>';
       // A material you have never held is ???? here too. The Materials page and
       // this one have to agree — being told the recipe for something you cannot
@@ -326,11 +377,14 @@
         return `<section class="panel">
           <h3 class="panel-head">${label}</h3>
           <div class="panel-body table-wrap"><table class="combo-table"><tbody>${
-            [...list].sort((a, b) => G.comboBase(b) - G.comboBase(a)).map(row).join('')
+            [...list].filter(b => S.hr >= G.baitUnlockHR(b))
+              .sort((a, b) => G.comboBase(b) - G.comboBase(a)).map(row).join('')
+            || '<tr><td class="res" colspan="6">Nothing yet.</td></tr>'
           }</tbody></table></div>
         </section>`;
       }).join('');
   }
 
-  window.MF_GUIDE = { render, renderPantry, renderLocaleCatch, renderMaterials, renderCombos, fishImg };
+  window.MF_GUIDE = { render, renderPantry, renderLocaleCatch, renderMaterials,
+                      renderMonsters, renderCombos, fishImg };
 })();

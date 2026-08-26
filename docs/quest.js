@@ -70,9 +70,11 @@
       hired: !!hire,       // locked in at departure; you cannot hire from the water
       cats,                // Palicos gathering alongside you
       gathered: [],        // what they have picked up, handed over at the end
+      gutsUsed: false,     // Guts is once a trip, and this is the once
       traded,              // what the Trade Cart is working on, or null
       landed: 0,           // fish actually landed — what the cart is paid in
       drinkLeft: 0,
+      hotDrinkLeft: 0,   // a Hot Drink specifically, which Tropic Hunter reads
       dashLeft: 0,
       defLeft: 0, defAmount: 0,
       goal: R.questGoal(S.localeId, questHR),
@@ -171,7 +173,7 @@
       .filter(b => A.state.hr >= G.baitUnlockHR(b))
       .map(b => ({ bait: b, ...(G.comboRecipe(b) || {}) }))
       .filter(r => r.mod && (trip.carried[r.mod] || 0) > 0 && (trip.carried[r.base] || 0) > 0)
-      .map(r => ({ ...r, rate: G.comboRate(r.bait, trip.carried) }))
+      .map(r => ({ ...r, rate: G.comboRate(r.bait, trip.carried, A.state.gear.armor) }))
       .sort((a, b) => b.rate - a.rate || a.bait.name.localeCompare(b.bait.name));
   }
 
@@ -213,7 +215,7 @@
 
     trip.carried[rec.base]--;
     trip.carried[rec.mod]--;
-    const rate = G.comboRate(bait, trip.carried);
+    const rate = G.comboRate(bait, trip.carried, A.state.gear.armor);
     const made = Math.random() * 100 < rate;
     if (made) {
       trip.tackle[baitId] = (trip.tackle[baitId] || 0) + 1;
@@ -284,9 +286,11 @@
     const S = A.state;
     S.stats.casts++;
 
-    const boss = R.rollEncounter(trip.localeId, trip.bait, trip.questHR);
+    const rod = S.gear.rod, armor = S.gear.armor;
+    const ctx = { climate: trip.climate, hotDrink: trip.hotDrinkLeft > 0 };
+    const boss = R.rollEncounter(trip.localeId, trip.bait, trip.questHR, Math.random, rod, armor, ctx);
     const school = boss ? [] : R.rollSchool({
-      localeId: trip.localeId, bait: trip.bait, hr: trip.questHR, lureLevel: S.upgrades.lure,
+      localeId: trip.localeId, bait: trip.bait, hr: trip.questHR, rod, armor,
     });
     if (!boss && !school.length) { releaseCast(); render(); return; }
 
@@ -298,7 +302,8 @@
     const res = await window.MF_FISHING.start({
       school, bait: trip.bait,
       monster: boss ? { ...boss, fight: boss.fight } : null,
-      lineLevel: S.upgrades.line, lureLevel: S.upgrades.lure, questHR: trip.questHR,
+      rod, armor, ctx, questHR: trip.questHR,
+      bites: G.rodBites(rod) + G.effectPower(armor, 'bites'),
     });
 
     // Retiring is allowed with a fish on the line. If the trip is already wound
@@ -310,7 +315,7 @@
     // Pulled the line back before anything took it. That costs the cast — you
     // still threw it — but not the bait, since nothing was ever offered a hook.
     if (res.reason === 'reeled-in') {
-      trip.sta -= G.STAMINA_COST.cast;
+      trip.sta -= G.STAMINA_COST.cast * (1 - G.effectPower(A.state.gear.armor, 'stamina'));
       el('castPrompt').textContent = 'You reel the line back in.';
       releaseCast(); A.save(); render();
       if (trip.sta <= 0) return finish('out of stamina');
@@ -324,18 +329,26 @@
       if (!res.landed) {
         const hurt = Math.max(1, Math.round(
           G.bossLossDamage(trip.questHR) * (1 - guardNow())));
+        A.recordMonster(boss.name, boss.rank, false);
         trip.hp -= hurt;
         el('castPrompt').textContent =
           `${boss.name} throws you off and is gone — ${hurt} HP.`;
         releaseCast(); A.save(); render();
-        if (trip.hp <= 0) return cartOut(boss);
+        if (trip.hp <= 0 && !spendGuts()) return cartOut(boss);
         if (trip.sta <= 0) return finish('out of stamina');
         return;
       }
-      trip.value += boss.reward;
-      trip.haul.push({ name: boss.name, value: boss.reward, icon: bossSVG(boss, 22) });
+      const bossPaid = Math.round(boss.reward * G.payMult(trip.questHR));
+      A.recordMonster(boss.name, boss.rank, true);
+      trip.value += bossPaid;
+      trip.haul.push({ name: boss.name, value: bossPaid, icon: bossSVG(boss, 22) });
       A.addXP(boss.xp);
-      el('castPrompt').textContent = `${boss.name} caught. Worth ${z(boss.reward)}.`;
+      // The part it gives up, which is what the forge runs on.
+      if (boss.mat) {
+        trip.gathered.push(boss.mat);
+        trip.notes.push(`${bossSVG(boss, 18)}${boss.name} left behind a ${boss.mat.name}.`);
+      }
+      el('castPrompt').textContent = `${boss.name} caught. Worth ${z(bossPaid)}.`;
       releaseCast(); A.save(); render();
       return;
     }
@@ -344,7 +357,7 @@
     // actually took. That is what keeps trip lengths and every quest goal sitting
     // where the balance sim put them.
     const c = res.catch || school[0];
-    const secs = G.fightFor(c.fish, c.ore, S.upgrades.line, trip.questHR).durationMs / 1000;
+    const secs = G.fightFor(c.fish, c.ore, rod, trip.questHR, armor, ctx).durationMs / 1000;
     tickClimate(secs);
     spendStamina(secs);
     tickBuffs(secs);
@@ -353,11 +366,13 @@
     // not banked — see finish(). Gathering mid-trip and handing it over at the
     // end is what stops a lucky pickup from changing which bait you could
     // combine while you were still standing there.
-    for (const m of R.rollGather(trip.localeId, trip.questHR, trip.cats)) trip.gathered.push(m);
+    for (const m of R.rollGather(trip.localeId, trip.questHR, trip.cats, Math.random,
+                                 G.effectPower(armor, 'gather'))) trip.gathered.push(m);
 
     // Something small has a go at you while your hands are full. This is what
     // makes HP worth carrying potions for away from the two hot locales.
-    const pest = R.rollPest(trip.localeId, trip.questHR, trip.hired);
+    const pest = R.rollPest(trip.localeId, trip.questHR, trip.hired, Math.random,
+                            G.effectPower(S.gear.armor, 'repel'));
     if (pest) {
       pest.damage = Math.max(1, Math.round(pest.damage * (1 - guardNow())));
       trip.hp -= pest.damage;
@@ -369,7 +384,8 @@
       S.stats.landed++;
       trip.landed++;
       const isNew = A.record(c.id, trip.localeId, c.fish.id);
-      const paid = Math.round(c.value * (1 + trip.fresh.zenny));
+      const paid = Math.round(c.value * (1 + trip.fresh.zenny)
+        * G.payMult(trip.questHR) * (1 + G.effectPower(S.gear.armor, 'zenny')));
       trip.haul.push({ name: c.name, value: paid, icon: window.MF_GUIDE.fishImg(c.ore, 22, c.name) });
       trip.value += paid;
       A.addXP(c.xp);
@@ -399,9 +415,11 @@
       el('castPrompt').textContent = LOSS[res.reason] || LOSS.snap;
     }
 
-    // Spent whatever happened.
+    // Spent whatever happened — unless Sparing Hand keeps it out of the water.
     const bid = trip.bait.id;
-    if (bid !== 'no_bait') {
+    const spared = Math.random() < G.effectPower(S.gear.armor, 'saver');
+    if (spared && bid !== 'no_bait') trip.notes.push('The bait came back with the line.');
+    if (bid !== 'no_bait' && !spared) {
       trip.tackle[bid] = Math.max(0, (trip.tackle[bid] || 0) - 1);
       if (!trip.tackle[bid]) {
         delete trip.tackle[bid];
@@ -420,7 +438,7 @@
     releaseCast();
     A.save();
     render();
-    if (trip.hp <= 0) return cartOut(null);
+    if (trip.hp <= 0 && !spendGuts()) return cartOut(null);
     if (trip.sta <= 0) return finish('out of stamina');
   }
 
@@ -428,7 +446,8 @@
   // are standing in. Previously this returned early whenever hpPerTick was zero,
   // which is every cold locale, so a Hot Drink was never drunk and never did
   // anything; the cold penalty applied whether you carried one or not.
-  const protectedNow = () => trip.drinkLeft > 0;
+  const protectedNow = () =>
+    trip.drinkLeft > 0 || G.climateFor(A.state.gear.armor, trip.climate).immune;
 
   function staminaMult() {
     const climate = trip.climate === 'cold' && protectedNow() ? 1 : trip.rates.staminaMult;
@@ -436,18 +455,36 @@
   }
 
   function spendStamina(secs) {
-    trip.sta -= G.STAMINA_COST.cast + secs * G.STAMINA_COST.reelTick * staminaMult();
+    // Long Haul takes its cut off the whole cast — the throw and the fight both.
+    const cut = 1 - G.effectPower(A.state.gear.armor, 'stamina');
+    trip.sta -= (G.STAMINA_COST.cast + secs * G.STAMINA_COST.reelTick * staminaMult()) * cut;
   }
 
   function tickBuffs(secs) {
+    if (trip.hotDrinkLeft > 0) trip.hotDrinkLeft -= secs;
     if (trip.dashLeft > 0) trip.dashLeft -= secs;
     if (trip.defLeft > 0) trip.defLeft -= secs;
+  }
+
+  // The one blow a trip that does not finish you. Returns true if it caught you.
+  function spendGuts() {
+    if (!trip || trip.gutsUsed) return false;
+    if (!G.effectPower(A.state.gear.armor, 'guts')) return false;
+    trip.gutsUsed = true;
+    trip.hp = 1;
+    trip.notes.push('That should have finished you. It did not.');
+    render();
+    return true;
   }
 
   // Everything that softens a hit, added up. A fresh Alcohol meal and an
   // Armorskin stack, but not without limit — something always gets through.
   const guardNow = () =>
-    Math.min(0.6, trip.fresh.guard + (trip.defLeft > 0 ? trip.defAmount : 0));
+    Math.min(0.75, trip.fresh.guard + (trip.defLeft > 0 ? trip.defAmount : 0)
+      // What you are WEARING, which is the whole reason armor exists and the
+      // reason monster damage is allowed to climb with the rank at all.
+      + G.armorStat(A.state.gear.armor, 'guard')
+      + G.effectPower(A.state.gear.armor, 'defense'));
 
   // Nothing is drunk for you. A climate drink used to top itself up the moment the
   // last one lapsed, which spent items you might have been saving and made the
@@ -455,6 +492,8 @@
   // for the pouch is your call.
   function tickClimate(secs) {
     if (trip.climate === 'temperate') return;
+    // Heat Cancel / Cold Cancel: the climate simply does not reach you.
+    if (G.climateFor(A.state.gear.armor, trip.climate).immune) return;
     if (trip.drinkLeft > 0) trip.drinkLeft -= secs;
     // Only heat costs HP, and only while you are unprotected.
     if (trip.rates.hpPerTick && !protectedNow()) trip.hp -= trip.rates.hpPerTick * secs;
@@ -494,10 +533,16 @@
     if (!trip || trip.busy) return;
     if (!(trip.carried[id] > 0) || !wouldHelp(id)) return;
     const e = G.effectOf(id);
+    // Effect Up — Gluttony's Gourmand and Scavenger, in one number.
+    const more = 1 + G.effectPower(A.state.gear.armor, 'effectup');
     trip.carried[id]--;
-    if (e.hp) trip.hp = Math.min(trip.maxHP, trip.hp + e.hp);
-    if (e.stamina) trip.sta = Math.min(trip.maxSta, trip.sta + e.stamina);
-    if (e.protects === trip.climate) trip.drinkLeft = G.DRINK_SECONDS;
+    if (e.hp) trip.hp = Math.min(trip.maxHP, trip.hp + e.hp * more);
+    if (e.stamina) trip.sta = Math.min(trip.maxSta, trip.sta + e.stamina * more);
+    // A Hot Drink is the wrong drink for hot water, but Tropic Hunter wants it
+    // there, so track it whether or not it is guarding you against anything.
+    if (e.protects === 'cold') trip.hotDrinkLeft = G.DRINK_SECONDS * more;
+    if (e.protects === trip.climate)
+      trip.drinkLeft = G.DRINK_SECONDS * G.climateFor(A.state.gear.armor, trip.climate).drinkMult * more;
     if (e.dash) trip.dashLeft = G.DASH_SECONDS * e.dash;
     if (e.def) { trip.defLeft = G.ARMOR_SECONDS * e.secs; trip.defAmount = e.def; }
     A.save();
@@ -662,6 +707,12 @@
     for (const m of trip.gathered) count[m.id] = (count[m.id] || 0) + 1;
     const out = [];
     for (const [id, n] of Object.entries(count)) {
+      const part = G.monsterMatById.get(id);
+      if (part) {
+        A.state.mats[id] = Math.min(G.STOCK_CAP, (A.state.mats[id] || 0) + n);
+        out.push({ name: part.name, n });
+        continue;
+      }
       const have = A.state.pouch[id] || 0;
       const take = Math.max(0, Math.min(n, G.ownCap(id) - have));
       if (!take) continue;
@@ -678,7 +729,7 @@
   function handOverTrade() {
     if (!trip || !trip.traded) return null;
     const id = trip.traded.id;
-    const extra = R.tradeExtra(trip.landed);
+    const extra = R.tradeExtra(trip.landed, G.effectPower(A.state.gear.armor, 'trade'));
     const have = A.state.pouch[id] || 0;
     const room = Math.max(0, G.ownCap(id) - have);
     const back = Math.min(1 + extra, room);

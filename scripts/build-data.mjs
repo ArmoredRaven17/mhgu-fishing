@@ -45,14 +45,31 @@ const ITEM_ICONS = (() => {
   catch (e) { warn(`item_colored_icons.json unreadable at ${f}: ${e.message}`); return {}; }
 })();
 
-// Icons the game layer uses but the item data never names — upgrade art, mostly.
+// Icons the game layer uses but the item data never names — gear art, mostly.
 // Listed here so the copy step keeps them in step with docs/game.js.
 const EXTRA_ICONS = [
-  'MH4G-Book_Icon_Yellow.png',    // Book of Combos 5 -> Lure Quality
+  'MH4G-Book_Icon_Yellow.png',    // Book of Combos 5
   // The three Books of Fishing Combos are re-iconed off the game's five: grey,
   // then the light grey its third and fourth wear, then cyan. Only the cyan is a
   // file no real item names, so only the cyan needs listing here.
   'MH4G-Book_Icon_Light_Blue.png',
+  // The four rods wear bait icons. Grey, Yellow and Red are the game's own;
+  // MH4G-Bait_Icon_White.png is NOT — the family ships no white, so it is
+  // generated from the real glyph with the icon set's own white (247,243,246)
+  // and the same 100/81/61 shading every other bait variant uses. It is committed
+  // rather than rebuilt, so this script must not try to copy it from the source.
+  'MH4G-Bait_Icon_Grey.png', 'MH4G-Bait_Icon_Yellow.png', 'MH4G-Bait_Icon_Red.png',
+  // Monster parts. These are real items with real icons, but nothing in the
+  // FISHING data names them — they are forge stock, defined in game.js — so the
+  // copy step cannot discover them and has to be told. Same gap that lost the
+  // third Book its icon.
+  'MH4G-Scale_Icon_Light_Blue.png',   // Cephalos, Lagiacrus, Zamtrios
+  'MH4G-Scale_Icon_Yellow.png',       // R.Ludroth
+  'MH4G-Scale_Icon_Blue.png',         // Plesioth
+  'MH4G-Scale_Icon_Grey.png',         // Lavasioth
+  'MH4G-Scale_Icon_Red.png',          // Agnaktor, Low tier
+  'MH4G-Hide_Icon_Brown.png',         // Nibelsnarf
+  'MH4G-Hide_Icon_Red.png',           // Agnaktor
 ];
 
 const wantedIcons = new Set(EXTRA_ICONS);

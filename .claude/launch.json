@@ -13,6 +13,15 @@
       ],
       "port": 5613,
       "autoPort": false
+    },
+    {
+      "name": "mhgu-fishing-bench",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-c",
+        "import os,functools,http.server as h;h.test(functools.partial(h.SimpleHTTPRequestHandler,directory=r'C:/Coding Repos/mhgu-fishing'),port=int(os.environ.get('PORT',5614)))"
+      ],
+      "port": 5614
     }
   ]
 }

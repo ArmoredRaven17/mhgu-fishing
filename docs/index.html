@@ -6,7 +6,7 @@
 <title>MHGU Fishing</title>
 <!-- Whetfish: the first thing almost anyone catches here. -->
 <link rel="icon" type="image/png" href="assets/FishIcons/MH4G-Fish_Icon_Yellow.png">
-<link rel="stylesheet" href="styles.css?v=220">
+<link rel="stylesheet" href="styles.css?v=258">
 </head>
 <body>
 
@@ -34,9 +34,10 @@
 
   <nav class="tabbar">
     <button id="navCamp" class="tab active">Camp</button>
-    <button id="navGuide" class="tab">Collectables</button>
-    <button id="navCombos" class="tab">Combos</button>
     <button id="navShop" class="tab">Shop</button>
+    <button id="navSmithy" class="tab">Smithy</button>
+    <button id="navCombos" class="tab">Combos</button>
+    <button id="navGuide" class="tab">Collectables</button>
   </nav>
 
   <main class="content">
@@ -240,6 +241,7 @@
         <button id="subFish" class="subtab active">Fish</button>
         <button id="subLocales" class="subtab">Locales</button>
         <button id="subIngredients" class="subtab">Ingredients</button>
+        <button id="subMonsters" class="subtab">Monster Log</button>
         <button id="subMaterials" class="subtab">Materials</button>
       </div>
 
@@ -256,6 +258,10 @@
 
       <div id="viewLocales" class="subview">
         <div id="localeCatch" class="guide-grid"></div>
+      </div>
+
+      <div id="viewMonsters" class="subview">
+        <div id="monsterGrid" class="guide-grid"></div>
       </div>
 
       <div id="viewMaterials" class="subview">
@@ -276,6 +282,36 @@
     <!-- ── Combos: every recipe, and what it would cost you ─────────────── -->
     <section id="combos" class="screen">
       <div id="comboGrid" class="guide-grid"></div>
+    </section>
+
+    <!-- ── Smithy ────────────────────────────────────────────────────────── -->
+    <!-- Gear only. It is forged from parts you took off a monster and paid for in
+         zenny, which is a different transaction from buying bait, so it is a
+         different room. -->
+    <section id="smithy" class="screen">
+      <div class="subtabs">
+        <button id="subRods" class="subtab active">Rods &amp; Materials</button>
+        <button id="subArmor" class="subtab">Armor</button>
+      </div>
+
+      <div id="viewRods" class="subview active">
+        <div class="panel">
+          <div class="panel-body table-wrap">
+            <table class="shop-table smithy-table"><tbody id="rodTable"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <div id="viewArmor" class="subview">
+        <!-- One tab per set, built at render time: a line only appears once you
+             hold a part of the monster it is made from. -->
+        <div id="armorLines" class="subtabs setline"></div>
+        <div class="panel">
+          <div class="panel-body table-wrap">
+            <table class="shop-table smithy-table"><tbody id="armorTable"></tbody></table>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ── Shop ──────────────────────────────────────────────────────────── -->
@@ -382,21 +418,21 @@
   </div>
 </div>
 
-<script src="data/ores.js?v=220"></script>
-<script src="data/fish.js?v=220"></script>
-<script src="data/locales.js?v=220"></script>
-<script src="data/meals.js?v=220"></script>
-<script src="data/canteen.js?v=220"></script>
-<script src="data/themes.js?v=220"></script>
-<script src="theme.js?v=220"></script>
-<script src="game.js?v=220"></script>
-<script src="roll.js?v=220"></script>
-<script src="app.js?v=220"></script>
-<script src="guide.js?v=220"></script>
-<script src="prep.js?v=220"></script>
-<script src="fishing.js?v=220"></script>
-<script src="quest.js?v=220"></script>
-<script src="ui.js?v=220"></script>
-<script src="savefile.js?v=220"></script>
+<script src="data/ores.js?v=258"></script>
+<script src="data/fish.js?v=258"></script>
+<script src="data/locales.js?v=258"></script>
+<script src="data/meals.js?v=258"></script>
+<script src="data/canteen.js?v=258"></script>
+<script src="data/themes.js?v=258"></script>
+<script src="theme.js?v=258"></script>
+<script src="game.js?v=258"></script>
+<script src="roll.js?v=258"></script>
+<script src="app.js?v=258"></script>
+<script src="guide.js?v=258"></script>
+<script src="prep.js?v=258"></script>
+<script src="fishing.js?v=258"></script>
+<script src="quest.js?v=258"></script>
+<script src="ui.js?v=258"></script>
+<script src="savefile.js?v=258"></script>
 </body>
 </html>

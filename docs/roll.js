@@ -110,7 +110,7 @@
   // Weighted from whatever the bait's own table offers. The bait's PROMISE — that
   // some of what swims in is the thing you asked for — is kept by rollSchool,
   // which forces that share; this is what fills the rest.
-  function rollFish(localeId, hr, bait, lureLevel, rng) {
+  function rollFish(localeId, hr, bait, rod, rng) {
     const pool = basePool(localeId, hr, bait);
     if (!pool.length) return null;
     return pick(pool, rng).fish;
@@ -121,8 +121,11 @@
   // Independent of which fish bit. Gated by HR, weighted so rare ores stay rare,
   // shifted by the locale (Volcano is the whole reason to take the risk) and by
   // an ore bait if one is equipped.
-  function rollOre(localeId, hr, bait, lureLevel, rng) {
-    const ores = G.oresAt(hr);
+  function rollOre(localeId, hr, bait, rod, rng, armor = null) {
+    // Shock Bobber drives the cheapest varieties off the line entirely, and the
+    // bar rises with its level — it changes WHICH varieties turn up, not what any
+    // of them sells for.
+    const ores = G.culledOres(armor, G.oresAt(hr));
     if (!ores.length) return null;
 
     const boost = G.DESIGNED_POOLS[localeId]?.oreBoost;
@@ -136,12 +139,12 @@
 
   // ── A whole catch ─────────────────────────────────────────────────────────
   function rollCatch(opts) {
-    const { localeId, bait, hr, lureLevel = 0, rng = Math.random,
+    const { localeId, bait, hr, rod = null, armor = null, rng = Math.random,
             forceFish = null, forceOre = null } = opts;
-    const fish = forceFish ? fishById.get(forceFish) : rollFish(localeId, hr, bait, lureLevel, rng);
+    const fish = forceFish ? fishById.get(forceFish) : rollFish(localeId, hr, bait, rod, rng);
     if (!fish) return null;
     const ore = forceOre ? G.oresAt(hr).find(o => o.id === forceOre)
-      : rollOre(localeId, hr, bait, lureLevel, rng);
+      : rollOre(localeId, hr, bait, rod, rng, armor);
     if (!ore) return null;
     return {
       fish, ore,
@@ -163,8 +166,8 @@
   // It still never conjures. The share is only promised when the target really
   // lives here — Speartuna Bait in the Marshlands forces nothing.
   function rollSchool(opts) {
-    const { localeId, bait, hr, lureLevel = 0, rng = Math.random } = opts;
-    const n = G.POND.school + Math.round(lureLevel / 3);
+    const { localeId, bait, hr, rod = null, armor = null, rng = Math.random } = opts;
+    const n = G.POND.school + G.rodSchool(rod);
     const pool = basePool(localeId, hr, bait);
     if (!pool.length) return [];
 
@@ -184,14 +187,14 @@
       (bait.family === 'ore' && G.oresAt(hr).some(o => o.id === bait.target));
     // Never the whole school — there is always something else in the water.
     const promised = canForce
-      ? Math.min(n - 1, Math.max(2, Math.round(n * (G.POND.baitShare + lureLevel * 0.03))))
+      ? Math.min(n - 1, Math.max(2, Math.round(n * (G.POND.baitShare + G.rodBites(rod) * 0.3))))
       : 0;
 
     const out = [];
     for (let i = 0; i < n; i++) {
       const forced = i < promised;
       const c = rollCatch({
-        localeId, bait, hr, lureLevel, rng,
+        localeId, bait, hr, rod, armor, rng,
         forceFish: forced && bait.family === 'species' ? bait.target : null,
         forceOre: forced && bait.family === 'ore' ? bait.target : null,
       });
@@ -218,15 +221,36 @@
   // Plesioth only bites where monster_habitat actually puts it, and Frog raises
   // its odds sharply — the game's own description calls Frog "the ideal bait for
   // certain aquatic monsters".
-  function rollEncounter(localeId, bait, hr = 1, rng = Math.random) {
+  function rollEncounter(localeId, bait, hr = 1, rng = Math.random, rod = null, armor = null, ctx = null) {
     const loc = localeById.get(localeId);
     if (!loc || !loc.boss.length) return null;
-    for (const name of loc.boss) {
-      let chance = G.encounterChance(name, hr);
-      if (G.BOSS[name]?.bait && bait.id === G.BOSS[name].bait) chance *= 4;
-      if (rng() < chance) return G.BOSS[name];
+    // A locale lists everything that lives there across all three ranks, but a
+    // monster is only in the water from its own floor rank up — you do not meet
+    // Lavasioth on a High rung of the Hollow just because it is on the list.
+    const here = loc.boss.filter(name => G.bossAvailable(name, hr));
+    if (!here.length) return null;
+
+    // ONE roll for the locale, then which. Rolling each monster separately made
+    // somewhere with three of them three times as dangerous as somewhere with
+    // one, which turned the Desert and Ruined Pinnacle into 86% cart rates the
+    // moment they stopped being one-monster locales. How dangerous a place is
+    // should be a property of the place, not a count of its residents.
+    const odds = here.map(name => {
+      let c = G.encounterChance(name, hr);
+      if (G.BOSS[name]?.bait && bait.id === G.BOSS[name].bait) c *= 4;
+      return c;
+    });
+    const worst = Math.max(...odds);
+    if (rng() >= worst) return null;
+
+    // Which one it is, weighted by how readily each shows itself.
+    const total = odds.reduce((a, b) => a + b, 0);
+    let r = rng() * total;
+    for (let i = 0; i < here.length; i++) {
+      r -= odds[i];
+      if (r <= 0) return G.bossAt(here[i], hr, rod, armor, ctx);
     }
-    return null;
+    return G.bossAt(here[here.length - 1], hr, rod, armor, ctx);
   }
 
   // ── Small monsters ────────────────────────────────────────────────────────
@@ -269,8 +293,11 @@
     : 0;
 
   // What the cart hands back on top of what you gave it.
-  const tradeExtra = landed =>
-    Math.max(0, Math.min(G.TRADE.max, Math.floor(landed / G.TRADE.perExtra)));
+  // Fair Trade raises both what the cart brings back and the ceiling on it —
+  // raising only the rate would stop mattering the moment you hit the cap.
+  const tradeExtra = (landed, bonus = 0) =>
+    Math.max(0, Math.min(Math.round(G.TRADE.max * (1 + bonus)),
+      Math.floor(landed * (1 + bonus) / G.TRADE.perExtra)));
 
   // What the cats can turn up HERE, weighted by the GAME'S OWN rates. Each
   // locale page lists its gathering, mining and bug nodes per rank with a
@@ -354,7 +381,7 @@
   // One roll per Palico per cast. Everything they pick up is held until the trip
   // ends — see quest.js — so a gather can never change what you were able to
   // combine while you were still out there.
-  function rollGather(localeId, hr, cats, rng = Math.random) {
+  function rollGather(localeId, hr, cats, rng = Math.random, bonus = 0) {
     const out = [];
     if (!cats) return out;
     const pool = gatherPool(localeId, hr);
@@ -362,18 +389,24 @@
     for (let i = 0; i < cats; i++) {
       if (rng() >= G.PALICO.chancePerCast) continue;
       out.push(pick(pool, rng).mat);
+      // Beachcomber: a chance the same cat comes back with a second thing. Rolled
+      // separately rather than folded into the first chance, so the effect reads
+      // as "they found more" rather than "they went out more often".
+      if (bonus > 0 && rng() < bonus) out.push(pick(pool, rng).mat);
     }
     return out;
   }
 
-  function pestChance(hired) {
-    return G.PEST.chancePerCast * (hired ? 1 - G.PEST.hireCut : 1);
+  // A hire turns most of them away; Fisherman's Talisman keeps them off you without
+  // one. They stack, because a watchman and a reputation are different things.
+  function pestChance(hired, repel = 0) {
+    return G.PEST.chancePerCast * (hired ? 1 - G.PEST.hireCut : 1) * (1 - repel);
   }
 
-  function rollPest(localeId, hr, hired, rng = Math.random) {
+  function rollPest(localeId, hr, hired, rng = Math.random, repel = 0) {
     const loc = localeById.get(localeId);
     if (!loc || !loc.pests || !loc.pests.length) return null;
-    if (rng() >= pestChance(hired)) return null;
+    if (rng() >= pestChance(hired, repel)) return null;
     const total = loc.pests.reduce((a, p) => a + p.w, 0);
     let x = rng() * total, hit = loc.pests[loc.pests.length - 1];
     for (const p of loc.pests) { x -= p.w; if (x <= 0) { hit = p; break; } }

@@ -29,7 +29,17 @@
     freshOrder: [],          // which ingredients are fresh, oldest first
     pouch: { potion: 5 },
     owned: { no_bait: Infinity },   // baitId -> count; No Bait is free and unlimited
-    upgrades: { vitality: 0, endurance: 0, line: 0, lure: 0 },
+    // What you have met and what it did to you, per monster and per rank. Kept
+    // separate from stats.bosses, which is one number for the whole campaign and
+    // cannot say which animal it was.
+    monsters: {},            // name -> { met, landed, ranks: { Low|High|G: true } }
+    mats: {},                // monster part id -> count; forge stock, never carried
+    // You start with the Old Angler Rod in hand. Bare hands were playable at Low
+    // Rank but read as a missing step rather than a deliberate one, and a game
+    // about fishing should not open with you not owning a rod.
+    gearOwned: { rod_old: 0 },   // rod/armor id -> level owned, 0..LEVELS
+    gear: { rod: { id: 'rod_old', lvl: 0 }, armor: null },   // equipped: {id, lvl} or null
+    upgrades: { vitality: 0, endurance: 0, line: 0, lure: 0 },  // retired; refunded on load
     localeId: 'jurassic_frontier',
     // Which RUNG of the ladder the selected quest is. The same locale sits on a
     // rung per rank, and they are different quests — the tables, ores and goal
@@ -51,7 +61,7 @@
   function hydrate(saved) {
     S = { ...defaults(), ...saved };
     // Nested objects need merging, not replacing, or a new field breaks an old save.
-    for (const k of ['caught', 'caughtAt', 'pantry', 'pouch', 'owned', 'upgrades', 'plan', 'tackle', 'stats'])
+    for (const k of ['caught', 'caughtAt', 'pantry', 'pouch', 'owned', 'upgrades', 'plan', 'tackle', 'stats', 'mats', 'gearOwned', 'monsters'])
       S[k] = { ...defaults()[k], ...(saved[k] || {}) };
     S.owned.no_bait = Infinity;
     // Departing used to subtract from counts that were never there, which wrote
@@ -70,6 +80,8 @@
     // Anything already in the pouch has obviously been seen — this backfills a
     // save from before the record existed rather than blanking what it holds.
     for (const id of Object.keys(S.pouch)) if (G.materialById.has(id)) S.matsSeen[id] = true;
+    migrateGear();         // ...or predate gear entirely and still hold slider levels
+    syncEquipped();        // a save can point at gear it no longer owns
     prunePlans();          // an old save may already be over a pouch limit
     reconcileFresh();      // ...or carry more fresh ingredients than the cap
     syncHR();
@@ -102,14 +114,33 @@
   }
 
   // Replace everything from an opened file.
+  // Saves made before gear existed carry levels in Vitality, Endurance, Line
+  // Strength and Lure Quality that nothing reads any more. Refunding what they
+  // cost is the honest move: the money was really spent, and leaving it stranded
+  // in a retired system would quietly rob anyone who had invested in it. The
+  // levels are cleared so this can only ever pay out once.
+  function migrateGear() {
+    // Every save gets the starting rod, including ones made before there was one.
+    if (!Object.prototype.hasOwnProperty.call(S.gearOwned, 'rod_old')) S.gearOwned.rod_old = 0;
+    if (!S.gear.rod) S.gear.rod = { id: 'rod_old', lvl: S.gearOwned.rod_old || 0 };
+
+    const spent = G.refundUpgrades(S.upgrades);
+    if (!spent) return;
+    S.zenny += spent;
+    S.upgrades = { vitality: 0, endurance: 0, line: 0, lure: 0 };
+    S.gearRefund = spent;   // so the shop can say what happened, once
+  }
+
   function loadFrom(saved) { hydrate(saved); save(); }
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const rank = () => G.rankAt(S.hr);
+  // HP and stamina are what you are WEARING now, not levels bought on a slider.
   const maxHP = mealId =>
-    G.BASE_MAX_HP + meal(mealId).hp + fresh(mealId).hp + S.upgrades.vitality * 5;
+    G.BASE_MAX_HP + meal(mealId).hp + fresh(mealId).hp + G.armorStat(S.gear.armor, 'hp');
   const maxStamina = mealId =>
-    G.BASE_MAX_STAMINA + meal(mealId).stamina + fresh(mealId).stamina + S.upgrades.endurance * 8;
+    G.BASE_MAX_STAMINA + meal(mealId).stamina + fresh(mealId).stamina
+      + G.armorStat(S.gear.armor, 'stamina');
   // A selected meal is only YOUR meal while you can still cook it. Rank gates and
   // a pantry that can lose nothing mean a save can carry a selection it has since
   // outgrown — or, once the meal power ladder landed, one it has not yet grown
@@ -281,6 +312,21 @@
     return out;
   }
 
+  // ── The monster log ───────────────────────────────────────────────────────
+  //
+  // Met is every time one took the line; landed is every time you kept it. The
+  // gap between them is the interesting number, and it is the one a total across
+  // all monsters could never tell you.
+  function recordMonster(name, rank, landed) {
+    const m = S.monsters[name] || (S.monsters[name] = { met: 0, landed: 0, ranks: {} });
+    m.met++;
+    if (landed) m.landed++;
+    if (rank) m.ranks[rank] = true;
+    return m;
+  }
+  const monsterLog = name => S.monsters[name] || null;
+  const monsterMet = name => !!S.monsters[name];
+
   const caughtAtLocale = id => S.caughtAt[id] || {};
   const fishedLocales = () => Object.keys(S.caughtAt)
     .filter(id => Object.keys(S.caughtAt[id] || {}).length)
@@ -411,14 +457,81 @@
     return true;
   }
 
-  // ── Upgrades ──────────────────────────────────────────────────────────────
-  const upgradeCost = u => u.cost(S.upgrades[u.id]);
-  function buyUpgrade(id) {
-    const u = G.UPGRADES.find(x => x.id === id);
-    if (!u || S.upgrades[id] >= u.max) return false;
-    if (!spend(upgradeCost(u))) return false;
-    S.upgrades[id]++;
+  // ── The forge ─────────────────────────────────────────────────────────────
+  //
+  // Two ways to spend: FORGE a piece you do not own yet, which costs zenny and
+  // the monster parts it is made of, or LEVEL one you do, which costs zenny
+  // alone. Levels are locked behind HR so a suit cannot be pushed far ahead of
+  // the rank it belongs to.
+  const gearById = id => G.rodById.get(id) || G.armorById.get(id) || null;
+  const gearOwned = id => Object.prototype.hasOwnProperty.call(S.gearOwned, id);
+  const gearLevel = id => S.gearOwned[id] || 0;
+  const gearMax = id => (G.rodById.has(id) ? G.ROD_LEVELS : G.ARMOR_LEVELS);
+  const levelUnlockHR = (id, n) => (G.GEAR_LEVEL_HR[gearById(id).rank] || [])[n] || 1;
+
+  // A rod is forged from whichever line you have been hunting — any part of the
+  // right rank will do, so the rod never marches you at a monster you dislike.
+  // Armor wants its OWN monster, because that is what the set is made of.
+  function forgeParts(id) {
+    const g = gearById(id);
+    if (!g) return [];
+    if (g.slot === 'armor') return g.mat ? [{ mat: g.mat, need: g.matCount }] : [];
+    return G.MONSTER_MATS.filter(m => m.rank === g.rank).map(m => ({ mat: m, need: g.matCount }));
+  }
+  const partsHeld = id => forgeParts(id).reduce((a, p) => a + (S.mats[p.mat.id] || 0), 0);
+  const partsNeeded = id => (forgeParts(id)[0] || { need: 0 }).need;
+
+  function canForge(id) {
+    const g = gearById(id);
+    if (!g || gearOwned(id)) return false;
+    return S.zenny >= g.cost && partsHeld(id) >= partsNeeded(id);
+  }
+  function forge(id) {
+    if (!canForge(id)) return false;
+    const g = gearById(id);
+    let need = partsNeeded(id);
+    for (const p of forgeParts(id)) {
+      if (need <= 0) break;
+      const take = Math.min(need, S.mats[p.mat.id] || 0);
+      if (!take) continue;
+      S.mats[p.mat.id] -= take;
+      if (!S.mats[p.mat.id]) delete S.mats[p.mat.id];
+      need -= take;
+    }
+    if (!spend(g.cost)) return false;
+    S.gearOwned[id] = 0;
+    equip(id);
     return true;
+  }
+
+  const levelCost = id => gearById(id).levelCost(gearLevel(id));
+  const canLevel = id =>
+    gearOwned(id) && gearLevel(id) < gearMax(id)
+    && S.hr >= levelUnlockHR(id, gearLevel(id))
+    && S.zenny >= levelCost(id);
+  function levelUp(id) {
+    if (!canLevel(id)) return false;
+    if (!spend(levelCost(id))) return false;
+    S.gearOwned[id]++;
+    syncEquipped();
+    return true;
+  }
+
+  function equip(id) {
+    const g = gearById(id);
+    if (!g || !gearOwned(id)) return false;
+    const slot = G.rodById.has(id) ? 'rod' : 'armor';
+    S.gear[slot] = { id, lvl: gearLevel(id) };
+    return true;
+  }
+  // A level bought on the piece you are wearing has to reach the piece you are
+  // wearing, or the shop and the water disagree about what you are holding.
+  function syncEquipped() {
+    for (const slot of ['rod', 'armor']) {
+      const g = S.gear[slot];
+      if (g && gearOwned(g.id)) g.lvl = gearLevel(g.id);
+      else if (g) S.gear[slot] = null;
+    }
   }
 
   // ── Locale availability ───────────────────────────────────────────────────
@@ -449,7 +562,11 @@
     markVisited, checkPromotion, everVisited,
     record, guideTotal, guideFound, recordIngredient, reconcileFresh, rerollFresh, pantryCount, freshCount, fresh,
     fishedLocales, caughtAtLocale, caughtTotalAt, markFished, revealedRanks,
-    spend, earn, buyBait, buyItem, buyUpgrade, upgradeCost, canBuyBait, canBuyItem,
+    recordMonster, monsterLog, monsterMet,
+    spend, earn, buyBait, buyItem, canBuyBait, canBuyItem,
+    gearById, gearOwned, gearLevel, gearMax, levelUnlockHR,
+    forgeParts, partsHeld, partsNeeded, canForge, forge,
+    levelCost, canLevel, levelUp, equip, syncEquipped,
     baitStock, itemStock, planned, setPlan, slotsUsed, localeOpen,
     seeMaterial, matSeen, everFished,
     tackled, tackleKinds, setTackle, prunePlans, dropEmptyPlans,

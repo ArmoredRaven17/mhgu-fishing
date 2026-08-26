@@ -125,7 +125,7 @@ function makeLoadout(spec = {}) {
     rations: spec.rations ?? 5,
     coolDrinks: spec.coolDrinks ?? 3,
     hotDrinks: spec.hotDrinks ?? 3,
-    upgrades: spec.upgrades ?? { vitality: 0, endurance: 0, line: 0, lure: 0 },
+    gear: spec.gear ?? rankGear(spec.hr ?? 12),
     baitId: spec.baitId || 'no_bait',
     hired: spec.hired ?? false,
   };
@@ -163,13 +163,33 @@ const SUPPLY_EACH = G.SUPPLY_EACH;   // free supply items, Low Rank only
 const SUPPLY_HEAL = 20;     // First-aid Med
 const SUPPLY_STAMINA = 25;  // Ration
 
+// The gear a player standing on this rung would reasonably have: that rank's own
+// rod and armor, part-levelled. Anything less is a strawman — nobody reaches G
+// Rank bare-handed — and the cart rates it produces are fiction.
+// Everything a suit takes off a hit, before meals and Armorskins.
+const guardOf = gear => Math.min(0.75,
+  G.armorStat(gear.armor, 'guard') + G.effectPower(gear.armor, 'defense'));
+
+function rankGear(hr) {
+  const rank = G.rankAt(hr).id;
+  const rod = [...G.RODS].reverse().find(r => r.rank === rank);
+  const armor = G.ARMORS.find(a => a.rank === rank);
+  return {
+    rod: rod ? { id: rod.id, lvl: 3 } : null,
+    armor: armor ? { id: armor.id, lvl: 3 } : null,
+  };
+}
+
 // A boss fight resolved statistically. Under the pond's reel model the tell is
 // how wide the stretch you have to hold the line in is, against how fast it sinks
-// out of that stretch when you are not pulling.
-const bossWinChance = (boss, lineLvl) => {
+// out of that stretch when you are not pulling — and now also how fast the second
+// bar fills, because a monster taking ground back is the half of the contest the
+// player cannot answer by pressing harder.
+const bossWinChance = (boss) => {
   const f = boss.fight;
   const grace = (f.band * 2) / f.sinkPerSec;    // seconds of slack before you fall out
-  return Math.min(0.9, Math.max(0.1, 0.10 + grace * 0.85 + lineLvl * 0.03));
+  const pressure = (f.escapePerSec || 0) / f.progressPerSec;
+  return Math.min(0.9, Math.max(0.08, 0.10 + grace * 0.85 - (pressure - 1) * 0.12));
 };
 
 function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
@@ -177,10 +197,12 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
   const bait = baitBy.get(lo.baitId);
   const climate = G.climateOf(localeId);
   const rates = G.CLIMATE_RATES[climate];
-  const up = lo.upgrades;
+  const gear = lo.gear;
+  const cl = G.climateFor(gear.armor, climate);
+  const longHaul = 1 - G.effectPower(gear.armor, 'stamina');
 
-  const maxHP = G.BASE_MAX_HP + lo.meal.hp + up.vitality * 5;
-  const maxSta = G.BASE_MAX_STAMINA + lo.meal.stamina + up.endurance * 8;
+  const maxHP = G.BASE_MAX_HP + lo.meal.hp + G.armorStat(gear.armor, 'hp');
+  const maxSta = G.BASE_MAX_STAMINA + lo.meal.stamina + G.armorStat(gear.armor, 'stamina');
   let hp = maxHP, sta = maxSta;
   let potions = lo.potions, rations = lo.rations;
   // Camp hands you a supply box every trip, exactly as quest.js does. Leaving it
@@ -209,20 +231,22 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
     if (hp <= bailBelowHP && potions <= 0 && supplyHeals <= 0) break;
     casts++;
 
-    const enc = R.rollEncounter(localeId, bait, hr);
+    const enc = R.rollEncounter(localeId, bait, hr, Math.random, gear.rod, gear.armor);
     if (enc) {
       bosses++;
       const secs = enc.durationMs / 1000;
-      sta -= G.STAMINA_COST.cast + secs * G.STAMINA_COST.reelTick * rates.staminaMult;
-      if (Math.random() < bossWinChance(enc, up.line)) { haul += enc.reward; bossWins++; }
-      else hp -= G.bossLossDamage(G.openedAtHR(localeId, hr));   // costs HP, not the trip
+      sta -= (G.STAMINA_COST.cast + secs * G.STAMINA_COST.reelTick * rates.staminaMult) * longHaul;
+      if (Math.random() < bossWinChance(enc)) { haul += enc.reward; bossWins++; }
+      // Armor is what finally answers a monster's damage; it used to land whole.
+      else hp -= Math.max(1, Math.round(G.bossLossDamage(G.openedAtHR(localeId, hr))
+        * (1 - guardOf(gear))));
       if (hp <= 0) return { haul: 0, casts, landed, carted: true, bosses, bossWins, pests, used };
       continue;
     }
 
-    const c = R.rollCatch({ localeId, bait, hr, lureLevel: up.lure });
+    const c = R.rollCatch({ localeId, bait, hr, rod: gear.rod, armor: gear.armor });
     if (!c) break;
-    const fight = G.fightFor(c.fish, c.ore, up.line, hr);
+    const fight = G.fightFor(c.fish, c.ore, gear.rod, hr, gear.armor);
     const secs = fight.durationMs / 1000;
 
     haul += c.value;
@@ -233,22 +257,24 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
     // old `if (rates.hpPerTick)` gate never did for cold: it skipped the whole
     // block, so a Hot Drink was never drunk and cold trips were measured
     // unprotected regardless of loadout.
-    if (climate !== 'temperate') {
+    if (climate !== 'temperate' && !cl.immune) {
       drinkLeft -= secs;
       // The GAME no longer drinks for you — the sim still does, because it models
       // a player who reaches for the pouch the moment the last one lapses. These
       // figures are therefore the best case for climate protection, not the
       // average one.
-      if (drinkLeft <= 0 && drinks > 0) { drinks--; used.drinks++; drinkLeft = DRINK_SECONDS; }
+      if (drinkLeft <= 0 && drinks > 0) { drinks--; used.drinks++; drinkLeft = DRINK_SECONDS * cl.drinkMult; }
       if (rates.hpPerTick && drinkLeft <= 0) hp -= rates.hpPerTick * secs;
     }
-    const mult = (climate === 'cold' && drinkLeft > 0) ? 1 : rates.staminaMult;
-    sta -= G.STAMINA_COST.cast + secs * G.STAMINA_COST.reelTick * mult;
+    const warm = cl.immune || drinkLeft > 0;
+    const mult = (climate === 'cold' && warm) ? 1 : rates.staminaMult;
+    sta -= (G.STAMINA_COST.cast + secs * G.STAMINA_COST.reelTick * mult) * longHaul;
 
     // Something small has a go at you. Rolled per ordinary cast, exactly as
     // quest.js does it, and the only thing that touches HP outside a hot locale.
-    const pest = R.rollPest(localeId, hr, lo.hired);
-    if (pest) { hp -= pest.damage; pests++; }
+    const pest = R.rollPest(localeId, hr, lo.hired, Math.random,
+                            G.effectPower(gear.armor, 'repel'));
+    if (pest) { hp -= Math.max(1, Math.round(pest.damage * (1 - guardOf(gear)))); pests++; }
 
     // Bought items first, then the supply box — the order quest.js uses.
     if (hp < maxHP * 0.4) {
@@ -454,7 +480,7 @@ line('The goal ladder — does each rung ask more than the last?');
   // Difficulty is the goal measured against what the locale can ACTUALLY pay on a
   // provisioned trip, not the raw zenny — a rich locale should ask for more zenny
   // without being harder. Kit is the best meal that rung can cook plus 10 levels
-  // of Endurance, which is roughly 74,000z of upgrades: affordable, not maxed.
+  // of armor stamina, which is that rank's own suit part-levelled: affordable, not maxed.
   const fullPantry = {};
   for (const i of G.CANTEEN.ingredients) fullPantry[i.id] = true;
   const bestMealSta = hr =>
@@ -469,7 +495,7 @@ line('The goal ladder — does each rung ask more than the last?');
         const c = R.rollCatch({ localeId: id, bait: noBait, hr });
         if (c) {
           g += c.value;
-          s -= G.STAMINA_COST.reelTick * (G.fightFor(c.fish, c.ore, 0, hr).durationMs / 1000);
+          s -= G.STAMINA_COST.reelTick * (G.fightFor(c.fish, c.ore, null, hr).durationMs / 1000);
         }
       }
       tot += g;
@@ -499,7 +525,7 @@ line('The goal ladder — does each rung ask more than the last?');
   }
   console.log('');
   console.log('rungs where difficulty dips: ' + (dips.length ? dips.join(', ') : 'none'));
-  console.log('quests needing more than 10 Endurance: ' +
+  console.log('quests a rank-appropriate suit cannot carry: ' +
     (unreachable.length ? unreachable.join(', ') : 'none'));
 }
 
