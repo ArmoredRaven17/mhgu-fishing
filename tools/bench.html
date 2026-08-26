@@ -5,7 +5,7 @@
 <!-- Everything relative resolves against the app folder, so fishing.js finds
      its fish and monster icons without knowing the bench exists. -->
 <base href="../docs/">
-<link rel="stylesheet" href="styles.css?v=246">
+<link rel="stylesheet" href="styles.css?v=262">
 <style>
   /* Lives OUTSIDE docs/ on purpose. GitHub Pages serves docs/ and nothing else,
      so a debug page in here cannot reach a player however it is linked. It loads
@@ -41,6 +41,14 @@
   .log .win{color:#7fd18d}
   .log .lose{color:#e2907f}
   .pondwrap{display:grid;gap:10px}
+  .modal{position:fixed;inset:0;background:#000c;display:flex;align-items:center;
+    justify-content:center;padding:24px;z-index:50}
+  .modal.hidden{display:none}
+  .modal-box{background:#1b1b1e;border:1px solid #ffffff26;border-radius:10px;
+    max-width:900px;width:100%;max-height:85vh;display:flex;flex-direction:column}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;border-bottom:1px solid #ffffff1a}
+  #armorBody{overflow:auto;padding:12px 14px}
 </style>
 
 <div class="wrap">
@@ -58,15 +66,24 @@
     <label>Locale <select id="locale"></select></label>
     <label>Hot Drink <input id="hotDrink" type="checkbox"></label>
     <label>Cool Drink <input id="coolDrink" type="checkbox"></label>
+    <label>Pool <select id="pool">
+      <option value="forced">forced &mdash; one variety</option>
+      <option value="natural">natural &mdash; the locale's own</option>
+    </select></label>
+    <label>Bait <select id="bait"></select></label>
     <label>School <input id="school" type="number" min="1" max="12" value="6"></label>
     <div class="row">
       <button id="cast" class="go">Cast</button>
       <button id="reset">Clear tally</button>
       <button id="sweep">Sweep rods</button>
-      <button id="listArmor">List armor effects</button>
+      <button id="listArmor">Armor skills&hellip;</button>
     </div>
+  </div>
+
+  <div class="card">
     <div class="nums" id="nums"></div>
     <div class="nums" id="worn"></div>
+    <div class="nums" id="poolInfo"></div>
   </div>
 
   <div class="pondwrap">
@@ -94,14 +111,24 @@
   </div>
 </div>
 
-<script src="data/ores.js?v=246"></script>
-<script src="data/fish.js?v=246"></script>
-<script src="data/locales.js?v=246"></script>
-<script src="data/meals.js?v=246"></script>
-<script src="data/canteen.js?v=246"></script>
-<script src="data/themes.js?v=246"></script>
-<script src="theme.js?v=246"></script>
-<script src="game.js?v=246"></script>
-<script src="roll.js?v=246"></script>
-<script src="fishing.js?v=246"></script>
+<div id="armorModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-head">
+      <b>Armor skills</b>
+      <button id="armorClose" class="go">Close</button>
+    </div>
+    <div id="armorBody"></div>
+  </div>
+</div>
+
+<script src="data/ores.js?v=262"></script>
+<script src="data/fish.js?v=262"></script>
+<script src="data/locales.js?v=262"></script>
+<script src="data/meals.js?v=262"></script>
+<script src="data/canteen.js?v=262"></script>
+<script src="data/themes.js?v=262"></script>
+<script src="theme.js?v=262"></script>
+<script src="game.js?v=262"></script>
+<script src="roll.js?v=262"></script>
+<script src="fishing.js?v=262"></script>
 <script src="../tools/bench.js"></script>

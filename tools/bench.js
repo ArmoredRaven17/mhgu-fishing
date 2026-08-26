@@ -7,6 +7,10 @@
 (function () {
   const el = id => document.getElementById(id);
   const G = window.MF_GAME, F = window.MF_FISH, O = window.CF_ORES;
+  const R = window.MF_ROLL;
+  // The real bait list, so a natural pool can be salted the way the game salts it.
+  const BAITS = G.buildBaits();
+  const baitById = new Map(BAITS.map(b => [b.id, b]));
 
   // fishing.js asks the guide for a fish sprite. That is the only thing it wants
   // from the app, so the bench supplies it rather than pulling app.js in behind
@@ -31,6 +35,7 @@
   // own map — what the bench tests is somewhere you can actually stand.
   fill('locale', (window.MF_LOCALES || []).filter(l => l.hasFishing)
     .map(l => ({ id: l.id, name: l.name + '  (' + G.climateOf(l.id) + ')' })));
+  fill('bait', BAITS.map(b => ({ id: b.id, name: b.name })));
   el('locale').value = 'volcanic_hollow';   // hot, so Heat Hunter is live on open
   el('rodLvl').max = G.ROD_LEVELS;
   el('armorLvl').max = G.ARMOR_LEVELS;
@@ -72,6 +77,14 @@
       row('worth', worth.toLocaleString() + 'z') +
       row('presses', (f.sinkPerSec / f.liftPerPress).toFixed(2) + '/s') +
       row('band', (f.band * 200).toFixed(1) + '% of track') +
+      (boss ? '' : (() => {
+        const bare = G.fightFor(fish, ore, null, hr, null).band * 200;
+        const withRod = G.fightFor(fish, ore, rod, hr, null).band * 200;
+        const now = f.band * 200;
+        return row('  from the fish', bare.toFixed(1) + '%')
+          + row('  rod adds', '+' + (withRod - bare).toFixed(1) + ' pts')
+          + row('  armor adds', '+' + (now - withRod).toFixed(1) + ' pts');
+      })()) +
       row('sink', f.sinkPerSec.toFixed(3) + '/s') +
       row('lift', f.liftPerPress.toFixed(3) + '/press') +
       row('grace', (f.band / f.sinkPerSec).toFixed(2) + 's') +
@@ -89,14 +102,25 @@
           const def = G.EFFECTS[e.key];
           // Climate effects have no `per` to multiply — they are a ladder of
           // states, not a percentage, and reading one as a number gives NaN.
+          // Not every effect is a percentage: climate is a ladder of states and
+          // the cull is a rank band. Reading either as a number gives NaN.
           const val = def.flag ? 'on'
             : def.climate ? 'Lv ' + e.lvl + (e.lvl >= 3 ? ' (negates)' : '')
+            : def.band ? 'clears ' + ['Low', 'High', 'G'][def.band[Math.min(def.band.length - 1, e.lvl - 1)]] + ' Rank'
             : '+' + Math.round(def.per * e.lvl * 100) + '%';
           return row(G.effectName(e.key, e.lvl), val);
         }).join('')
       + row('HP', '+' + G.armorStat({ id: a.id, lvl: lvl }, 'hp'))
       + row('stamina', '+' + G.armorStat({ id: a.id, lvl: lvl }, 'stamina'))
       + row('guard', Math.round(G.armorStat({ id: a.id, lvl: lvl }, 'guard') * 100) + '%')
+      + (() => {
+          const worn = { id: a.id, lvl: lvl };
+          const all = G.oresAt(num('hr'));
+          const kept = G.culledOres(worn, all);
+          if (kept.length === all.length) return '';
+          return row('still biting', kept.length + ' of ' + all.length + ' varieties')
+            + row('', kept.map(x => x.name).join(', '));
+        })()
       + row('forged from', a.mat ? a.matCount + ' x ' + a.mat.name : '-')
       + (() => {
           const ctx = { climate: G.climateOf(el('locale').value),
@@ -137,15 +161,22 @@
         + (e.flag ? 'flag' : '+' + Math.round(e.per * 100) + '% a level'));
       lines.push('  ' + ' '.repeat(10) + e.blurb);
     }
-    el('log').innerHTML =
+    el('armorBody').innerHTML =
       '<pre style="margin:0;white-space:pre;font:11px ui-monospace,monospace">'
       + lines.join(String.fromCharCode(10)) + '</pre>';
+    el('armorModal').classList.remove('hidden');
   }
+  const closeArmor = () => el('armorModal').classList.add('hidden');
   el('listArmor').onclick = listArmor;
+  el('armorClose').onclick = closeArmor;
+  el('armorModal').onclick = e => { if (e.target.id === 'armorModal') closeArmor(); };
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !el('armorModal').classList.contains('hidden')) closeArmor();
+  });
 
   for (const id of ['fish', 'ore', 'monster', 'hr', 'rod', 'rodLvl', 'armor', 'armorLvl',
-                    'locale', 'hotDrink', 'coolDrink'])
-    el(id).onchange = el(id).oninput = () => { nums(); worn(); };
+                    'locale', 'hotDrink', 'coolDrink', 'pool', 'bait'])
+    el(id).onchange = el(id).oninput = () => { nums(); worn(); poolReadout(); };
 
   // Outcomes, which is the thing actually being measured. A band you lose to
   // three times in ten is a different number from one you never lose to.
@@ -183,17 +214,31 @@
       icon: G.variantIcon(ore), value: G.variantValue(fish, ore),
       xp: G.xpFor(fish, ore), matches: false,
     });
-    const bait = { id: 'no_bait', name: 'No Bait', family: 'none' };
+    const bait = baitById.get(el('bait').value) || BAITS[0];
     const bites = G.rodBites(rod) + G.effectPower(armor, 'bites');
+
+    // Forced: N copies of the variety you picked, for measuring one fight.
+    // Natural: the locale's own pool, rolled exactly as the game rolls it — so the
+    // rod's school bonus, the bait's share and Shock Bobber's cull all apply.
+    const school = el('pool').value === 'natural'
+      ? R.rollSchool({ localeId: el('locale').value, bait, hr, rod, armor })
+      : Array.from({ length: Math.max(1, num('school')) }, one);
+
     const spec = boss
       ? { school: [], bait, monster: { ...boss, c: boss }, questHR: hr, rod, armor, ctx, bites }
-      : { school: Array.from({ length: Math.max(1, num('school')) }, one), bait,
-          questHR: hr, rod, armor, ctx, bites };
+      : { school, questHR: hr, bait, rod, armor, ctx, bites };
+    if (!boss && !school.length) {
+      el('castPrompt').textContent = 'Nothing lives here at this rank.';
+      return;
+    }
 
     el('castPrompt').textContent = '';
     window.MF_FISHING.start(spec).then(res => {
       if (res.cancelled) return;
-      record(res, boss ? boss.name : G.variantName(fish, ore));
+      // What actually took the line, not what the picker says — in a natural pool
+      // those are different things, and labelling every outcome with the dropdown
+      // would make the log quietly lie about what you caught.
+      record(res, boss ? boss.name : ((res.catch && res.catch.name) || G.variantName(fish, ore)));
       el('castPrompt').textContent = 'Cast again when ready.';
     });
   }
@@ -220,11 +265,12 @@
       all.sort((a, b) => a.v - b.v);
       const at = q => all[Math.round(q * (all.length - 1))];
       const picks = [['cheap', at(0.1)], ['median', at(0.5)], ['top', at(0.95)]];
-      lines.push('== ' + rank + ' Rank (HR' + hr + ') ==');
+      lines.push('== ' + rank + ' Rank (HR' + hr + ') ==   (presses/sec, band %)');
       for (const r of rods) {
         const cells = picks.map(pk => {
           const t = G.fightFor(pk[1].f, pk[1].o, r, hr, null);
-          return pk[0] + ' ' + (t.sinkPerSec / t.liftPerPress).toFixed(1) + '/s';
+          return pk[0] + ' ' + (t.sinkPerSec / t.liftPerPress).toFixed(1) + '/s '
+            + (t.band * 200).toFixed(0) + '%';
         });
         lines.push('  ' + label(r).padEnd(20) + ' ' + cells.join('   '));
       }
@@ -246,6 +292,37 @@
       + lines.join(String.fromCharCode(10)) + '</pre>';
   }
 
+  // What the water here would actually offer: size, and the mix by variety.
+  // Sampled rather than shown from one cast, because a single school of six says
+  // nothing about whether a skill moved the odds.
+  function poolReadout() {
+    const box = el('poolInfo');
+    if (!box) return;
+    if (el('pool').value !== 'natural') { box.innerHTML = ''; return; }
+    const { rod, armor } = picked();
+    const hr = num('hr');
+    const bait = baitById.get(el('bait').value) || BAITS[0];
+    const localeId = el('locale').value;
+    const count = {}; let n = 0, casts = 3000, val = 0;
+    for (let i = 0; i < casts; i++) {
+      const s2 = R.rollSchool({ localeId, bait, hr, rod, armor });
+      n += s2.length;
+      for (const c of s2) { count[c.ore.name] = (count[c.ore.name] || 0) + 1; val += c.value; }
+    }
+    if (!n) { box.innerHTML = '<b>nothing lives here at this rank</b>'; return; }
+    const row = (k, v) => `<span>${k}</span><span>${v}</span>`;
+    const mix = Object.entries(count).sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => k + ' ' + (100 * v / n).toFixed(0) + '%').join(',  ');
+    box.innerHTML = '<b>natural pool here</b>'
+      + row('school size', (n / casts).toFixed(1) + ' fish')
+      + row('avg value', Math.round(val / n) + 'z each')
+      + row('varieties', Object.keys(count).length + ' of ' + G.oresAt(hr).length)
+      + row('', mix);
+  }
+
+  el('pool').onchange = () => { poolReadout(); };
+  el('bait').onchange = () => { poolReadout(); };
+
   el('sweep').onclick = sweep;
   el('cast').onclick = cast;
   el('reset').onclick = () => {
@@ -263,4 +340,5 @@
   drawTally();
   nums();
   worn();
+  poolReadout();
 })();

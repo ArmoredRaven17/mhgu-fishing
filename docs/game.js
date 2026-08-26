@@ -1169,9 +1169,15 @@
       // grounds that a wider target only makes it easier to be sloppy — but with
       // the demand now resetting and climbing per rank there has to be something
       // that answers a tight band, or the dearest G Rank fish are simply refused.
-      band: Math.min(0.34, Math.max(BAND_FLOOR,
-        (BAND_WIDE - vt * (BAND_WIDE - BAND_TIGHT)) * (1 - rung * RUNG_TIGHTEN)
-          * (1 + rodBand(rod) + effectPower(armor, 'band') + heatBand(armor, ctx)))),
+      // The floor is what the FISH will never take below — so it is applied to
+      // the intrinsic band, and gear widens from there. Applying it after the gear
+      // multiplier instead meant the dearest fish sat on the floor bare-handed and
+      // a full rod plus Master's Grip bought 1.1 points of track: 83% of bonus,
+      // almost all of it swallowed.
+      band: Math.min(0.34,
+        Math.max(BAND_FLOOR,
+          (BAND_WIDE - vt * (BAND_WIDE - BAND_TIGHT)) * (1 - rung * RUNG_TIGHTEN))
+        * (1 + rodBand(rod) + effectPower(armor, 'band') + heatBand(armor, ctx))),
       // Ground is only gained inside that stretch. A clean fight runs a little
       // under the nominal duration, so playing well beats the stamina you paid.
       progressPerSec: (1000 / (durationMs * 0.6)) * (1 + effectPower(armor, 'progress')),
@@ -1310,13 +1316,23 @@
     // heavily the common varieties are weighted, so the mix shifts up rather than
     // every catch being worth more — a different lever from Fair Price.
     cull:     { tiers: ['Shock Bobber', 'Shock Bobber+', 'Deathly Shock Bobber'],
-                // How many of the cheapest varieties are driven off entirely. The
-                // bar RISES with the level rather than the weights merely thinning,
-                // so each rung takes the next-worst thing out of the water.
-                floor: [1, 2, 3],
-                blurbs: ['Repels the lowest variety of fish',
-                         'Repels the two lowest varieties of fish',
-                         'Repels the three lowest varieties of fish'] },
+                // The bar rises a whole RANK BAND at a time. Level 1 drives off
+                // the lower half of Low Rank; level 2 everything below the lower
+                // half of High; level 3 everything below the lower half of G. So
+                // by the top rung only the best varieties still bite.
+                //
+                // `band` is how far up the ore ranks the cull reaches, and `half`
+                // says it stops at the lower half of that rank rather than taking
+                // the whole of it.
+                band: [0, 1, 2],
+                // No separate penalty: the cost is already in the fish. Limiting
+                // yourself to high varieties makes every fight harder on its own,
+                // because fightFor scales band and press rate off what the catch is
+                // WORTH — 447z and 2.99 presses a second becomes 1,300z and 3.87.
+                // Thinning the school as well would charge twice for one choice.
+                blurbs: ['Repels the lower varieties of Low Rank',
+                         'Repels up to the lower varieties of High Rank',
+                         'Repels up to the lower varieties of G Rank'] },
     // Each rung is a different thing rather than the same thing louder, so each
     // says only its own part. The top line is MHGU's own wording for Heat Cancel.
     heat:     { tiers: ['Heat Resist', 'Heat Resist+', 'Heat Cancel'],          climate: 'hot',
@@ -1504,20 +1520,28 @@
     return EFFECTS.band.per * lvl * steps;
   }
 
-  // Which varieties Shock Bobber drives off: the N cheapest of whatever is in the
-  // water here, N rising with the level. Never the whole pool — at least two
-  // varieties always stay, or a Low Rank angler wearing it would find nothing
-  // biting at all.
+  // Which varieties Shock Bobber drives off. It clears every rank BELOW the one
+  // it reaches, then the lower half of that rank — so each rung takes a whole
+  // band out of the water rather than one more item. Never the whole pool: at
+  // least two varieties always stay, or a Low Rank angler wearing it would find
+  // nothing biting at all.
   const CULL_KEEP = 2;
   function culledOres(armor, ores) {
     const lvl = effectLevel(armor, 'cull');
     if (!lvl || ores.length <= CULL_KEEP) return ores;
-    const n = Math.min(EFFECTS.cull.floor[Math.min(EFFECTS.cull.floor.length - 1, lvl - 1)],
-                       ores.length - CULL_KEEP);
-    const worst = [...ores].sort((a, b) => a.rank - b.rank || a.sell - b.sell)
-      .slice(0, n).map(o => o.id);
-    return ores.filter(o => !worst.includes(o.id));
+    const reach = EFFECTS.cull.band[Math.min(EFFECTS.cull.band.length - 1, lvl - 1)];
+    const inBand = ores.filter(o => o.rank === reach)
+      .sort((a, b) => a.sell - b.sell);
+    const gone = new Set([
+      ...ores.filter(o => o.rank < reach).map(o => o.id),          // everything beneath it
+      ...inBand.slice(0, Math.floor(inBand.length / 2)).map(o => o.id),  // its lower half
+    ]);
+    const kept = ores.filter(o => !gone.has(o.id));
+    if (kept.length >= CULL_KEEP) return kept;
+    // Too few left to fish: keep the best CULL_KEEP instead of emptying the water.
+    return [...ores].sort((a, b) => b.rank - a.rank || b.sell - a.sell).slice(0, CULL_KEEP);
   }
+
 
   const armorStat = (armor, key) => {
     const a = armor && armorById.get(armor.id);

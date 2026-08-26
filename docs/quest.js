@@ -333,6 +333,7 @@
         trip.hp -= hurt;
         el('castPrompt').textContent =
           `${boss.name} throws you off and is gone — ${hurt} HP.`;
+        flushNotes();
         releaseCast(); A.save(); render();
         if (trip.hp <= 0 && !spendGuts()) return cartOut(boss);
         if (trip.sta <= 0) return finish('out of stamina');
@@ -349,6 +350,7 @@
         trip.notes.push(`${bossSVG(boss, 18)}${boss.name} left behind a ${boss.mat.name}.`);
       }
       el('castPrompt').textContent = `${boss.name} caught. Worth ${z(bossPaid)}.`;
+      flushNotes();
       releaseCast(); A.save(); render();
       return;
     }
@@ -427,13 +429,7 @@
       }
     }
 
-    if (trip.notes.length) {
-      // innerHTML rather than textContent, because a note can carry the icon of
-      // whatever just bit you. Everything in here is built from our own data, not
-      // from anything a player types.
-      el('castPrompt').innerHTML += ' ' + trip.notes.join(' ');
-      trip.notes = [];
-    }
+    flushNotes();
 
     releaseCast();
     A.save();
@@ -464,6 +460,16 @@
     if (trip.hotDrinkLeft > 0) trip.hotDrinkLeft -= secs;
     if (trip.dashLeft > 0) trip.dashLeft -= secs;
     if (trip.defLeft > 0) trip.defLeft -= secs;
+  }
+
+  // Everything queued during this cast, written out where the player can see it.
+  // innerHTML rather than textContent, because a note can carry the icon of
+  // whatever just bit you. Everything in here is built from our own data, not from
+  // anything a player types.
+  function flushNotes() {
+    if (!trip || !trip.notes.length) return;
+    el('castPrompt').innerHTML += ' ' + trip.notes.join(' ');
+    trip.notes = [];
   }
 
   // The one blow a trip that does not finish you. Returns true if it caught you.
