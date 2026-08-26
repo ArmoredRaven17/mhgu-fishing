@@ -652,10 +652,10 @@
     const items = trip.haul.map(c => [c.name, z(c.value)])
       .concat(found.map(f => [f.name, 'ingredient']));
     const gained = trip.value;
-    // Counted, not valued: a creel full of cheap fish earns it exactly as a
-    // creel full of dear ones does. Only reachable here, so carting loses it.
-    const creel = G.creelBonus(trip.landed, questHR);
-    A.earn(gained + creel);
+    // Counted, not valued: a basket full of cheap fish earns it exactly as a
+    // basket full of dear ones does. Only reachable here, so carting loses it.
+    const basket = G.basketBonus(trip.landed, questHR);
+    A.earn(gained + basket);
     // Only what you actually SPENT leaves your stock; the rest never left it.
     // Supply items are not yours to keep, so they are simply not counted.
     spendCarried();
@@ -681,9 +681,9 @@
     if (!completed && short > 0)
       extra.push(`${z(short)} short of the ${z(goal)} needed to clear ${localeName}.`);
     if (promoted) extra.push(`Every locale fished. You are now HR ${promoted}, ${G.rankAt(promoted).name}.`);
-    if (creel) {
-      extra.push(`A full creel — ${G.CREEL.target} fish landed, ${z(creel)} bonus.`);
-      items.push(['Full creel', z(creel)]);
+    if (basket) {
+      extra.push(`A full basket — ${G.BASKET.target} fish landed, ${z(basket)} bonus.`);
+      items.push(['Full basket', z(basket)]);
     }
     if (cart) {
       extra.push(cart.extra

@@ -186,7 +186,7 @@
     // The whole ladder is listed, not just the next rung, because the two knobs
     // leapfrog: which upgrade is worth buying depends on how long you fish, and
     // you cannot see that from one row. `at 40 fish` is the honest common
-    // yardstick — the creel target, and about what a full trip lands.
+    // yardstick — the basket target, and about what a full trip lands.
     // The whole tab is out of sight until the smith has something to sell. The
     // cart itself runs from the first trip — what opens at HR3 is the ladder —
     // so an empty tab explaining that was both a teaser and, read literally,

@@ -332,7 +332,7 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
       }
     }
   }
-  return { haul: haul + G.creelBonus(landed, hr), casts, landed,
+  return { haul: haul + G.basketBonus(landed, hr), casts, landed,
            carted: hp <= 0, bosses, bossWins, pests, used };
 }
 

@@ -854,7 +854,7 @@
   const cartTierOpen = (tier, hr) =>
     !tier.rank || rankIndex(curveRank(hr)) >= rankIndex(tier.rank);
 
-  // ── The full creel ────────────────────────────────────────────────────────
+  // ── The full basket ────────────────────────────────────────────────────────
   //
   // A flat bonus for coming home with a lot of FISH, counted rather than valued.
   // Counting is the point: it is what makes a run of cheap little catches worth
@@ -862,7 +862,7 @@
   // quest goal is met. Value-weighting it would just pay you more for the trips
   // that already paid best.
   //
-  // Paid at camp, so a cart loses it with the haul — the fuller the creel, the
+  // Paid at camp, so a cart loses it with the haul — the fuller the basket, the
   // more the next cast is risking.
   //
   // 40 is deliberately flat across the game rather than scaled per rank. Trips
@@ -870,12 +870,12 @@
   // fights run longer and the climates bite harder — so a rising target would be
   // unreachable by G Rank and a falling one reads as the game getting easier.
   // Flat means Low Rank fills it every time and G Rank has to work for it.
-  const CREEL = {
+  const BASKET = {
     target: 40,
     bonus: { Low: 800, High: 1500, G: 2500 },   // ~10% of a fished-out trip's net
   };
-  const creelBonus = (landed, hr) =>
-    landed >= CREEL.target ? (CREEL.bonus[curveRank(hr)] || 0) : 0;
+  const basketBonus = (landed, hr) =>
+    landed >= BASKET.target ? (BASKET.bonus[curveRank(hr)] || 0) : 0;
 
   const BASE_MAX_HP = 100;
   const BASE_MAX_STAMINA = 110;
@@ -1920,9 +1920,15 @@
   // rest sit near a third, leaning on how many monsters call the place home —
   // Deserted Island with three residents reads as worse than the Marshlands with
   // none, which is the character those places already have.
+  // Raised from .22/.14 after playtesting: two long trips at Jurassic Frontier
+  // and Verdant Hills — both resident-less, both therefore sitting at the bare
+  // base — produced no monster at all across 105 fish. The encounter ramp was
+  // working the whole time; there was simply nothing out there to meet. A locale
+  // with nobody living in it was quiet on four visits out of five, and those are
+  // exactly the locales the rank-entry rungs are made of.
   const SIGHT = {
-    base: 0.22,          // a locale nothing lives in
-    perResident: 0.14,   // ...and what each resident adds
+    base: 0.42,          // a locale nothing lives in
+    perResident: 0.15,   // ...and what each resident adds
     visitor: 0.20,       // chance the one sighted is a wanderer, not a resident
     pests: 0.7,          // small monsters are about, or the place is quiet
   };
@@ -2006,7 +2012,7 @@
   // slip out unnoticed, a long one almost certainly cannot. The opening rate is
   // deliberately BELOW the old flat one so that staying briefly is genuinely
   // safer than it used to be, not merely differently random.
-  const ENCOUNTER_START = 0.5;   // of the rung rate, on the first cast of a trip
+  const ENCOUNTER_START = 0.75;  // of the rung rate, on the first cast of a trip
   const ENCOUNTER_PER_CATCH = 0.2;  // ...and what each landed fish since adds
   const ENCOUNTER_MAX = 8;       // ceiling, so a marathon trip stays a trip
 
@@ -2036,7 +2042,7 @@
     ITEM_EFFECT, effectOf, ITEM_GROUPS,
     COMBO_BASE_ITEM, COMBO_BASES, SPECIES_RECIPE, ORE_MAT,
     comboWorth, comboRecipe, comboMaterial, comboBase, comboRate,
-    BOOKS, bookById, bookBonus, PALICO, TRADE, CREEL, creelBonus,
+    BOOKS, bookById, bookBonus, PALICO, TRADE, BASKET, basketBonus,
     TRADE_CART, TRADE_CART_MAX, TRADE_CART_UNLOCK_HR, cartAt, cartTierOpen,
     MATERIALS, materialById, isBuyableMat, isQuestRewardMat, MAT_BUYABLE, pouchItems, pouchItemById,
     POUCH_SLOTS, TACKLE_SLOTS, BAIT_CARRY, carryLimit, ownCap, SUPPLY_RANK, SUPPLY_EACH,
