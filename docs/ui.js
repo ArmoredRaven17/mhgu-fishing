@@ -196,7 +196,9 @@
     } else {
       cartRows.push(gearSection('Trade Cart'));
       // Anything you already paid for stays listed whatever rank you are, so the
-      // ladder never appears to lose a rung.
+      // ladder never appears to lose a rung. Nothing announces the rungs that are
+      // still to come: in Monster Hunter better gear simply turns up in the list
+      // as you climb, and saying "more later" only draws attention to a wall.
       const shown = G.TRADE_CART.filter(t => t.lvl <= lvl || G.cartTierOpen(t, S.hr));
       for (const t of shown) {
         const owned = t.lvl <= lvl;
@@ -222,10 +224,6 @@
                           disabled: !A.canUpgradeCart() }] : [],
           worn: t.lvl === lvl,
         }));
-      }
-      if (shown.length < G.TRADE_CART.length) {
-        cartRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
-          + 'The smith will talk about a better cart once you are hunting bigger things.</td></tr>');
       }
     }
     el('cartTable').innerHTML = cartRows.join('');
