@@ -549,7 +549,7 @@
 
   function canUpgradeCart() {
     const next = cartNext();
-    if (!next || !cartOpen()) return false;
+    if (!next || !cartOpen() || !G.cartTierOpen(next, S.hr)) return false;
     return S.zenny >= next.cost && cartPartsHeld(next) >= next.matCount;
   }
   function upgradeCart() {

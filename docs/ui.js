@@ -195,7 +195,10 @@
         + `The Trade Cart starts running at HR ${G.TRADE_CART_UNLOCK_HR}.</td></tr>`);
     } else {
       cartRows.push(gearSection('Trade Cart'));
-      for (const t of G.TRADE_CART) {
+      // Anything you already paid for stays listed whatever rank you are, so the
+      // ladder never appears to lose a rung.
+      const shown = G.TRADE_CART.filter(t => t.lvl <= lvl || G.cartTierOpen(t, S.hr));
+      for (const t of shown) {
         const owned = t.lvl <= lvl;
         const next = t.lvl === lvl + 1;
         const at40 = Math.min(t.cap, Math.floor(40 / t.perExtra));
@@ -219,6 +222,10 @@
                           disabled: !A.canUpgradeCart() }] : [],
           worn: t.lvl === lvl,
         }));
+      }
+      if (shown.length < G.TRADE_CART.length) {
+        cartRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
+          + 'The smith will talk about a better cart once you are hunting bigger things.</td></tr>');
       }
     }
     el('cartTable').innerHTML = cartRows.join('');

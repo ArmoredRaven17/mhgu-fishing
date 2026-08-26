@@ -848,6 +848,11 @@
   ];
   const TRADE_CART_MAX = TRADE_CART.length - 1;
   const cartAt = lvl => TRADE_CART[Math.min(TRADE_CART_MAX, Math.max(0, lvl | 0))];
+  // A rung stays out of sight until you are the rank that pays for it. The parts
+  // it wants would be unobtainable anyway, and listing four suits you cannot buy
+  // reads as a wall rather than a ladder.
+  const cartTierOpen = (tier, hr) =>
+    !tier.rank || rankIndex(curveRank(hr)) >= rankIndex(tier.rank);
 
   // ── The full creel ────────────────────────────────────────────────────────
   //
@@ -2032,7 +2037,7 @@
     COMBO_BASE_ITEM, COMBO_BASES, SPECIES_RECIPE, ORE_MAT,
     comboWorth, comboRecipe, comboMaterial, comboBase, comboRate,
     BOOKS, bookById, bookBonus, PALICO, TRADE, CREEL, creelBonus,
-    TRADE_CART, TRADE_CART_MAX, TRADE_CART_UNLOCK_HR, cartAt,
+    TRADE_CART, TRADE_CART_MAX, TRADE_CART_UNLOCK_HR, cartAt, cartTierOpen,
     MATERIALS, materialById, isBuyableMat, isQuestRewardMat, MAT_BUYABLE, pouchItems, pouchItemById,
     POUCH_SLOTS, TACKLE_SLOTS, BAIT_CARRY, carryLimit, ownCap, SUPPLY_RANK, SUPPLY_EACH,
     DESIGNED_POOLS, ARENA_POOL, RANK_ORDER, rankIndex, SHOW_DESIGNED_LOCALES,
