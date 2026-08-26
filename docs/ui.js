@@ -187,12 +187,15 @@
     // leapfrog: which upgrade is worth buying depends on how long you fish, and
     // you cannot see that from one row. `at 40 fish` is the honest common
     // yardstick — the creel target, and about what a full trip lands.
+    // The whole tab is out of sight until the smith has something to sell. The
+    // cart itself runs from the first trip — what opens at HR3 is the ladder —
+    // so an empty tab explaining that was both a teaser and, read literally,
+    // wrong about when you get a cart.
     const cartRows = [];
     const lvl = A.cartLevel();
+    el('subCart').hidden = !A.cartOpen();
     if (!A.cartOpen()) {
-      cartRows.push(gearSection('Trade Cart'));
-      cartRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
-        + `The Trade Cart starts running at HR ${G.TRADE_CART_UNLOCK_HR}.</td></tr>`);
+      if (smithyView === 'cart') showSmithy('rods');
     } else {
       cartRows.push(gearSection('Trade Cart'));
       // Anything you already paid for stays listed whatever rank you are, so the
