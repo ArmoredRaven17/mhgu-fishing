@@ -132,14 +132,34 @@ line('Bait stocks, never conjures');
 // with the haul. HP ending is a cart: the haul is gone. Consumables are used
 // reactively, the way a player actually uses them.
 
+// Stamina comes out of the SHOP, not out of rations. A Ration is `buy: 0` — it
+// is never on sale — and the supply box that hands you three is Low Rank only,
+// so above HR3 an angler carrying rations is carrying something the game does
+// not sell them. Modelling five of them at every rank quietly gave every High
+// and G Rank trip 125 stamina nobody can buy, which is most of twenty casts.
+//
+// Cheapest per point first, which is the order a player would actually drink in.
+const STAMINA_ITEMS = ['energy_drink', 'rare_steak', 'well_done_steak'];
+// Energy Drinks are the staple and the baseline carries a full ten of them; the
+// steaks are a deliberate upgrade, so they are opt-in and their worth can be
+// measured against this. Defaulting to every item at full carry gave the kit 675
+// stamina against five potions, which simply carted 70% of the time.
+const STAMINA_DEFAULT = { energy_drink: G.carryLimit('energy_drink'), rare_steak: 0, well_done_steak: 0 };
+const staminaKit = (hr, spec) => STAMINA_ITEMS
+  .map(id => ({ id, item: prepBy.get(id), n: spec[id] ?? STAMINA_DEFAULT[id] }))
+  .filter(({ item, n }) => n > 0 && hr >= G.itemUnlockHR(item))
+  .map(({ id, item, n }) => ({ id, n, sta: G.ITEM_EFFECT[id].stamina, cost: G.priceOf(item) }))
+  .sort((a, b) => a.cost / a.sta - b.cost / b.sta);
+
 function makeLoadout(spec = {}) {
+  const hr = spec.hr ?? 12;
   return {
     meal: G.MEALS.find(m => m.id === spec.meal) || pickMeal(spec.meal),
     potions: spec.potions ?? 5,
-    rations: spec.rations ?? 5,
+    stamina: spec.stamina ?? staminaKit(hr, spec),
     coolDrinks: spec.coolDrinks ?? 3,
     hotDrinks: spec.hotDrinks ?? 3,
-    gear: spec.gear ?? rankGear(spec.hr ?? 12),
+    gear: spec.gear ?? rankGear(hr),
     baitId: spec.baitId || 'no_bait',
     hired: spec.hired ?? false,
   };
@@ -151,7 +171,7 @@ const cost = id => G.priceOf(prepBy.get(id));
 const loadoutCost = lo =>
   lo.meal.cost
   + lo.potions * cost('potion')
-  + lo.rations * cost('ration')
+  + lo.stamina.reduce((a, s) => a + s.n * s.cost, 0)
   + lo.coolDrinks * cost('cool_drink')
   + lo.hotDrinks * cost('hot_drink');
 const tripCost = (lo, localeId, hr) =>
@@ -160,7 +180,8 @@ const tripCost = (lo, localeId, hr) =>
 // everything else only when it is drunk.
 const spentOn = (lo, localeId, hr, used) =>
   lo.meal.cost + (lo.hired ? R.hireCost(localeId, hr) : 0)
-  + used.potions * cost('potion') + used.rations * cost('ration')
+  + used.potions * cost('potion')
+  + Object.entries(used.stamina).reduce((a, [id, n]) => a + n * cost(id), 0)
   + used.drinks * cost(G.climateOf(localeId) === 'hot' ? 'cool_drink' : 'hot_drink');
 
 // Meals are real items now, so the sim picks representative ones by effect
@@ -219,7 +240,9 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
   const maxHP = G.BASE_MAX_HP + lo.meal.hp + G.armorStat(gear.armor, 'hp');
   const maxSta = G.BASE_MAX_STAMINA + lo.meal.stamina + G.armorStat(gear.armor, 'stamina');
   let hp = maxHP, sta = maxSta;
-  let potions = lo.potions, rations = lo.rations;
+  let potions = lo.potions;
+  // A working copy: the kit is shared across thousands of trips.
+  const staLeft = lo.stamina.map(s => ({ ...s }));
   // Camp hands you a supply box every trip, exactly as quest.js does. Leaving it
   // out made the sim measure a harsher game than the one that ships: 3 free
   // First-aid Med is 60 HP, which is most of a Volcano trip's heat damage.
@@ -235,7 +258,7 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
   // Carrying a potion you never need costs nothing but a pouch slot, so pricing
   // the pack made every loadout look equally expensive and hid what the pests —
   // and the hire that turns them away — actually cost you.
-  const used = { potions: 0, rations: 0, drinks: 0 };
+  const used = { potions: 0, rations: 0, drinks: 0, stamina: {} };
 
   let sinceBoss = 0;   // fish landed since one last showed; it is what draws them
   while (sta > 0 && hp > 0 && casts < 500) {
@@ -300,8 +323,13 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
       else if (supplyHeals > 0) { supplyHeals--; hp = Math.min(maxHP, hp + SUPPLY_HEAL); }
     }
     if (sta < maxSta * 0.25) {
-      if (rations > 0) { rations--; used.rations++; sta = Math.min(maxSta, sta + 25); }
-      else if (supplyRations > 0) { supplyRations--; sta = Math.min(maxSta, sta + SUPPLY_STAMINA); }
+      const pick = staLeft.find(s => s.n > 0);
+      if (pick) {
+        pick.n--; used.stamina[pick.id] = (used.stamina[pick.id] || 0) + 1;
+        sta = Math.min(maxSta, sta + pick.sta);
+      } else if (supplyRations > 0) {
+        supplyRations--; used.rations++; sta = Math.min(maxSta, sta + SUPPLY_STAMINA);
+      }
     }
   }
   return { haul: haul + G.creelBonus(landed, hr), casts, landed,
@@ -326,7 +354,7 @@ function profile(localeId, lo, hr, trips = TRIPS) {
   };
 }
 
-line(`Trip value at HR12 — hearty meal, 5 potions, 5 rations, 3 of each drink (${TRIPS} trips each)`);
+line(`Trip value at HR12 — hearty meal, 5 potions, 10 Energy Drinks, 3 of each drink (${TRIPS} trips each)`);
 const lo = makeLoadout();
 console.log(`loadout cost ${loadoutCost(lo).toLocaleString()}z per trip\n`);
 console.log('locale               climate      casts   gross z    net z   cart%   note');
