@@ -429,7 +429,11 @@ select{
 .quest-side{min-height:0;display:flex}
 .side-pane{display:flex;flex-direction:column;min-height:0;flex:1}
 .side-head{flex:none;flex-wrap:wrap;row-gap:6px}
-.side-head .subtabs{margin-bottom:0;flex:1 1 auto}
+.side-head .subtabs{margin-bottom:0;flex:1 1 auto;gap:2px}
+/* Five tabs in a 320px column is a near thing: at the usual 4px gap and 10px
+   padding they came to 294px inside a 286px strip and wrapped by eight pixels.
+   Tighter here only, so the wider tab strips elsewhere keep their spacing. */
+.side-head .subtabs .subtab{padding:4px 8px}
 .side-body{overflow-y:auto;min-height:0;flex:1}
 .side-view{display:none}
 .side-view.active{display:block}

@@ -703,7 +703,7 @@
       extra.push(`${z(short)} short of the ${z(goal)} needed to clear ${localeName}.`);
     if (promoted) extra.push(`Every locale fished. You are now HR ${promoted}, ${G.rankAt(promoted).name}.`);
     if (basket) {
-      extra.push(`A full basket — ${G.BASKET.target} fish landed, ${z(basket)} bonus.`);
+      extra.push(`A full basket — ${G.BASKET.target} fish caught, ${z(basket)} bonus.`);
       items.push(['Full basket', z(basket)]);
     }
     if (cart) {

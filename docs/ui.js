@@ -233,7 +233,7 @@
         cartRows.push(gearRowHTML({
           icon: '', name: t.name,
           skills: knob ? `<span class="ent">${knob}</span>` : '',
-          detail: `<span class="ent">Holds ${t.cap}, one per ${t.perExtra} fish landed</span>`,
+          detail: `<span class="ent">Holds ${t.cap}, one per ${t.perExtra} fish caught</span>`,
           mats: owned ? '<span class="none">&mdash;</span>' : mats,
           price: owned ? '&mdash;' : z(t.cost),
           have: owned ? (t.lvl === lvl ? 'In use' : 'Owned') : '&mdash;',

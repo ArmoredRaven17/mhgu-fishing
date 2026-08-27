@@ -172,7 +172,7 @@
     el('tradeHint').textContent =
       'Hand the Trade Cart an item, they search for more of that item as you fish. ' +
       'Item is returned. ' +
-      `${cart.name}: holds ${cart.cap}, one per ${cart.perExtra} fish landed.`;
+      `${cart.name}: holds ${cart.cap}, one per ${cart.perExtra} fish caught.`;
   }
 
   // Cats gather while you fish. What they pick up is held until you are home —
