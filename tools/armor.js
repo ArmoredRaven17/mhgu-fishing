@@ -25,36 +25,61 @@
     { key: 'waist', label: 'Waist' },
   ];
 
-  // Skills that do not exist in the game yet. Kept as data so they can be
-  // arranged alongside the real ones; the notes that used to sit on these are
-  // deliberately gone from both the data and the display — one of them was long
-  // enough to break the grid.
+  // Skills that do not exist in the game yet, kept as data so they can be
+  // arranged alongside the real ones. The notes that used to sit on these are
+  // gone from the data as well as the display — one was long enough to break
+  // the grid.
+  const PROPOSED = ['parts', 'control', 'strike', 'lure', 'brace',
+                    'haggle', 'lesson', 'rich', 'vigor'];
+  const isProposed = k => PROPOSED.includes(k);
+
+  // WORKING NAMES — one word for the thing the skill affects, nothing more.
+  // Raven names these properly once the allotment is settled; until then a label
+  // has to read as obviously temporary and never be mistaken for a decision.
   //
-  // parts   an extra monster part per kill        strike  longer strike window
-  // control smaller lift per press, finer reeling lure    monsters check in sooner
-  // brace   more leeway when bracing              haggle  cheaper dock services
-  // lesson  more XP per catch                     rich    better ore varieties
-  // vigor   raw HP and Stamina, with a name
-  const PROPOSED = {
-    parts:   'Extra Parts',
-    control: 'Reel Control',
-    strike:  'Strike Window',
-    lure:    'Monster Lure',
-    brace:   'Brace Leeway',
-    haggle:  'Cheaper Services',
-    lesson:  'Extra XP',
-    rich:    'Better Ore',
-    vigor:   'Vigor',
+  // Only the skills that are a simple dial on one quantity get a generic name.
+  // Shock Bobber, Heat Hunter and Guts are left alone: their effects are not
+  // "more or less of X" — one indexes a rank band, one is conditional on heat
+  // and stacks onto grip, and one is a once-a-trip flag. Genericising those
+  // would misdescribe them.
+  const SPECIFIC = { cull: 'Shock Bobber', hotblood: 'Heat Hunter', guts: 'Guts' };
+  const NAMES = {
+    // the reel
+    band:     'Sweetspot',   // how wide the sweet spot is
+    progress: 'Capture',     // how fast the capture bar fills inside it
+    escape:   'Escape',      // how fast the escape bar fills outside it
+    control:  'Control',     // how far one press moves the line
+    strike:   'Strike',      // how long you have to strike a nibble
+    // the water
+    bites:    'Bites',       // how eagerly fish take the line
+    rich:     'Ore',         // which ore varieties turn up
+    lure:     'Lure',        // how soon a large monster checks in
+    repel:    'Pests',       // how often small monsters attack
+    parts:    'Parts',       // what a monster leaves behind
+    gather:   'Gathering',   // what the Palicos bring back
+    // the trip
+    stamina:  'Stamina',     // what a cast costs
+    vigor:    'Vitality',    // how much HP and Stamina you carry
+    defense:  'Defense',     // how hard a hit lands
+    brace:    'Brace',       // how much leeway a brace allows
+    heat:     'Heat',        // heat protection
+    cold:     'Cold',        // cold protection
+    // the ledger
+    zenny:    'Value',       // what a catch is worth
+    trade:    'Trade',       // what the Trade Cart brings back
+    haggle:   'Costs',       // what services charge
+    saver:    'Saver',       // whether an item is consumed
+    effectup: 'Items',       // how much an item does
+    combo:    'Combining',   // combine success
+    lesson:   'Experience',  // XP per catch
+    ...SPECIFIC,
   };
-  const isProposed = k => Object.prototype.hasOwnProperty.call(PROPOSED, k);
-  // A skill's display name. Shipped skills still carry a tiers[] ladder in
-  // game.js; under the new scheme only the base name survives and the level is
-  // shown as a number, so the first tier is the name.
-  const nameOf = k => (isProposed(k) ? PROPOSED[k] : G.EFFECTS[k].tiers[0]);
+  const nameOf = k => NAMES[k] || k;
+  const isSpecific = k => Object.prototype.hasOwnProperty.call(SPECIFIC, k);
 
   const lineIds = Object.keys(G.ARMOR_LINES);
   const lineName = id => G.ARMOR_LINES[id].name;
-  const skillKeys = [...Object.keys(G.EFFECTS), ...Object.keys(PROPOSED)];
+  const skillKeys = [...Object.keys(G.EFFECTS), ...PROPOSED];
 
   // ── The board ─────────────────────────────────────────────────────────
   //
@@ -91,9 +116,10 @@
     const placed = placedKeys();
     el('pal').innerHTML = skillKeys.map(k => {
       const cls = (isProposed(k) ? ' proposed' : '') + (placed.has(k) ? '' : ' unused');
+      const tag = isSpecific(k) ? 'own name' : (placed.has(k) ? 'placed' : '&mdash;');
       return `<div class="chip${cls}" draggable="true" data-key="${k}">`
         + `<span>${nameOf(k)}</span>`
-        + `<small>${placed.has(k) ? 'placed' : '&mdash;'}</small></div>`;
+        + `<small>${tag}</small></div>`;
     }).join('');
     for (const c of el('pal').querySelectorAll('.chip')) wireDrag(c, null);
   }
@@ -287,7 +313,7 @@
     let txt = '  const ARMOR_PIECES = {\n' + body + '\n  };';
     if (used.length)
       txt += '\n\n  // Not in EFFECTS yet, add before this will build:\n  // '
-        + used.map(k => `${k} (${PROPOSED[k]})`).join(', ');
+        + used.map(k => `${k} (${nameOf(k)})`).join(', ');
     el('out').textContent = txt;
   }
 
