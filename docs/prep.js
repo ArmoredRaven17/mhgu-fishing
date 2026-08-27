@@ -166,13 +166,12 @@
     const item = S.tradeItem ? G.pouchItemById.get(S.tradeItem) : null;
     const cost = R.tradeCost(S.localeId, A.questRung(), item);
     el('tradeCost').textContent = item ? z(cost) : '—';
-    // Say what THIS cart can do, not what a trade cart does in general — the
-    // ladder is bought a rung at a time and the numbers are the whole reason to.
-    const cart = G.cartAt(A.cartLevel());
+    // Raven's line, left alone. The cart's numbers live in the Smithy where it is
+    // bought; appending them here turns a one-line service into a spec sheet, and
+    // a player who is told the rate has no reason to find it out.
     el('tradeHint').textContent =
       'Hand the Trade Cart an item, they search for more of that item as you fish. ' +
-      'Item is returned. ' +
-      `${cart.name}: holds ${cart.cap}, one per ${cart.perExtra} fish caught.`;
+      'Item is returned';
   }
 
   // Cats gather while you fish. What they pick up is held until you are home —
