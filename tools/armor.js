@@ -91,31 +91,55 @@
   // Trader, exchanged for parts of the eight that are. Listed by MONSTER name:
   // the armor set's real name often differs (Deviljho's is Vangis, Teostra's is
   // Kaiser) and mapping those is a separate job from assigning skills.
+  // [name, floor] — the floor is the lowest rank the set exists at, seeded from
+  // the EARLIEST QUEST RANK each monster actually appears at in MHGU. Derived
+  // from monster_to_quest joined to quests in mhgu.db, so Fatalis is G and
+  // Yian Kut-Ku is Low without anyone deciding it here. Every floor is editable
+  // in the grid; these are a starting point, not a rule.
   const EXCHANGE = [
-    'Ahtal-Ka', 'Akantor', 'Alatreon', 'Amatsu', 'Arzuros', 'Astalos',
-    'Barioth', 'Barroth', 'Basarios', 'Blangonga', 'Brachydios',
-    'Bulldrome', 'Chameleos', 'Chaotic Gore Magala', 'Congalala',
-    'Crimson Fatalis', 'Daimyo Hermitaur', 'Deviljho', 'Diablos',
-    'Duramboros', 'Fatalis', 'Furious Rajang', 'Gammoth', 'Gendrome',
-    'Giadrome', 'Glavenus', 'Gold Rathian', 'Gore Magala', 'Gravios',
-    'Great Maccao', 'Gypceros', 'Iodrome', 'Kecha Wacha', 'Khezu', 'Kirin',
-    'Kushala Daora', 'Lagombi', 'Lao-Shan Lung', 'Malfestio', 'Mizutsune',
-    'Najarala', 'Nakarkos', 'Nargacuga', 'Nerscylla', 'Old Fatalis',
-    'Raging Brachydios', 'Rajang', 'Rathalos', 'Rathian', 'Savage Deviljho',
-    'Seltas', 'Seltas Queen', 'Seregios', 'Shagaru Magala',
-    'Shogun Ceanataur', 'Silver Rathalos', 'Teostra', 'Tetsucabra',
-    'Tigrex', 'Ukanlos', 'Uragaan', 'Valstrax', 'Velocidrome', 'Volvidon',
-    'Yian Garuga', 'Yian Kut-Ku', 'Zinogre',
+    ['Ahtal-Ka', 'G'], ['Akantor', 'High'], ['Alatreon', 'High'],
+    ['Amatsu', 'High'], ['Arzuros', 'Low'], ['Astalos', 'Low'],
+    ['Barioth', 'High'], ['Barroth', 'High'], ['Basarios', 'High'],
+    ['Blangonga', 'Low'], ['Brachydios', 'Low'], ['Bulldrome', 'Low'],
+    ['Chameleos', 'Low'], ['Chaotic Gore Magala', 'G'],
+    ['Congalala', 'High'], ['Crimson Fatalis', 'G'],
+    ['Daimyo Hermitaur', 'Low'], ['Deviljho', 'High'],
+    ['Diablos', 'High'], ['Duramboros', 'High'], ['Fatalis', 'G'],
+    ['Furious Rajang', 'High'], ['Gammoth', 'Low'], ['Gendrome', 'Low'],
+    ['Giadrome', 'High'], ['Glavenus', 'Low'], ['Gold Rathian', 'High'],
+    ['Gore Magala', 'Low'], ['Gravios', 'High'], ['Great Maccao', 'Low'],
+    ['Gypceros', 'Low'], ['Iodrome', 'Low'], ['Kecha Wacha', 'High'],
+    ['Khezu', 'Low'], ['Kirin', 'Low'], ['Kushala Daora', 'Low'],
+    ['Lagombi', 'Low'], ['Lao-Shan Lung', 'G'], ['Malfestio', 'Low'],
+    ['Mizutsune', 'Low'], ['Najarala', 'Low'], ['Nakarkos', 'Low'],
+    ['Nargacuga', 'Low'], ['Nerscylla', 'High'], ['Old Fatalis', 'G'],
+    ['Raging Brachydios', 'G'], ['Rajang', 'High'], ['Rathalos', 'Low'],
+    ['Rathian', 'Low'], ['Savage Deviljho', 'High'], ['Seltas', 'High'],
+    ['Seltas Queen', 'High'], ['Seregios', 'Low'],
+    ['Shagaru Magala', 'Low'], ['Shogun Ceanataur', 'Low'],
+    ['Silver Rathalos', 'High'], ['Teostra', 'Low'],
+    ['Tetsucabra', 'Low'], ['Tigrex', 'Low'], ['Ukanlos', 'High'],
+    ['Uragaan', 'Low'], ['Valstrax', 'High'], ['Velocidrome', 'Low'],
+    ['Volvidon', 'Low'], ['Yian Garuga', 'Low'], ['Yian Kut-Ku', 'Low'],
+    ['Zinogre', 'Low'],
   ];
   const keyOf = n => n.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
   const FISHED = Object.keys(G.ARMOR_LINES);
-  const NAME = {};
-  for (const id of FISHED) NAME[id] = G.ARMOR_LINES[id].name;
-  for (const n of EXCHANGE) NAME[keyOf(n)] = n;
-  const lineIds = [...FISHED, ...EXCHANGE.map(keyOf)];
+  const NAME = {}, FLOOR = {};
+  for (const id of FISHED) {
+    NAME[id] = G.ARMOR_LINES[id].name;
+    // The eight in the water keep the floor the GAME already gives them, which
+    // is Raven's decision and not the DB's — Zamtrios is Low here on purpose.
+    const boss = Object.values(G.BOSS).find(b => b.line === id);
+    FLOOR[id] = boss ? boss.floor : 'Low';
+  }
+  for (const [n, f] of EXCHANGE) { NAME[keyOf(n)] = n; FLOOR[keyOf(n)] = f; }
+  const lineIds = [...FISHED, ...EXCHANGE.map(e => keyOf(e[0]))];
   const lineName = id => NAME[id];
   const isFished = id => FISHED.includes(id);
+  const rankIndex = r => RANKS.indexOf(r);
+  const atOrAbove = (id, r) => rankIndex(r) >= rankIndex(FLOOR[id]);
   let filter = '';
   const skillKeys = [...Object.keys(G.EFFECTS), ...PROPOSED];
 
@@ -182,9 +206,17 @@
     const shown = lineIds.filter(id =>
       !filter || lineName(id).toLowerCase().includes(filter));
     const rows = shown.map(id => {
+      const open = atOrAbove(id, rank);
       const cells = PIECES.map(p => {
         const list = cellOf(id, rank, p.key);
-        return `<div class="cell ${p.key}" data-line="${id}" data-rank="${rank}" data-piece="${p.key}">`
+        // Below the line's floor the set does not exist, so there is nothing to
+        // drop onto. Anything already assigned stays visible rather than being
+        // silently binned — the checks say it will not export.
+        if (!open && !list.length)
+          return `<div class="cell ${p.key} shut"><span class="none">&mdash;</span></div>`;
+        return `<div class="cell ${p.key}${open ? '' : ' shut'}"`
+          + (open ? ` data-line="${id}" data-rank="${rank}" data-piece="${p.key}"` : '')
+          + `>`
           + (list.length
               ? list.map((e, i) => entryHTML(e, id, rank, p.key, i)).join('')
               : `<span class="none">drop a skill</span>`)
@@ -194,12 +226,22 @@
       const setCell = `<div class="cell setb" data-line="${id}" data-rank="set" data-piece="set">`
         + (sb ? entryHTML(sb, id, 'set', 'set', 0) : `<span class="none">none</span>`)
         + `</div>`;
-      return `<div class="lname${isFished(id) ? ' fished' : ''}">${lineName(id)}</div>`
+      const floorCtl = `<span class="floor">` + RANKS.map(r =>
+        `<button data-floor="${r}" data-fline="${id}"`
+        + (FLOOR[id] === r ? ' class="on"' : '') + `>`
+        + (r === 'High' ? 'H' : r === 'Low' ? 'L' : 'G') + `</button>`).join('') + `</span>`;
+      return `<div class="lname${isFished(id) ? ' fished' : ''}">`
+        + `<span class="ln">${lineName(id)}</span>${floorCtl}</div>`
         + cells + setCell;
     }).join('');
 
     el('grid').innerHTML = head + rows;
     el('shownCount').textContent = shown.length + ' of ' + lineIds.length + ' lines';
+
+    el('grid').querySelectorAll('[data-floor]').forEach(b => b.onclick = () => {
+      FLOOR[b.dataset.fline] = b.dataset.floor;
+      renderAll();
+    });
 
     for (const n of el('grid').querySelectorAll('.nm[draggable]'))
       wireDrag(n, { line: n.dataset.line, rank: n.dataset.rank,
@@ -272,6 +314,7 @@
   // decides whether the numbers are sane.
   function setTotals(line, r) {
     const out = {};
+    if (!atOrAbove(line, r)) return out;
     for (const p of PIECES)
       for (const e of cellOf(line, r, p.key)) out[e.k] = (out[e.k] || 0) + e.lvl;
     const sb = board[line].setBonus;
@@ -324,6 +367,16 @@
         notes.push(['bad', 'Carried by nothing: ' + orphans.map(nameOf).join(', ')]);
     }
 
+    // Raising a floor over existing work is easy to do by accident and the
+    // export drops those ranks, so say it rather than losing them quietly.
+    for (const id of lineIds)
+      for (const r of RANKS) {
+        if (atOrAbove(id, r)) continue;
+        const n = PIECES.reduce((a, p) => a + cellOf(id, r, p.key).length, 0);
+        if (n) notes.push(['bad', `${lineName(id)} is ${FLOOR[id]}+ but has `
+          + `${n} skill${n === 1 ? '' : 's'} assigned at ${r} — those will not export.`]);
+      }
+
     // A piece carrying the same skill twice is always a slip, never a plan.
     for (const id of lineIds)
       for (const r of RANKS)
@@ -345,10 +398,16 @@
   function renderOut() {
     const entries = list => '[' + list.map(e => `{ k: '${e.k}', lvl: ${e.lvl} }`).join(', ') + ']';
     const body = lineIds.map(id => {
-      const ranks = RANKS.map(r => '      ' + (r + ':').padEnd(6) + '{ '
-        + PIECES.map(p => `${p.key}: ${entries(cellOf(id, r, p.key))}`).join(', ') + ' },').join('\n');
+      // Ranks below the line's floor are not exported at all: that set does
+      // not exist there.
+      const ranks = RANKS.filter(r => atOrAbove(id, r))
+        .map(r => '      ' + (r + ':').padEnd(6) + '{ '
+        + PIECES.map(p => `${p.key}: ${entries(cellOf(id, r, p.key))}`).join(', ') + ' },')
+        .join('\n');
       const sb = board[id].setBonus;
-      return '    ' + id + ': {' + (isFished(id) ? '' : '   // exchange') + '\n' + ranks + '\n'
+      return '    ' + id + ': {' + (isFished(id) ? '' : '   // exchange') + '\n'
+        + `      floor: '${FLOOR[id]}',\n`
+        + ranks + '\n'
         + '      setBonus: ' + (sb ? `{ k: '${sb.k}', lvl: ${sb.lvl} }` : 'null') + ',\n'
         + '    },';
     }).join('\n');
