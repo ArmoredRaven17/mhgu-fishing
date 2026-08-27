@@ -141,10 +141,6 @@
     const rodRows = [];
     rodRows.push(gearSection('Rods'));
     for (const g of knownRods) rodRows.push(gearRow(g, 'rod'));
-    if (knownRods.length < G.RODS.length) {
-      rodRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
-        + 'Better rods need parts off a large monster. Land one and the smith will show you what it can make.</td></tr>');
-    }
 
     // A suit stays out of sight until you hold a part of the monster it is made
     // of. You do not know Lagiacrus armor exists until a Lagiacrus has given you
@@ -212,28 +208,32 @@
       if (smithyView === 'cart') showSmithy('rods');
     } else {
       cartRows.push(gearSection('Trade Cart'));
-      // Anything you already paid for stays listed whatever rank you are, so the
-      // ladder never appears to lose a rung. Nothing announces the rungs that are
-      // still to come: in Monster Hunter better gear simply turns up in the list
-      // as you climb, and saying "more later" only draws attention to a wall.
-      const shown = G.TRADE_CART.filter(t => t.lvl <= lvl || G.cartTierOpen(t, S.hr));
+      // What you own, plus the one rung you could buy next — and nothing beyond
+      // it. The cart is a strict ladder rather than a shelf of alternatives the
+      // way rods and armor are: you cannot skip to the Grand cart, so listing it
+      // four rungs early is showing a price you have no way to act on.
+      //
+      // Anything already paid for stays listed whatever rank you are, so the
+      // ladder never appears to lose a rung.
+      const shown = G.TRADE_CART.filter(t =>
+        t.lvl <= lvl || (t.lvl === lvl + 1 && G.cartTierOpen(t, S.hr)));
       for (const t of shown) {
         const owned = t.lvl <= lvl;
         const next = t.lvl === lvl + 1;
-        const at40 = Math.min(t.cap, Math.floor(40 / t.perExtra));
         const held = t.rank ? A.cartPartsHeld(t) : 0;
         const enough = held >= (t.matCount || 0);
         const mats = t.rank
           ? `<span class="mat ${enough ? 'ok' : 'short'}"><b>${t.matCount}&times;</b> `
             + `<i>any ${t.rank} Rank part</i> <span class="held">${held} held</span></span>`
           : '<span class="none">&mdash;</span>';
-        // Say which knob each rung moves, since that is the whole decision.
+        // Which knob the rung moves, and the two numbers it moves them to. What
+        // that comes to over a trip is left unsaid: it depends on how long you
+        // fish, and it is the player's to work out.
         const knob = t.knob === 'cap' ? 'Holds more' : t.knob === 'rate' ? 'Fills faster' : '';
         cartRows.push(gearRowHTML({
           icon: '', name: t.name,
           skills: knob ? `<span class="ent">${knob}</span>` : '',
-          detail: `<span class="ent">Holds ${t.cap}, one per ${t.perExtra} fish landed`
-            + ` &mdash; ${at40} back on a 40-fish trip</span>`,
+          detail: `<span class="ent">Holds ${t.cap}, one per ${t.perExtra} fish landed</span>`,
           mats: owned ? '<span class="none">&mdash;</span>' : mats,
           price: owned ? '&mdash;' : z(t.cost),
           have: owned ? (t.lvl === lvl ? 'In use' : 'Owned') : '&mdash;',
