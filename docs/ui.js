@@ -95,6 +95,20 @@
       let detail = armor
         ? g.effects.map(e => `<span class="ent">${G.effectBlurb(e.key, e.lvl)}</span>`).join('')
         : `<span class="ent">${g.desc || ''}</span>`;
+      // What the suit is actually worth, and what a level buys. Levelling armor
+      // does NOT strengthen its skills — those are fixed by the tier — so
+      // without this the Upgrade button spends money on nothing you can see.
+      if (armor) {
+        const at = { id: g.id, lvl };
+        detail += `<span class="ent stat">+${G.armorStat(at, 'hp')} HP`
+          + ` &middot; +${G.armorStat(at, 'stamina')} Stamina`
+          + ` &middot; +${Math.round(G.armorStat(at, 'guard') * 100)}% DEF</span>`;
+        if (owned && !capped) {
+          const P = G.ARMOR_PER_LEVEL;
+          detail += `<span class="ent gain">Lv ${lvl + 1} adds +${P.hp} HP,`
+            + ` +${P.stamina} Stamina, +${(P.guard * 100).toFixed(1)}% DEF</span>`;
+        }
+      }
       if (owned && locked) detail += `<span class="unlock">Next level at HR ${gate}</span>`;
 
       const buys = [];

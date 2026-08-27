@@ -561,8 +561,8 @@
     // two things they replace put together.
     hot_meat:        { group: 'misc', stamina: 50, protects: 'cold', unlock: 13, carry: 5, label: '+50 Stamina and cold resistance' },
     chilled_meat:    { group: 'misc', stamina: 50, protects: 'hot',  unlock: 13, carry: 5, label: '+50 Stamina and heat resistance' },
-    armorskin:       { group: 'misc',      def: 0.15, secs: 1,  unlock: 5,  carry: 5,  label: '+15% Def for a short time' },
-    mega_armorskin:  { group: 'misc',      def: 0.25, secs: 2,  unlock: 9,  carry: 2,  label: '+25% Def, for twice as long' },
+    armorskin:       { group: 'misc',      def: 0.15, secs: 1,  unlock: 5,  carry: 5,  label: '+15% DEF for a short time' },
+    mega_armorskin:  { group: 'misc',      def: 0.25, secs: 2,  unlock: 9,  carry: 2,  label: '+25% DEF, for twice as long' },
   };
 
   // How much you can take at all. A slot holds one KIND of item, up to its own
@@ -952,7 +952,8 @@
     hp: n => `+${n} HP`,
     stamina: n => `+${n} Stamina`,
     zenny: n => `+${Math.round(n * 100)}% Zenny per catch`,
-    guard: n => `+${Math.round(n * 100)}% Def`,
+    // DEF to the player. `guard` stays the key everywhere in the code.
+    guard: n => `+${Math.round(n * 100)}% DEF`,
   };
 
   const ingredientById = new Map(CANTEEN.ingredients.map(i => [i.id, i]));
@@ -1024,7 +1025,7 @@
     hp: n => `+${n} HP`,
     stamina: n => `+${n} Stamina`,
     zenny: n => `+${Math.round(n * 100)}% Zenny`,
-    guard: n => `+${Math.round(n * 100)}% Def`,
+    guard: n => `+${Math.round(n * 100)}% DEF`,
   };
   const freshShort = bonus => Object.entries(bonus)
     .filter(([, v]) => v > 0)
