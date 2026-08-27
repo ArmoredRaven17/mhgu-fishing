@@ -22,11 +22,94 @@
     { key: 'third', label: 'Third' },
   ];
 
+  // ── Skills that do not exist yet ──────────────────────────────────────
+  //
+  // Every one of these fills a mechanic nothing currently reads: monster parts,
+  // the strike window, whether large monsters turn up at all, the brace, service
+  // costs, XP, and the pool's upper end. They are here to be dragged around and
+  // argued with, NOT because the names are settled — naming is Raven's.
+  //
+  // `real` marks a name that exists in MHGU, checked against the game's own skill
+  // list. The rest are invented and say so. Ladder follows the house rule: Base,
+  // Base+, then a new name at G.
+  const PROPOSED = {
+    parts: {
+      tiers: ['Carving Pro', 'Carving Pro+', 'Carving Celebrity'], per: 0.34, real: true,
+      note: 'Real MHGU skills. A monster sometimes leaves a second part behind. '
+          + 'Fills the biggest hole in the set: nothing at all affects part drops, '
+          + 'and parts are the whole armor loop.',
+      blurbs: ['A monster sometimes leaves an extra part',
+               'A monster often leaves an extra part',
+               'A monster very often leaves an extra part'],
+    },
+    strike: {
+      tiers: ['Keen Eye', 'Keen Eye+', 'Hawkeye'], per: 0.2, real: false,
+      note: 'Invented. Lengthens the window to strike after a nibble. The only way '
+          + 'to lose a fish that no rod, armor or skill can currently help with.',
+      blurbs: ['A little longer to strike when a fish bites',
+               'Longer to strike when a fish bites',
+               'Much longer to strike when a fish bites'],
+    },
+    lure: {
+      tiers: ['Ripple Sense', 'Ripple Sense+', 'Leviathan Caller'], per: 0.25, real: false,
+      note: 'Invented. Large monsters check in more often. The counterpart to '
+          + "Fisherman's Talisman, which only ever pushed the small ones away.",
+      blurbs: ['Large monsters take an interest a little sooner',
+               'Large monsters take an interest sooner',
+               'Large monsters take an interest much sooner'],
+    },
+    brace: {
+      tiers: ['Evade Extender', 'Evade Extender+', 'Unshakeable'], per: 0.3, real: true,
+      note: 'Evade Extender is real and genuinely means "your defensive window '
+          + 'lasts longer", which is exactly this. Widens the moment in which a '
+          + 'brace counts, so an honest reaction is not punished as a fumble.',
+      blurbs: ['A little more leeway when bracing',
+               'More leeway when bracing',
+               'Much more leeway when bracing'],
+    },
+    haggle: {
+      tiers: ['Fair Dealing', 'Fair Dealing+', "Guildmaster's Word"], per: 0.15, real: false,
+      note: 'Invented. Cuts what the hire, the Palicos and the Trade Cart charge. '
+          + 'Every money skill is currently yield-side; nothing touches spending.',
+      blurbs: ['Services at the dock cost a little less',
+               'Services at the dock cost less',
+               'Services at the dock cost much less'],
+    },
+    lesson: {
+      tiers: ['Quick Study', 'Quick Study+', 'Old Hand'], per: 0.2, real: false,
+      note: 'Invented. More XP from a catch. Nothing reads addXP today, so rank '
+          + 'progress is the one currency gear cannot influence.',
+      blurbs: ['You learn a little faster from every catch',
+               'You learn faster from every catch',
+               'You learn much faster from every catch'],
+    },
+    rich: {
+      tiers: ['Prospector', 'Prospector+', 'Ore Sense'], per: 0.18, real: false,
+      note: 'Invented. Nudges the ore pool UPWARD. Shock Bobber only ever cuts the '
+          + 'bottom off; nothing raises the top.',
+      blurbs: ['Better ore varieties turn up a little more often',
+               'Better ore varieties turn up more often',
+               'Better ore varieties turn up much more often'],
+    },
+    vigor: {
+      tiers: ['Constitution', 'Constitution+', 'Iron Constitution'], per: 0.12, real: true,
+      note: 'Constitution is real. Raw HP and Stamina come from the tier and the '
+          + 'level today, as bare numbers with no name a player can recognise.',
+      blurbs: ['You carry a little more HP and Stamina',
+               'You carry more HP and Stamina',
+               'You carry much more HP and Stamina'],
+    },
+  };
+  // One table for the bench. The app only knows G.EFFECTS; anything from PROPOSED
+  // that ends up placed has to be added there too — the export says so.
+  const EFFECTS = { ...G.EFFECTS, ...PROPOSED };
+  const isProposed = k => Object.prototype.hasOwnProperty.call(PROPOSED, k);
+
   const SHIPPED = JSON.parse(JSON.stringify(G.ARMOR_LINES));
   let lines = JSON.parse(JSON.stringify(G.ARMOR_LINES));
 
   const lineIds = Object.keys(lines);
-  const effectKeys = Object.keys(G.EFFECTS);
+  const effectKeys = Object.keys(EFFECTS);
 
   // ── What a given arrangement would produce ────────────────────────────
   //
@@ -68,16 +151,19 @@
   function renderPal() {
     const used = usage();
     el('pal').innerHTML = effectKeys.map(key => {
-      const e = G.EFFECTS[key];
+      const e = EFFECTS[key];
       const lv = used[key];
       const need = lv ? Math.max(...lv) : 0;
       // Levels 1 and 3 with no 2 is the deliberate two-tier shape, not a gap.
       const twoStep = lv && [...lv].sort().join(',') === '1,3';
       const short = need > e.tiers.length && !twoStep;
-      const cls = !lv ? ' unused' : (short ? ' short' : '');
-      return `<div class="chip${cls}" draggable="true" data-key="${key}">`
-        + `<span>${e.tiers[0]}</span>`
-        + `<small>${lv ? 'lv ' + [...lv].sort().join('/') : 'unused'} &middot; ${e.tiers.length}&nbsp;names</small></div>`;
+      const prop = isProposed(key);
+      const cls = (prop ? ' proposed' : '') + (short ? ' short' : (!lv && !prop ? ' unused' : ''));
+      const state = lv ? 'lv ' + [...lv].sort().join('/') : (prop ? 'proposal' : 'unused');
+      return `<div class="chip${cls}" draggable="true" data-key="${key}"`
+        + (prop ? ` title="${e.note.replace(/"/g, '&quot;')}"` : '') + `>`
+        + `<span>${e.tiers[0]}${prop ? (e.real ? ' <i>real</i>' : ' <i>new</i>') : ''}</span>`
+        + `<small>${state} &middot; ${e.tiers.length}&nbsp;names</small></div>`;
     }).join('');
     for (const c of el('pal').querySelectorAll('.chip')) wireDrag(c, null);
   }
@@ -91,7 +177,7 @@
         + `<div class="line-name">${L.name}<span>${ranks.length} tier${ranks.length === 1 ? '' : 's'}</span></div>`
         + SLOTS.map(s => {
             const key = L[s.key];
-            const e = key && G.EFFECTS[key];
+            const e = key && EFFECTS[key];
             return `<div class="slot ${s.key}${e ? '' : ' empty'}" data-line="${id}" data-slot="${s.key}">`
               + `<span class="tag">${s.label}</span>`
               + (e
@@ -153,13 +239,14 @@
     const used = usage();
     const notes = [];
 
-    const orphans = effectKeys.filter(k => !used[k]);
+    // An unplaced PROPOSAL is not an orphan - it does not exist in the game yet.
+    const orphans = effectKeys.filter(k => !used[k] && !isProposed(k));
     if (orphans.length)
       notes.push(['bad', `Carried by nothing, so never appears in the game: `
-        + orphans.map(k => G.EFFECTS[k].tiers[0]).join(', ')]);
+        + orphans.map(k => EFFECTS[k].tiers[0]).join(', ')]);
 
     for (const [key, lv] of Object.entries(used)) {
-      const e = G.EFFECTS[key];
+      const e = EFFECTS[key];
       const need = Math.max(...lv);
       const twoStep = [...lv].sort().join(',') === '1,3';
       if (need > e.tiers.length && !twoStep)
@@ -179,7 +266,7 @@
         if (k) (climbCount[k] = climbCount[k] || []).push(lines[id].name);
     for (const [k, on] of Object.entries(climbCount))
       if (on.length > 1)
-        notes.push(['warn', `${G.EFFECTS[k].tiers[0]} climbs on ${on.length} lines: ${on.join(', ')}.`]);
+        notes.push(['warn', `${EFFECTS[k].tiers[0]} climbs on ${on.length} lines: ${on.join(', ')}.`]);
 
     for (const id of lineIds) {
       const L = lines[id];
@@ -211,9 +298,25 @@
         + 'third: ' + pad("'" + L.third, 18)
         + "name: '" + L.name + "' },";
     }).join('\n');
-    el('out').textContent = '  const ARMOR_LINES = {\n'
+    // Anything proposed that got placed needs its EFFECTS entry pasted too, or
+    // the block above refers to a skill the game has never heard of.
+    const placed = new Set();
+    for (const id of lineIds) for (const k of [lines[id].a, lines[id].b, lines[id].third])
+      if (k && isProposed(k)) placed.add(k);
+    let txt = '  const ARMOR_LINES = {\n'
       + '    //           two that climb together        one more at G, level 1\n'
       + body + '\n  };';
+    if (placed.size) {
+      txt += '\n\n  // ...and these do not exist yet. Add them to EFFECTS before the block\n'
+        + '  // above will build, and wire each one to the mechanic it names.\n';
+      for (const k of placed) {
+        const e = EFFECTS[k];
+        txt += '\n  // ' + e.note + '\n'
+          + '  ' + (k + ':').padEnd(11) + '{ tiers: ' + JSON.stringify(e.tiers) + ', per: ' + e.per + ',\n'
+          + ' '.repeat(15) + 'blurbs: [' + e.blurbs.map(b => "'" + b + "'").join(',\n' + ' '.repeat(23)) + '] },\n';
+      }
+    }
+    el('out').textContent = txt;
   }
 
   function renderAll() { renderPal(); renderLines(); renderChecks(); renderPreview(); renderOut(); }

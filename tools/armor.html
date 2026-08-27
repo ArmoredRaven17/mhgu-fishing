@@ -35,6 +35,11 @@
   .chip small{color:var(--dim);font-size:11px;white-space:nowrap}
   .chip.unused{border-color:var(--warn)}
   .chip.short{border-color:var(--bad)}
+  /* A proposal is not an orphan; it does not exist in the game yet, so it gets
+     its own look rather than the orange that means "nothing carries this". */
+  .chip.proposed{border-style:dashed;border-color:#ffffff3d;background:#1e2530}
+  .chip.proposed i{font-style:normal;font-size:9.5px;text-transform:uppercase;
+                   letter-spacing:.07em;opacity:.55;margin-left:5px}
 
   /* ── The lines ──────────────────────────────────────────────────────── */
   .lines{display:grid;gap:10px}
@@ -81,7 +86,8 @@
     <div style="margin-top:10px;font-size:11.5px;color:var(--dim)">
       Drag onto a slot to place. Drag a slot's skill onto another slot to swap.
       Orange means nothing carries it; red means it has fewer names than the
-      levels it would be used at.
+      levels it would be used at. Dashed chips are proposals that do not exist
+      in the game yet &mdash; hover one for what it would do and why.
     </div>
   </div>
 
