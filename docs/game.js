@@ -1454,11 +1454,16 @@
   // ones whose own line starts at High Rank.
   const ARMOR_LINES = {
     //           two that climb together        one more at G, level 1
-    cephalos:   { a: 'heat',     b: 'progress', third: 'bites',    name: 'Cephalos' },    // Heat Res 20; Attack 20 / Water Atk 18 = you pull harder
+    //
+    // Cephalos and Lagiacrus have their reel and grip swapped: Cephalos carries
+    // Sure Grip and Lagiacrus Quick Reel, not the other way round. Raven's call,
+    // so the real-skill notes below are left as the citation they always were
+    // rather than rewritten to justify a pairing they did not choose.
+    cephalos:   { a: 'heat',     b: 'band',     third: 'bites',    name: 'Cephalos' },    // Heat Res 20; Attack 20 / Water Atk 18
     ludroth:    { a: 'stamina',  b: 'gather',   third: 'effectup', name: 'Ludroth' },     // Hunger 20, Stamina 20, Stam Recov 20
     nibelsnarf: { a: 'effectup', b: 'saver',    third: 'repel',    name: 'Nibelsnarf' },  // Gluttony 22 (Gourmand/Scavenger), Eating 30
     agnaktor:   { a: 'defense',  b: 'hotblood', third: 'band',     name: 'Agnaktor' },    // Guard Up 20, Guard 15; HotBlooded 20 = Tropic Hunter
-    lagiacrus:  { a: 'band',     b: 'cull',     third: 'zenny',    name: 'Lagiacrus' },   // Elemental 20 + Pierce Up 10 = authority over the water itself
+    lagiacrus:  { a: 'progress', b: 'cull',     third: 'zenny',    name: 'Lagiacrus' },   // Elemental 20 + Pierce Up 10
     plesioth:   { a: 'trade',    b: 'bites',    third: 'gather',   name: 'Plesioth' },    // Capturer 20 = more reward items from what you land
     zamtrios:   { a: 'cold',     b: 'combo',    third: 'stamina',  name: 'Zamtrios' },    // ColdBlooded 20; Artillery 22 = loaded ordnance
     lavasioth:  { a: 'escape',   b: 'stamina',  third: 'guts',     name: 'Lavasioth' },   // Crisis/Survivor = will not be shaken off; Endurance 20
