@@ -7,99 +7,116 @@
 <style>
   /* Lives OUTSIDE docs/ on purpose. GitHub Pages serves docs/ and nothing else,
      so this cannot reach a player however it is linked. It reads the game's real
-     ARMOR_LINES and EFFECTS, so what it shows is what the game would build. */
+     EFFECTS and ARMOR_LINES for names and ids, so nothing here can go stale. */
   :root{
     --bg:#14161b; --card:#1b1e25; --line:#ffffff1f; --ink:#e9e9e9; --dim:#ffffff8c;
-    --slotA:#3f7d63; --slotB:#3f6a8d; --slotC:#7d5f3f;
+    --helm:#3f7d63; --chest:#3f6a8d; --waist:#7d5f3f; --set:#6d4f7d;
     --warn:#d08a3a; --bad:#c9524a; --good:#4fbf8b;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
        font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
-  .wrap{max-width:1240px;margin:0 auto;padding:16px;display:grid;gap:14px;
-        grid-template-columns:250px minmax(0,1fr)}
+  .wrap{max-width:1500px;margin:0 auto;padding:16px;display:grid;gap:14px;
+        grid-template-columns:210px minmax(0,1fr)}
   h1{grid-column:1/-1;margin:0;font-size:17px;font-weight:600}
   h1 small{font-weight:400;opacity:.55;font-size:12px;margin-left:8px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:12px}
   h2{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--dim)}
 
-  /* ── The palette ────────────────────────────────────────────────────── */
-  .pal{display:grid;gap:4px}
+  /* ── Palette ─────────────────────────────────────────────────────────── */
+  .pal{display:grid;gap:3px;max-height:78vh;overflow-y:auto}
   .chip{
     background:#232833;border:1px solid var(--line);border-radius:6px;
-    padding:5px 8px;font-size:12.5px;cursor:grab;user-select:none;
-    display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:4px 8px;font-size:12.5px;cursor:grab;user-select:none;
+    display:flex;justify-content:space-between;align-items:center;gap:6px;
   }
   .chip:active{cursor:grabbing}
   .chip.dragging{opacity:.4}
-  .chip small{color:var(--dim);font-size:11px;white-space:nowrap}
-  .chip.unused{border-color:var(--warn)}
-  .chip.short{border-color:var(--bad)}
-  /* A proposal is not an orphan; it does not exist in the game yet, so it gets
-     its own look rather than the orange that means "nothing carries this". */
+  .chip small{color:var(--dim);font-size:10.5px;white-space:nowrap}
   .chip.proposed{border-style:dashed;border-color:#ffffff3d;background:#1e2530}
-  .chip.proposed i{font-style:normal;font-size:9.5px;text-transform:uppercase;
-                   letter-spacing:.07em;opacity:.55;margin-left:5px}
+  .chip.unused{border-color:var(--warn)}
 
-  /* ── The lines ──────────────────────────────────────────────────────── */
-  .lines{display:grid;gap:10px}
-  .line{display:grid;grid-template-columns:120px repeat(3,minmax(0,1fr));gap:8px;align-items:stretch}
-  .line-name{display:flex;align-items:center;font-weight:600;font-size:13.5px}
-  .line-name span{opacity:.5;font-weight:400;font-size:11px;margin-left:6px}
-  .slot{
-    border:1px dashed var(--line);border-radius:7px;padding:6px 8px;min-height:52px;
-    display:flex;flex-direction:column;justify-content:center;gap:2px;
+  /* ── Rank tabs and buttons ───────────────────────────────────────────── */
+  .segs{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .segs button{font:inherit;font-size:13px;padding:6px 16px;background:#1b1e25;
+               color:var(--dim);border:0;border-right:1px solid var(--line);cursor:pointer}
+  .segs button:last-child{border-right:0}
+  .segs button[aria-pressed="true"]{background:#2f4a3d;color:var(--ink);font-weight:600}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  button.act{background:#2b303b;color:var(--ink);border:1px solid #ffffff2e;
+             border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer}
+  button.act:hover{background:#353b48}
+
+  /* ── The grid ────────────────────────────────────────────────────────── */
+  .grid{display:grid;grid-template-columns:112px repeat(3,minmax(0,1fr)) 156px;gap:6px}
+  .ghead{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--dim);
+         padding:0 4px 2px}
+  .lname{display:flex;align-items:center;font-weight:600;font-size:13px}
+  .cell{
+    border:1px dashed var(--line);border-radius:7px;padding:5px;min-height:46px;
+    display:flex;flex-direction:column;gap:3px;
   }
-  .slot.over{border-style:solid;background:#ffffff0f}
-  .slot .tag{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
-  .slot.a{border-left:3px solid var(--slotA)}
-  .slot.b{border-left:3px solid var(--slotB)}
-  .slot.third{border-left:3px solid var(--slotC)}
-  .slot .filled{font-size:12.5px;cursor:grab}
-  .slot .ladder{font-size:11px;color:var(--dim)}
-  .slot.empty .filled{color:var(--bad)}
+  .cell.over{border-style:solid;background:#ffffff0f}
+  .cell.helm{border-left:3px solid var(--helm)}
+  .cell.chest{border-left:3px solid var(--chest)}
+  .cell.waist{border-left:3px solid var(--waist)}
+  .cell.setb{border-left:3px solid var(--set)}
+  .cell .none{font-size:11px;color:#ffffff40;margin:auto}
+  .ent{
+    display:flex;align-items:center;gap:4px;background:#232833;
+    border:1px solid var(--line);border-radius:5px;padding:2px 4px;font-size:11.5px;
+  }
+  .ent .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:grab}
+  .ent .lv{display:flex;align-items:center;gap:2px}
+  .ent .lv button{width:16px;height:16px;line-height:1;padding:0;font-size:12px;
+                  background:#2b303b;color:var(--ink);border:1px solid #ffffff2e;
+                  border-radius:3px;cursor:pointer}
+  .ent .lv b{min-width:12px;text-align:center;font-variant-numeric:tabular-nums}
+  .ent .rm{background:none;border:0;color:#ffffff66;cursor:pointer;font-size:13px;padding:0 2px}
+  .ent .rm:hover{color:var(--bad)}
 
-  .head{display:grid;grid-template-columns:120px repeat(3,minmax(0,1fr));gap:8px;
-        font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--dim);margin-bottom:2px}
-
-  /* ── Warnings and output ────────────────────────────────────────────── */
-  .warn{border-left:3px solid var(--warn);padding:6px 10px;margin:4px 0;font-size:12.5px;background:#ffffff0a}
+  /* ── Checks and output ───────────────────────────────────────────────── */
+  .warn{border-left:3px solid var(--warn);padding:5px 10px;margin:3px 0;
+        font-size:12.5px;background:#ffffff0a}
   .warn.bad{border-left-color:var(--bad)}
   .warn.ok{border-left-color:var(--good)}
   pre{margin:0;white-space:pre;overflow-x:auto;font:11.5px/1.5 ui-monospace,Menlo,Consolas,monospace;
-      background:#12141a;border:1px solid var(--line);border-radius:7px;padding:10px}
-  button{background:#2b303b;color:var(--ink);border:1px solid #ffffff2e;border-radius:6px;
-         padding:6px 12px;font-size:13px;cursor:pointer}
-  button:hover{background:#353b48}
-  .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-  .preview{display:grid;gap:3px;font-size:12px}
-  .preview b{font-weight:600}
-  .preview .sub{color:var(--dim)}
+      background:#12141a;border:1px solid var(--line);border-radius:7px;padding:10px;
+      max-height:340px;overflow-y:auto}
+  table.tot{width:100%;border-collapse:collapse;font-size:12px}
+  table.tot th{text-align:left;font-weight:600;color:var(--dim);font-size:10px;
+               text-transform:uppercase;letter-spacing:.08em;padding:2px 6px}
+  table.tot td{padding:2px 6px;border-top:1px solid #ffffff12;vertical-align:top}
+  table.tot td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .over5{color:var(--bad);font-weight:600}
 </style>
 
 <div class="wrap">
-  <h1>Armor bench <small>drag a skill onto a slot &middot; reads the game's own ARMOR_LINES and EFFECTS</small></h1>
+  <h1>Armor bench
+    <small>helm &middot; chest &middot; waist &mdash; drag a skill into a piece, set its level</small></h1>
 
   <div class="card">
     <h2>Skills</h2>
     <div class="pal" id="pal"></div>
-    <div style="margin-top:10px;font-size:11.5px;color:var(--dim)">
-      Drag onto a slot to place. Drag a slot's skill onto another slot to swap.
-      Orange means nothing carries it; red means it has fewer names than the
-      levels it would be used at. Dashed chips are proposals that do not exist
-      in the game yet &mdash; hover one for what it would do and why.
-    </div>
   </div>
 
-  <div style="display:grid;gap:14px">
+  <div style="display:grid;gap:14px;min-width:0">
     <div class="card">
       <div class="row">
-        <button id="reset">Reset to shipped</button>
-        <button id="clear">Clear all slots</button>
-        <button id="copy">Copy ARMOR_LINES</button>
+        <div class="segs" role="group" id="rankSegs">
+          <button data-rank="Low" aria-pressed="true">Low</button>
+          <button data-rank="High" aria-pressed="false">High</button>
+          <button data-rank="G" aria-pressed="false">G</button>
+        </div>
+        <button class="act" id="clear">Clear all</button>
+        <button class="act" id="copy">Copy output</button>
       </div>
-      <div class="head"><span></span><span>A &middot; climbs 1&rarr;3</span><span>B &middot; climbs 1&rarr;3</span><span>Third &middot; G only, level 1</span></div>
-      <div class="lines" id="lines"></div>
+      <div class="grid" id="grid"></div>
+    </div>
+
+    <div class="card">
+      <h2>What a full set gives</h2>
+      <div style="overflow-x:auto"><table class="tot" id="totals"></table></div>
     </div>
 
     <div class="card">
@@ -108,12 +125,7 @@
     </div>
 
     <div class="card">
-      <h2>What it builds</h2>
-      <div class="preview" id="preview"></div>
-    </div>
-
-    <div class="card">
-      <h2>Paste into game.js</h2>
+      <h2>Output</h2>
       <pre id="out"></pre>
     </div>
   </div>

@@ -1,223 +1,164 @@
 // armor.js — the armor bench.
 //
-// Drag skills onto slots and see what the game would build from it. Nothing here
-// writes to the app: it reads the real ARMOR_LINES and EFFECTS, lets you shuffle
-// a copy, and prints the block to paste back into game.js.
+// Assign skills to armor PIECES. Eight lines, three ranks, three pieces each, so
+// 72 cells; the rank tabs show 24 at a time. A piece holds any number of
+// {skill, level} entries and the level is set explicitly rather than inferred
+// from rank — that is the whole point of the new shape.
 //
-// The checks are the point as much as the dragging is. Two mistakes have already
-// been made by hand in this table and both are silent — an effect that no line
-// carries simply never appears in the game, and an effect used at level 2 with
-// only two names in its ladder shows its level-3 name a rank early. Both are
-// listed live under Checks.
+// Levels STACK across worn pieces and clamp at CAP, so the number that decides
+// whether an arrangement is sane is not what one piece carries but what a whole
+// set totals. That is what the totals table is for, and it is the reason this
+// exists rather than a spreadsheet.
+//
+// Nothing here writes to the app. It reads the real EFFECTS and ARMOR_LINES for
+// names and ids, and prints a block to paste back into game.js.
 
 (function () {
   const G = window.MF_GAME;
   const el = id => document.getElementById(id);
 
-  // The three places a skill can sit on a line. `third` only ever lands at
-  // level 1, and only on the G suit.
-  const SLOTS = [
-    { key: 'a', label: 'A' },
-    { key: 'b', label: 'B' },
-    { key: 'third', label: 'Third' },
+  const CAP = 5;                                  // stacked skill level ceiling
+  const RANKS = ['Low', 'High', 'G'];
+  const PIECES = [
+    { key: 'helm', label: 'Helm' },
+    { key: 'chest', label: 'Chest' },
+    { key: 'waist', label: 'Waist' },
   ];
 
-  // ── Skills that do not exist yet ──────────────────────────────────────
+  // Skills that do not exist in the game yet. Kept as data so they can be
+  // arranged alongside the real ones; the notes that used to sit on these are
+  // deliberately gone from both the data and the display — one of them was long
+  // enough to break the grid.
   //
-  // Every one of these fills a mechanic nothing currently reads: monster parts,
-  // the strike window, whether large monsters turn up at all, the brace, service
-  // costs, XP, and the pool's upper end. They are here to be dragged around and
-  // argued with, NOT because the names are settled — naming is Raven's.
-  //
-  // `real` marks a name that exists in MHGU, checked against the game's own skill
-  // list. The rest are invented and say so. Ladder follows the house rule: Base,
-  // Base+, then a new name at G.
+  // parts   an extra monster part per kill        strike  longer strike window
+  // control smaller lift per press, finer reeling lure    monsters check in sooner
+  // brace   more leeway when bracing              haggle  cheaper dock services
+  // lesson  more XP per catch                     rich    better ore varieties
+  // vigor   raw HP and Stamina, with a name
   const PROPOSED = {
-    parts: {
-      tiers: ['Carving Pro', 'Carving Pro+', 'Carving Celebrity'], per: 0.34, real: true,
-      note: 'Real MHGU skills. A monster sometimes leaves a second part behind. '
-          + 'Fills the biggest hole in the set: nothing at all affects part drops, '
-          + 'and parts are the whole armor loop.',
-      blurbs: ['A monster sometimes leaves an extra part',
-               'A monster often leaves an extra part',
-               'A monster very often leaves an extra part'],
-    },
-    control: {
-      tiers: ['Light Touch', 'Light Touch+', 'Feather Touch'], per: 0.16, real: false,
-      note: 'Invented, and the one genuinely missing REEL skill. Sure Grip widens '
-          + 'the target; this makes your adjustments smaller so you can settle '
-          + 'inside it. At G Rank one press already moves you 53% of the band, so '
-          + 'there is no such thing as a small correction — you overshoot or you '
-          + 'sink. Rods only ever raise lift-per-press, never lower it. Note it is '
-          + 'not a pure buff: smaller pulls mean pressing more often to outpace '
-          + 'the sink, so it trades tempo for precision. MHGU has Recoil Down for '
-          + 'exactly this idea if a real name is wanted, though it reads as a gun '
-          + 'word on a rod.',
-      blurbs: ['Each pull moves the line a little less, for finer control',
-               'Each pull moves the line less, for finer control',
-               'Each pull moves the line much less, for the finest control'],
-    },
-    strike: {
-      tiers: ['Keen Eye', 'Keen Eye+', 'Hawkeye'], per: 0.2, real: false,
-      note: 'Invented. Lengthens the window to strike after a nibble. The only way '
-          + 'to lose a fish that no rod, armor or skill can currently help with.',
-      blurbs: ['A little longer to strike when a fish bites',
-               'Longer to strike when a fish bites',
-               'Much longer to strike when a fish bites'],
-    },
-    lure: {
-      tiers: ['Ripple Sense', 'Ripple Sense+', 'Leviathan Caller'], per: 0.25, real: false,
-      note: 'Invented. Large monsters check in more often. The counterpart to '
-          + "Fisherman's Talisman, which only ever pushed the small ones away.",
-      blurbs: ['Large monsters take an interest a little sooner',
-               'Large monsters take an interest sooner',
-               'Large monsters take an interest much sooner'],
-    },
-    brace: {
-      tiers: ['Evade Extender', 'Evade Extender+', 'Unshakeable'], per: 0.3, real: true,
-      note: 'Evade Extender is real and genuinely means "your defensive window '
-          + 'lasts longer", which is exactly this. Widens the moment in which a '
-          + 'brace counts, so an honest reaction is not punished as a fumble.',
-      blurbs: ['A little more leeway when bracing',
-               'More leeway when bracing',
-               'Much more leeway when bracing'],
-    },
-    haggle: {
-      tiers: ['Fair Dealing', 'Fair Dealing+', "Guildmaster's Word"], per: 0.15, real: false,
-      note: 'Invented. Cuts what the hire, the Palicos and the Trade Cart charge. '
-          + 'Every money skill is currently yield-side; nothing touches spending.',
-      blurbs: ['Services at the dock cost a little less',
-               'Services at the dock cost less',
-               'Services at the dock cost much less'],
-    },
-    lesson: {
-      tiers: ['Quick Study', 'Quick Study+', 'Old Hand'], per: 0.2, real: false,
-      note: 'Invented. More XP from a catch. Nothing reads addXP today, so rank '
-          + 'progress is the one currency gear cannot influence.',
-      blurbs: ['You learn a little faster from every catch',
-               'You learn faster from every catch',
-               'You learn much faster from every catch'],
-    },
-    rich: {
-      tiers: ['Prospector', 'Prospector+', 'Ore Sense'], per: 0.18, real: false,
-      note: 'Invented. Nudges the ore pool UPWARD. Shock Bobber only ever cuts the '
-          + 'bottom off; nothing raises the top.',
-      blurbs: ['Better ore varieties turn up a little more often',
-               'Better ore varieties turn up more often',
-               'Better ore varieties turn up much more often'],
-    },
-    vigor: {
-      tiers: ['Constitution', 'Constitution+', 'Iron Constitution'], per: 0.12, real: true,
-      note: 'Constitution is real. Raw HP and Stamina come from the tier and the '
-          + 'level today, as bare numbers with no name a player can recognise.',
-      blurbs: ['You carry a little more HP and Stamina',
-               'You carry more HP and Stamina',
-               'You carry much more HP and Stamina'],
-    },
+    parts:   'Extra Parts',
+    control: 'Reel Control',
+    strike:  'Strike Window',
+    lure:    'Monster Lure',
+    brace:   'Brace Leeway',
+    haggle:  'Cheaper Services',
+    lesson:  'Extra XP',
+    rich:    'Better Ore',
+    vigor:   'Vigor',
   };
-  // One table for the bench. The app only knows G.EFFECTS; anything from PROPOSED
-  // that ends up placed has to be added there too — the export says so.
-  const EFFECTS = { ...G.EFFECTS, ...PROPOSED };
   const isProposed = k => Object.prototype.hasOwnProperty.call(PROPOSED, k);
+  // A skill's display name. Shipped skills still carry a tiers[] ladder in
+  // game.js; under the new scheme only the base name survives and the level is
+  // shown as a number, so the first tier is the name.
+  const nameOf = k => (isProposed(k) ? PROPOSED[k] : G.EFFECTS[k].tiers[0]);
 
-  const SHIPPED = JSON.parse(JSON.stringify(G.ARMOR_LINES));
-  let lines = JSON.parse(JSON.stringify(G.ARMOR_LINES));
+  const lineIds = Object.keys(G.ARMOR_LINES);
+  const lineName = id => G.ARMOR_LINES[id].name;
+  const skillKeys = [...Object.keys(G.EFFECTS), ...Object.keys(PROPOSED)];
 
-  const lineIds = Object.keys(lines);
-  const effectKeys = Object.keys(EFFECTS);
-
-  // ── What a given arrangement would produce ────────────────────────────
+  // ── The board ─────────────────────────────────────────────────────────
   //
-  // Mirrors the ARMORS builder in game.js: a line runs one tier per rank its
-  // monster can be met at, two skills climbing together, plus a third at level 1
-  // on the G suit. A line with only two tiers uses levels 1 and 3, skipping the
-  // `+` — which is why an effect can be used at level 3 without ever needing a
-  // level-2 name.
-  function tiersFor(lineId) {
-    const boss = Object.values(G.BOSS).find(b => b.line === lineId);
-    return ['Low', 'High', 'G'].filter(r =>
-      G.MAT_LINES[lineId][r] && (!boss || G.bossMeetableAt(boss.name, r)));
-  }
-
-  function build() {
-    const out = [];
+  // board[line][rank][piece] = [{ k, lvl }]   and   setBonus[line] = {k,lvl}|null
+  const blank = () => {
+    const b = {};
     for (const id of lineIds) {
-      const L = lines[id];
-      const ranks = tiersFor(id);
-      ranks.forEach((rank, i) => {
-        const lvl = ranks.length === 3 ? { Low: 1, High: 2, G: 3 }[rank] : (i === 0 ? 1 : 3);
-        // A cleared slot simply contributes nothing, so a blank slate previews
-        // as suits with no skills rather than throwing on a missing effect.
-        const eff = [];
-        if (L.a) eff.push({ key: L.a, lvl });
-        if (L.b) eff.push({ key: L.b, lvl });
-        if (rank === 'G' && L.third) eff.push({ key: L.third, lvl: 1 });
-        out.push({ line: id, rank, name: L.name + G.armorSuffix(i, ranks.length), eff });
-      });
+      b[id] = { setBonus: null };
+      for (const r of RANKS) {
+        b[id][r] = {};
+        for (const p of PIECES) b[id][r][p.key] = [];
+      }
     }
-    return out;
-  }
+    return b;
+  };
+  let board = blank();
+  let rank = 'Low';
 
-  // Which levels each effect ends up being used at, across every suit.
-  function usage() {
-    const used = {};
-    for (const a of build())
-      for (const e of a.eff) (used[e.key] = used[e.key] || new Set()).add(e.lvl);
-    return used;
-  }
+  const cellOf = (line, r, piece) => board[line][r][piece];
 
   // ── Palette ───────────────────────────────────────────────────────────
+  function placedKeys() {
+    const seen = new Set();
+    for (const id of lineIds) {
+      for (const r of RANKS)
+        for (const p of PIECES)
+          for (const e of cellOf(id, r, p.key)) seen.add(e.k);
+      if (board[id].setBonus) seen.add(board[id].setBonus.k);
+    }
+    return seen;
+  }
+
   function renderPal() {
-    const used = usage();
-    el('pal').innerHTML = effectKeys.map(key => {
-      const e = EFFECTS[key];
-      const lv = used[key];
-      const need = lv ? Math.max(...lv) : 0;
-      // Levels 1 and 3 with no 2 is the deliberate two-tier shape, not a gap.
-      const twoStep = lv && [...lv].sort().join(',') === '1,3';
-      const short = need > e.tiers.length && !twoStep;
-      const prop = isProposed(key);
-      const cls = (prop ? ' proposed' : '') + (short ? ' short' : (!lv && !prop ? ' unused' : ''));
-      const state = lv ? 'lv ' + [...lv].sort().join('/') : (prop ? 'proposal' : 'unused');
-      return `<div class="chip${cls}" draggable="true" data-key="${key}"`
-        + (prop ? ` title="${e.note.replace(/"/g, '&quot;')}"` : '') + `>`
-        + `<span>${e.tiers[0]}${prop ? (e.real ? ' <i>real</i>' : ' <i>new</i>') : ''}</span>`
-        + `<small>${state} &middot; ${e.tiers.length}&nbsp;names</small></div>`;
+    const placed = placedKeys();
+    el('pal').innerHTML = skillKeys.map(k => {
+      const cls = (isProposed(k) ? ' proposed' : '') + (placed.has(k) ? '' : ' unused');
+      return `<div class="chip${cls}" draggable="true" data-key="${k}">`
+        + `<span>${nameOf(k)}</span>`
+        + `<small>${placed.has(k) ? 'placed' : '&mdash;'}</small></div>`;
     }).join('');
     for (const c of el('pal').querySelectorAll('.chip')) wireDrag(c, null);
   }
 
-  // ── Lines and slots ───────────────────────────────────────────────────
-  function renderLines() {
-    el('lines').innerHTML = lineIds.map(id => {
-      const L = lines[id];
-      const ranks = tiersFor(id);
-      return `<div class="line" data-line="${id}">`
-        + `<div class="line-name">${L.name}<span>${ranks.length} tier${ranks.length === 1 ? '' : 's'}</span></div>`
-        + SLOTS.map(s => {
-            const key = L[s.key];
-            const e = key && EFFECTS[key];
-            return `<div class="slot ${s.key}${e ? '' : ' empty'}" data-line="${id}" data-slot="${s.key}">`
-              + `<span class="tag">${s.label}</span>`
-              + (e
-                  ? `<span class="filled" draggable="true" data-key="${key}" data-from-line="${id}" data-from-slot="${s.key}">${e.tiers[0]}</span>`
-                    + `<span class="ladder">${e.tiers.join(' &rarr; ')}</span>`
-                  : `<span class="filled">&mdash; empty &mdash;</span>`)
-              + `</div>`;
-          }).join('')
+  // ── Grid ──────────────────────────────────────────────────────────────
+  function entryHTML(e, line, r, piece, i) {
+    const at = `data-line="${line}" data-rank="${r}" data-piece="${piece}" data-i="${i}"`;
+    return `<div class="ent">`
+      + `<span class="nm" draggable="true" data-key="${e.k}" ${at}>${nameOf(e.k)}</span>`
+      + `<span class="lv">`
+      + `<button data-step="-1" ${at}>&minus;</button><b>${e.lvl}</b>`
+      + `<button data-step="1" ${at}>+</button></span>`
+      + `<button class="rm" data-rm="1" ${at}>&times;</button></div>`;
+  }
+
+  function renderGrid() {
+    const head = `<div class="ghead"></div>`
+      + PIECES.map(p => `<div class="ghead">${p.label}</div>`).join('')
+      + `<div class="ghead">Set bonus &middot; all three</div>`;
+
+    const rows = lineIds.map(id => {
+      const cells = PIECES.map(p => {
+        const list = cellOf(id, rank, p.key);
+        return `<div class="cell ${p.key}" data-line="${id}" data-rank="${rank}" data-piece="${p.key}">`
+          + (list.length
+              ? list.map((e, i) => entryHTML(e, id, rank, p.key, i)).join('')
+              : `<span class="none">drop a skill</span>`)
+          + `</div>`;
+      }).join('');
+      const sb = board[id].setBonus;
+      const setCell = `<div class="cell setb" data-line="${id}" data-rank="set" data-piece="set">`
+        + (sb ? entryHTML(sb, id, 'set', 'set', 0) : `<span class="none">none</span>`)
         + `</div>`;
+      return `<div class="lname">${lineName(id)}</div>` + cells + setCell;
     }).join('');
 
-    for (const f of el('lines').querySelectorAll('.filled[draggable]'))
-      wireDrag(f, { line: f.dataset.fromLine, slot: f.dataset.fromSlot });
-    for (const s of el('lines').querySelectorAll('.slot')) wireDrop(s);
+    el('grid').innerHTML = head + rows;
+
+    for (const n of el('grid').querySelectorAll('.nm[draggable]'))
+      wireDrag(n, { line: n.dataset.line, rank: n.dataset.rank,
+                    piece: n.dataset.piece, i: +n.dataset.i });
+    for (const c of el('grid').querySelectorAll('.cell')) wireDrop(c);
+
+    el('grid').querySelectorAll('[data-step]').forEach(b => b.onclick = () => {
+      const t = target(b);
+      t.lvl = Math.max(1, Math.min(CAP, t.lvl + Number(b.dataset.step)));
+      renderAll();
+    });
+    el('grid').querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
+      const d = b.dataset;
+      if (d.rank === 'set') board[d.line].setBonus = null;
+      else cellOf(d.line, d.rank, d.piece).splice(+d.i, 1);
+      renderAll();
+    });
   }
+
+  const target = node => {
+    const d = node.dataset;
+    return d.rank === 'set' ? board[d.line].setBonus : cellOf(d.line, d.rank, d.piece)[+d.i];
+  };
 
   // ── Drag and drop ─────────────────────────────────────────────────────
   //
-  // The payload carries where it came FROM as well as what it is, so dropping a
-  // slot's skill onto another slot swaps the two rather than duplicating one and
-  // leaving a hole.
+  // The payload carries where it came from, so dragging an entry between cells
+  // MOVES it rather than leaving a copy behind.
   let payload = null;
 
   function wireDrag(node, from) {
@@ -225,153 +166,145 @@
       payload = { key: node.dataset.key, from };
       node.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
-      // Firefox will not start a drag without data set.
-      e.dataTransfer.setData('text/plain', node.dataset.key);
+      e.dataTransfer.setData('text/plain', node.dataset.key);   // Firefox needs data
     });
-    node.addEventListener('dragend', () => {
-      node.classList.remove('dragging');
-      payload = null;
-    });
+    node.addEventListener('dragend', () => { node.classList.remove('dragging'); payload = null; });
   }
 
-  function wireDrop(slot) {
-    slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('over'); });
-    slot.addEventListener('dragleave', () => slot.classList.remove('over'));
-    slot.addEventListener('drop', e => {
+  function wireDrop(cell) {
+    cell.addEventListener('dragover', e => { e.preventDefault(); cell.classList.add('over'); });
+    cell.addEventListener('dragleave', () => cell.classList.remove('over'));
+    cell.addEventListener('drop', e => {
       e.preventDefault();
-      slot.classList.remove('over');
+      cell.classList.remove('over');
       if (!payload) return;
-      const toLine = slot.dataset.line, toSlot = slot.dataset.slot;
-      const displaced = lines[toLine][toSlot];
-      lines[toLine][toSlot] = payload.key;
-      // Came from another slot? Give it whatever it displaced, so a drag between
-      // two filled slots is a swap and never loses a skill.
-      if (payload.from && !(payload.from.line === toLine && payload.from.slot === toSlot))
-        lines[payload.from.line][payload.from.slot] = displaced;
+      const d = cell.dataset;
+      const f = payload.from;
+      // Take the level with it when moving; a fresh drop from the palette is 1.
+      const lvl = f
+        ? (f.rank === 'set' ? board[f.line].setBonus.lvl : cellOf(f.line, f.rank, f.piece)[f.i].lvl)
+        : 1;
+      if (f) {
+        if (f.rank === 'set') board[f.line].setBonus = null;
+        else cellOf(f.line, f.rank, f.piece).splice(f.i, 1);
+      }
+      // The set bonus is a single slot; a piece takes any number.
+      if (d.rank === 'set') board[d.line].setBonus = { k: payload.key, lvl };
+      else cellOf(d.line, d.rank, d.piece).push({ k: payload.key, lvl });
       payload = null;
       renderAll();
     });
   }
 
+  // ── Totals: what a full set of one line actually grants ───────────────
+  //
+  // Three pieces of the same line at the SAME rank, plus the set bonus, summed
+  // and clamped. A mixed-rank set is legal too, but this is the case that
+  // decides whether the numbers are sane.
+  function setTotals(line, r) {
+    const out = {};
+    for (const p of PIECES)
+      for (const e of cellOf(line, r, p.key)) out[e.k] = (out[e.k] || 0) + e.lvl;
+    const sb = board[line].setBonus;
+    if (sb) out[sb.k] = (out[sb.k] || 0) + sb.lvl;
+    return out;
+  }
+
+  function renderTotals() {
+    const fmt = tot => Object.entries(tot).sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `<span class="${v > CAP ? 'over5' : ''}">${nameOf(k)} ${Math.min(CAP, v)}`
+        + (v > CAP ? ` (${v})` : '') + `</span>`).join(', ') || '<span style="opacity:.35">&mdash;</span>';
+    el('totals').innerHTML =
+      '<tr><th>Line</th>' + RANKS.map(r => `<th>${r}</th>`).join('') + '</tr>'
+      + lineIds.map(id => `<tr><td class="n">${lineName(id)}</td>`
+          + RANKS.map(r => `<td>${fmt(setTotals(id, r))}</td>`).join('') + '</tr>').join('');
+  }
+
   // ── Checks ────────────────────────────────────────────────────────────
   function renderChecks() {
-    const used = usage();
     const notes = [];
+    const placed = placedKeys();
 
-    // An unplaced PROPOSAL is not an orphan - it does not exist in the game yet.
-    // Cleared everything on purpose? Say so once instead of listing every slot.
-    const anyPlaced = lineIds.some(id => lines[id].a || lines[id].b || lines[id].third);
-    if (!anyPlaced) {
-      el('checks').innerHTML = '<div class="warn">Blank slate &mdash; every slot is '
-        + 'empty. Drag skills in, or Reset to shipped to bring the current set back.</div>';
+    let filled = 0, cells = 0;
+    for (const id of lineIds)
+      for (const r of RANKS)
+        for (const p of PIECES) { cells++; if (cellOf(id, r, p.key).length) filled++; }
+
+    if (!filled) {
+      el('checks').innerHTML = '<div class="warn">Blank slate &mdash; nothing assigned. '
+        + 'Drag a skill from the left into a piece.</div>';
       return;
     }
 
-    // Half-built boards are the normal state when starting from blank, and
-    // listing every not-yet-placed skill then is noise rather than a finding.
-    // The orphan list is held back until every climbing slot is filled; until
-    // then it is a count, and the checks below stay to the real mistakes.
-    const climbTotal = lineIds.length * 2;
-    const climbFilled = lineIds.reduce((n, id) => n + (lines[id].a ? 1 : 0) + (lines[id].b ? 1 : 0), 0);
-    const building = climbFilled < climbTotal;
-
-    const orphans = effectKeys.filter(k => !used[k] && !isProposed(k));
-    if (building)
-      notes.push(['warn', `${climbFilled} of ${climbTotal} climbing slots filled`
-        + (orphans.length ? ` &middot; ${orphans.length} skill${orphans.length === 1 ? '' : 's'} not placed yet` : '')]);
-    else if (orphans.length)
-      notes.push(['bad', `Carried by nothing, so never appears in the game: `
-        + orphans.map(k => EFFECTS[k].tiers[0]).join(', ')]);
-
-    for (const [key, lv] of Object.entries(used)) {
-      const e = EFFECTS[key];
-      const need = Math.max(...lv);
-      const twoStep = [...lv].sort().join(',') === '1,3';
-      if (need > e.tiers.length && !twoStep)
-        notes.push(['bad', `${e.tiers[0]} is used at level ${need} but has only `
-          + `${e.tiers.length} names — level ${e.tiers.length} onward would all read `
-          + `"${e.tiers[e.tiers.length - 1]}".`]);
-      if (need > e.blurbs.length && !twoStep)
-        notes.push(['bad', `${e.tiers[0]} is used at level ${need} but has only `
-          + `${e.blurbs.length} descriptions.`]);
-    }
-
-    // A skill on two climbing lines shows up on a lot of suits; worth seeing,
-    // not necessarily wrong.
-    const climbCount = {};
+    // The clamp is silent in play, so say it here instead.
     for (const id of lineIds)
-      for (const k of [lines[id].a, lines[id].b])
-        if (k) (climbCount[k] = climbCount[k] || []).push(lines[id].name);
-    for (const [k, on] of Object.entries(climbCount))
-      if (on.length > 1)
-        notes.push(['warn', `${EFFECTS[k].tiers[0]} climbs on ${on.length} lines: ${on.join(', ')}.`]);
+      for (const r of RANKS)
+        for (const [k, v] of Object.entries(setTotals(id, r)))
+          if (v > CAP)
+            notes.push(['bad', `${lineName(id)} ${r}: a full set totals ${nameOf(k)} ${v}, `
+              + `over the cap of ${CAP} &mdash; ${v - CAP} level${v - CAP === 1 ? '' : 's'} wasted.`]);
 
-    for (const id of lineIds) {
-      const L = lines[id];
-      if (L.a && L.a === L.b)
-        notes.push(['bad', `${L.name} carries the same skill in both climbing slots.`]);
-      // An empty slot only reads as a mistake once the board is otherwise done.
-      if (!building && (!L.a || !L.b))
-        notes.push(['bad', `${L.name} has an empty climbing slot.`]);
+    const building = filled < cells;
+    if (building) {
+      const missing = skillKeys.filter(k => !placed.has(k)).length;
+      notes.push(['warn', `${filled} of ${cells} pieces have a skill`
+        + (missing ? ` &middot; ${missing} skill${missing === 1 ? '' : 's'} not placed yet` : '')]);
+    } else {
+      const orphans = skillKeys.filter(k => !placed.has(k));
+      if (orphans.length)
+        notes.push(['bad', 'Carried by nothing: ' + orphans.map(nameOf).join(', ')]);
     }
 
-    if (!notes.length) notes.push(['ok', 'Every skill has a home, and every level it is used at has a name and a description.']);
+    // A piece carrying the same skill twice is always a slip, never a plan.
+    for (const id of lineIds)
+      for (const r of RANKS)
+        for (const p of PIECES) {
+          const list = cellOf(id, r, p.key);
+          const dup = list.map(e => e.k).filter((k, i, a) => a.indexOf(k) !== i);
+          if (dup.length)
+            notes.push(['bad', `${lineName(id)} ${r} ${p.label} carries `
+              + `${nameOf(dup[0])} twice.`]);
+        }
+
+    if (!notes.length) notes.push(['ok', 'Every piece has a skill, every skill has a home, '
+      + `and no full set goes over ${CAP}.`]);
     el('checks').innerHTML = notes.map(([k, t]) =>
       `<div class="warn ${k === 'bad' ? 'bad' : k === 'ok' ? 'ok' : ''}">${t}</div>`).join('');
   }
 
-  // ── Preview ───────────────────────────────────────────────────────────
-  function renderPreview() {
-    el('preview').innerHTML = build().map(a =>
-      `<div><b>${a.name}</b> <span class="sub">${a.rank}</span> &mdash; `
-      + (a.eff.length ? a.eff.map(e => G.effectName(e.key, e.lvl)).join(' + ')
-                       : '<span class="sub">no skills</span>') + `</div>`).join('');
-  }
-
   // ── Output ────────────────────────────────────────────────────────────
   function renderOut() {
-    const pad = (s, n) => (s + "'," + ' '.repeat(40)).slice(0, n);
+    const entries = list => '[' + list.map(e => `{ k: '${e.k}', lvl: ${e.lvl} }`).join(', ') + ']';
     const body = lineIds.map(id => {
-      const L = lines[id];
-      const q = v => (v ? "'" + v + "'," : 'null,');
-      const cell = (v, n) => (q(v) + ' '.repeat(40)).slice(0, n);
-      return '    ' + (id + ':').padEnd(12)
-        + '{ a: ' + cell(L.a, 14)
-        + 'b: ' + cell(L.b, 14)
-        + 'third: ' + cell(L.third, 18)
-        + "name: '" + L.name + "' },";
+      const ranks = RANKS.map(r => '      ' + (r + ':').padEnd(6) + '{ '
+        + PIECES.map(p => `${p.key}: ${entries(cellOf(id, r, p.key))}`).join(', ') + ' },').join('\n');
+      const sb = board[id].setBonus;
+      return '    ' + id + ': {\n' + ranks + '\n'
+        + '      setBonus: ' + (sb ? `{ k: '${sb.k}', lvl: ${sb.lvl} }` : 'null') + ',\n'
+        + '    },';
     }).join('\n');
-    // Anything proposed that got placed needs its EFFECTS entry pasted too, or
-    // the block above refers to a skill the game has never heard of.
-    const placed = new Set();
-    for (const id of lineIds) for (const k of [lines[id].a, lines[id].b, lines[id].third])
-      if (k && isProposed(k)) placed.add(k);
-    let txt = '  const ARMOR_LINES = {\n'
-      + '    //           two that climb together        one more at G, level 1\n'
-      + body + '\n  };';
-    if (placed.size) {
-      txt += '\n\n  // ...and these do not exist yet. Add them to EFFECTS before the block\n'
-        + '  // above will build, and wire each one to the mechanic it names.\n';
-      for (const k of placed) {
-        const e = EFFECTS[k];
-        txt += '\n  // ' + e.note + '\n'
-          + '  ' + (k + ':').padEnd(11) + '{ tiers: ' + JSON.stringify(e.tiers) + ', per: ' + e.per + ',\n'
-          + ' '.repeat(15) + 'blurbs: [' + e.blurbs.map(b => "'" + b + "'").join(',\n' + ' '.repeat(23)) + '] },\n';
-      }
-    }
+    const used = [...placedKeys()].filter(isProposed);
+    let txt = '  const ARMOR_PIECES = {\n' + body + '\n  };';
+    if (used.length)
+      txt += '\n\n  // Not in EFFECTS yet, add before this will build:\n  // '
+        + used.map(k => `${k} (${PROPOSED[k]})`).join(', ');
     el('out').textContent = txt;
   }
 
-  function renderAll() { renderPal(); renderLines(); renderChecks(); renderPreview(); renderOut(); }
+  function renderAll() { renderPal(); renderGrid(); renderTotals(); renderChecks(); renderOut(); }
 
-  el('reset').onclick = () => { lines = JSON.parse(JSON.stringify(SHIPPED)); renderAll(); };
-  el('clear').onclick = () => {
-    for (const id of lineIds) { lines[id].a = null; lines[id].b = null; lines[id].third = null; }
+  el('rankSegs').addEventListener('click', e => {
+    const b = e.target.closest('[data-rank]');
+    if (!b) return;
+    rank = b.dataset.rank;
+    for (const x of el('rankSegs').querySelectorAll('[data-rank]'))
+      x.setAttribute('aria-pressed', String(x === b));
     renderAll();
-  };
+  });
+  el('clear').onclick = () => { board = blank(); renderAll(); };
   el('copy').onclick = () => {
     navigator.clipboard.writeText(el('out').textContent).then(
-      () => { el('copy').textContent = 'Copied'; setTimeout(() => el('copy').textContent = 'Copy ARMOR_LINES', 1200); },
+      () => { el('copy').textContent = 'Copied'; setTimeout(() => el('copy').textContent = 'Copy output', 1200); },
       () => { el('copy').textContent = 'Select it yourself'; });
   };
 
