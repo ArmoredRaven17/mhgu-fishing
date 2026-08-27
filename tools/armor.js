@@ -146,7 +146,11 @@
       const ranks = tiersFor(id);
       ranks.forEach((rank, i) => {
         const lvl = ranks.length === 3 ? { Low: 1, High: 2, G: 3 }[rank] : (i === 0 ? 1 : 3);
-        const eff = [{ key: L.a, lvl }, { key: L.b, lvl }];
+        // A cleared slot simply contributes nothing, so a blank slate previews
+        // as suits with no skills rather than throwing on a missing effect.
+        const eff = [];
+        if (L.a) eff.push({ key: L.a, lvl });
+        if (L.b) eff.push({ key: L.b, lvl });
         if (rank === 'G' && L.third) eff.push({ key: L.third, lvl: 1 });
         out.push({ line: id, rank, name: L.name + G.armorSuffix(i, ranks.length), eff });
       });
@@ -255,8 +259,27 @@
     const notes = [];
 
     // An unplaced PROPOSAL is not an orphan - it does not exist in the game yet.
+    // Cleared everything on purpose? Say so once instead of listing every slot.
+    const anyPlaced = lineIds.some(id => lines[id].a || lines[id].b || lines[id].third);
+    if (!anyPlaced) {
+      el('checks').innerHTML = '<div class="warn">Blank slate &mdash; every slot is '
+        + 'empty. Drag skills in, or Reset to shipped to bring the current set back.</div>';
+      return;
+    }
+
+    // Half-built boards are the normal state when starting from blank, and
+    // listing every not-yet-placed skill then is noise rather than a finding.
+    // The orphan list is held back until every climbing slot is filled; until
+    // then it is a count, and the checks below stay to the real mistakes.
+    const climbTotal = lineIds.length * 2;
+    const climbFilled = lineIds.reduce((n, id) => n + (lines[id].a ? 1 : 0) + (lines[id].b ? 1 : 0), 0);
+    const building = climbFilled < climbTotal;
+
     const orphans = effectKeys.filter(k => !used[k] && !isProposed(k));
-    if (orphans.length)
+    if (building)
+      notes.push(['warn', `${climbFilled} of ${climbTotal} climbing slots filled`
+        + (orphans.length ? ` &middot; ${orphans.length} skill${orphans.length === 1 ? '' : 's'} not placed yet` : '')]);
+    else if (orphans.length)
       notes.push(['bad', `Carried by nothing, so never appears in the game: `
         + orphans.map(k => EFFECTS[k].tiers[0]).join(', ')]);
 
@@ -287,7 +310,9 @@
       const L = lines[id];
       if (L.a && L.a === L.b)
         notes.push(['bad', `${L.name} carries the same skill in both climbing slots.`]);
-      if (!L.a || !L.b) notes.push(['bad', `${L.name} has an empty climbing slot.`]);
+      // An empty slot only reads as a mistake once the board is otherwise done.
+      if (!building && (!L.a || !L.b))
+        notes.push(['bad', `${L.name} has an empty climbing slot.`]);
     }
 
     if (!notes.length) notes.push(['ok', 'Every skill has a home, and every level it is used at has a name and a description.']);
@@ -299,7 +324,8 @@
   function renderPreview() {
     el('preview').innerHTML = build().map(a =>
       `<div><b>${a.name}</b> <span class="sub">${a.rank}</span> &mdash; `
-      + a.eff.map(e => G.effectName(e.key, e.lvl)).join(' + ') + `</div>`).join('');
+      + (a.eff.length ? a.eff.map(e => G.effectName(e.key, e.lvl)).join(' + ')
+                       : '<span class="sub">no skills</span>') + `</div>`).join('');
   }
 
   // ── Output ────────────────────────────────────────────────────────────
@@ -307,10 +333,12 @@
     const pad = (s, n) => (s + "'," + ' '.repeat(40)).slice(0, n);
     const body = lineIds.map(id => {
       const L = lines[id];
+      const q = v => (v ? "'" + v + "'," : 'null,');
+      const cell = (v, n) => (q(v) + ' '.repeat(40)).slice(0, n);
       return '    ' + (id + ':').padEnd(12)
-        + '{ a: ' + pad("'" + L.a, 14)
-        + 'b: ' + pad("'" + L.b, 14)
-        + 'third: ' + pad("'" + L.third, 18)
+        + '{ a: ' + cell(L.a, 14)
+        + 'b: ' + cell(L.b, 14)
+        + 'third: ' + cell(L.third, 18)
         + "name: '" + L.name + "' },";
     }).join('\n');
     // Anything proposed that got placed needs its EFFECTS entry pasted too, or
@@ -337,6 +365,10 @@
   function renderAll() { renderPal(); renderLines(); renderChecks(); renderPreview(); renderOut(); }
 
   el('reset').onclick = () => { lines = JSON.parse(JSON.stringify(SHIPPED)); renderAll(); };
+  el('clear').onclick = () => {
+    for (const id of lineIds) { lines[id].a = null; lines[id].b = null; lines[id].third = null; }
+    renderAll();
+  };
   el('copy').onclick = () => {
     navigator.clipboard.writeText(el('out').textContent).then(
       () => { el('copy').textContent = 'Copied'; setTimeout(() => el('copy').textContent = 'Copy ARMOR_LINES', 1200); },
