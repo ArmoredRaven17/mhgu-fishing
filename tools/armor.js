@@ -77,8 +77,37 @@
   const nameOf = k => NAMES[k] || k;
   const isSpecific = k => Object.prototype.hasOwnProperty.call(SPECIFIC, k);
 
-  const lineIds = Object.keys(G.ARMOR_LINES);
-  const lineName = id => G.ARMOR_LINES[id].name;
+  // Every other large monster in MHGU, deviants excluded — the DB has none, so
+  // the roster is already clean. Their parts are not fished; they come from the
+  // Trader, exchanged for parts of the eight that are. Listed by MONSTER name:
+  // the armor set's real name often differs (Deviljho's is Vangis, Teostra's is
+  // Kaiser) and mapping those is a separate job from assigning skills.
+  const EXCHANGE = [
+    'Ahtal-Ka', 'Akantor', 'Alatreon', 'Amatsu', 'Arzuros', 'Astalos',
+    'Barioth', 'Barroth', 'Basarios', 'Blangonga', 'Brachydios',
+    'Bulldrome', 'Chameleos', 'Chaotic Gore Magala', 'Congalala',
+    'Crimson Fatalis', 'Daimyo Hermitaur', 'Deviljho', 'Diablos',
+    'Duramboros', 'Fatalis', 'Furious Rajang', 'Gammoth', 'Gendrome',
+    'Giadrome', 'Glavenus', 'Gold Rathian', 'Gore Magala', 'Gravios',
+    'Great Maccao', 'Gypceros', 'Iodrome', 'Kecha Wacha', 'Khezu', 'Kirin',
+    'Kushala Daora', 'Lagombi', 'Lao-Shan Lung', 'Malfestio', 'Mizutsune',
+    'Najarala', 'Nakarkos', 'Nargacuga', 'Nerscylla', 'Old Fatalis',
+    'Raging Brachydios', 'Rajang', 'Rathalos', 'Rathian', 'Savage Deviljho',
+    'Seltas', 'Seltas Queen', 'Seregios', 'Shagaru Magala',
+    'Shogun Ceanataur', 'Silver Rathalos', 'Teostra', 'Tetsucabra',
+    'Tigrex', 'Ukanlos', 'Uragaan', 'Valstrax', 'Velocidrome', 'Volvidon',
+    'Yian Garuga', 'Yian Kut-Ku', 'Zinogre',
+  ];
+  const keyOf = n => n.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+
+  const FISHED = Object.keys(G.ARMOR_LINES);
+  const NAME = {};
+  for (const id of FISHED) NAME[id] = G.ARMOR_LINES[id].name;
+  for (const n of EXCHANGE) NAME[keyOf(n)] = n;
+  const lineIds = [...FISHED, ...EXCHANGE.map(keyOf)];
+  const lineName = id => NAME[id];
+  const isFished = id => FISHED.includes(id);
+  let filter = '';
   const skillKeys = [...Object.keys(G.EFFECTS), ...PROPOSED];
 
   // ── The board ─────────────────────────────────────────────────────────
@@ -140,7 +169,10 @@
       + PIECES.map(p => `<div class="ghead">${p.label}</div>`).join('')
       + `<div class="ghead">Set bonus &middot; all three</div>`;
 
-    const rows = lineIds.map(id => {
+    // 75 lines is a long scroll; the filter is how you reach one.
+    const shown = lineIds.filter(id =>
+      !filter || lineName(id).toLowerCase().includes(filter));
+    const rows = shown.map(id => {
       const cells = PIECES.map(p => {
         const list = cellOf(id, rank, p.key);
         return `<div class="cell ${p.key}" data-line="${id}" data-rank="${rank}" data-piece="${p.key}">`
@@ -153,10 +185,12 @@
       const setCell = `<div class="cell setb" data-line="${id}" data-rank="set" data-piece="set">`
         + (sb ? entryHTML(sb, id, 'set', 'set', 0) : `<span class="none">none</span>`)
         + `</div>`;
-      return `<div class="lname">${lineName(id)}</div>` + cells + setCell;
+      return `<div class="lname${isFished(id) ? ' fished' : ''}">${lineName(id)}</div>`
+        + cells + setCell;
     }).join('');
 
     el('grid').innerHTML = head + rows;
+    el('shownCount').textContent = shown.length + ' of ' + lineIds.length + ' lines';
 
     for (const n of el('grid').querySelectorAll('.nm[draggable]'))
       wireDrag(n, { line: n.dataset.line, rank: n.dataset.rank,
@@ -305,7 +339,7 @@
       const ranks = RANKS.map(r => '      ' + (r + ':').padEnd(6) + '{ '
         + PIECES.map(p => `${p.key}: ${entries(cellOf(id, r, p.key))}`).join(', ') + ' },').join('\n');
       const sb = board[id].setBonus;
-      return '    ' + id + ': {\n' + ranks + '\n'
+      return '    ' + id + ': {' + (isFished(id) ? '' : '   // exchange') + '\n' + ranks + '\n'
         + '      setBonus: ' + (sb ? `{ k: '${sb.k}', lvl: ${sb.lvl} }` : 'null') + ',\n'
         + '    },';
     }).join('\n');
@@ -326,6 +360,10 @@
     for (const x of el('rankSegs').querySelectorAll('[data-rank]'))
       x.setAttribute('aria-pressed', String(x === b));
     renderAll();
+  });
+  el('lineFilter').addEventListener('input', e => {
+    filter = e.target.value.trim().toLowerCase();
+    renderGrid();
   });
   el('clear').onclick = () => { board = blank(); renderAll(); };
   el('copy').onclick = () => {
