@@ -42,6 +42,21 @@
                'A monster often leaves an extra part',
                'A monster very often leaves an extra part'],
     },
+    control: {
+      tiers: ['Light Touch', 'Light Touch+', 'Feather Touch'], per: 0.16, real: false,
+      note: 'Invented, and the one genuinely missing REEL skill. Sure Grip widens '
+          + 'the target; this makes your adjustments smaller so you can settle '
+          + 'inside it. At G Rank one press already moves you 53% of the band, so '
+          + 'there is no such thing as a small correction — you overshoot or you '
+          + 'sink. Rods only ever raise lift-per-press, never lower it. Note it is '
+          + 'not a pure buff: smaller pulls mean pressing more often to outpace '
+          + 'the sink, so it trades tempo for precision. MHGU has Recoil Down for '
+          + 'exactly this idea if a real name is wanted, though it reads as a gun '
+          + 'word on a rod.',
+      blurbs: ['Each pull moves the line a little less, for finer control',
+               'Each pull moves the line less, for finer control',
+               'Each pull moves the line much less, for the finest control'],
+    },
     strike: {
       tiers: ['Keen Eye', 'Keen Eye+', 'Hawkeye'], per: 0.2, real: false,
       note: 'Invented. Lengthens the window to strike after a nibble. The only way '
