@@ -30,7 +30,11 @@
   // gone from the data as well as the display — one was long enough to break
   // the grid.
   const PROPOSED = ['parts', 'control', 'strike', 'lure', 'brace',
-                    'haggle', 'lesson', 'rich', 'vigor'];
+                    'haggle', 'lesson', 'rich', 'vigor',
+                    // one per gathering site: every material in fish.js carries a
+                    // `site` of Gather, Bug or Mine, so the three are the game's
+                    // own taxonomy rather than categories invented here.
+                    'siteGather', 'siteBug', 'siteMine'];
   const isProposed = k => PROPOSED.includes(k);
 
   // WORKING NAMES — one word for the thing the skill affects, nothing more.
@@ -56,7 +60,12 @@
     lure:     'Lure',        // how soon a large monster checks in
     repel:    'Pests',       // how often small monsters attack
     parts:    'Parts',       // what a monster leaves behind
-    gather:   'Gathering',   // what the Palicos bring back
+    // What the Palicos bring back. `gather` is the existing one and lifts the
+    // whole haul; the three below each favour one gathering site.
+    gather:   'Palicos',     // how much the Palicos bring back at all
+    siteGather: 'Gathering', // Huskberry, Honey, Whetstone, the mushrooms, berries
+    siteBug:  'Bugs',        // Bitterbug, the crickets, King Scarab, Divine Rhino
+    siteMine: 'Mining',      // every ore, crystal and stone
     // the trip
     stamina:  'Stamina',     // what a cast costs
     vigor:    'Vitality',    // how much HP and Stamina you carry
