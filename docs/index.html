@@ -6,7 +6,7 @@
 <title>MHGU Fishing</title>
 <!-- Whetfish: the first thing almost anyone catches here. -->
 <link rel="icon" type="image/png" href="assets/FishIcons/MH4G-Fish_Icon_Yellow.png">
-<link rel="stylesheet" href="styles.css?v=274">
+<link rel="stylesheet" href="styles.css?v=275">
 </head>
 <body>
 
@@ -193,42 +193,39 @@
         </div>
 
         <div class="quest-side">
-        <div class="panel haul">
-          <div class="panel-head">Haul
+        <!-- One pane, five tabs. The haul meta sits in the head rather than in
+             the Haul tab, because how far off the goal you are is the reason to
+             cast again and must not disappear behind another tab. -->
+        <div class="panel side-pane">
+          <div class="panel-head side-head">
+            <div class="subtabs setline" id="sideTabs">
+              <button class="subtab active" data-side="haul">Haul</button>
+              <button class="subtab" data-side="status">Status</button>
+              <button class="subtab" data-side="bait">Bait Pouch</button>
+              <button class="subtab" data-side="items">Item Pouch</button>
+              <button class="subtab" data-side="combine">Combine</button>
+            </div>
             <span class="haul-meta"><b id="haulGoal">0 / 0</b>
-              <span class="haul-value" id="haulValue">0z</span></span></div>
-          <div class="panel-body">
-            <p class="hint">Lose all your HP and you cart — the whole haul is lost.</p>
-            <ul id="haulList"></ul>
+              <span class="haul-value" id="haulValue">0z</span></span>
           </div>
-        </div>
-
-        <div class="panel status">
-          <div class="panel-head">Status</div>
-          <div class="panel-body">
-            <div id="buffLine" class="buffs"></div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">Bait Pouch</div>
-          <div class="panel-body">
-            <ul id="questTackle" class="qpouch tackle"></ul>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">Item Pouch</div>
-          <div class="panel-body">
-            <ul id="questPouch" class="qpouch"></ul>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">Combine
-            <b id="combineBooks" class="slots"></b></div>
-          <div class="panel-body">
-            <ul id="combineList" class="qpouch"></ul>
+          <div class="panel-body side-body">
+            <div class="side-view active" data-side="haul">
+              <p class="hint">Lose all your HP and you cart &mdash; the whole haul is lost.</p>
+              <ul id="haulList"></ul>
+            </div>
+            <div class="side-view" data-side="status">
+              <div id="buffLine" class="buffs"></div>
+            </div>
+            <div class="side-view" data-side="bait">
+              <ul id="questTackle" class="qpouch tackle"></ul>
+            </div>
+            <div class="side-view" data-side="items">
+              <ul id="questPouch" class="qpouch"></ul>
+            </div>
+            <div class="side-view" data-side="combine">
+              <b id="combineBooks" class="slots"></b>
+              <ul id="combineList" class="qpouch"></ul>
+            </div>
           </div>
         </div>
         </div>
@@ -427,21 +424,21 @@
   </div>
 </div>
 
-<script src="data/ores.js?v=274"></script>
-<script src="data/fish.js?v=274"></script>
-<script src="data/locales.js?v=274"></script>
-<script src="data/meals.js?v=274"></script>
-<script src="data/canteen.js?v=274"></script>
-<script src="data/themes.js?v=274"></script>
-<script src="theme.js?v=274"></script>
-<script src="game.js?v=274"></script>
-<script src="roll.js?v=274"></script>
-<script src="app.js?v=274"></script>
-<script src="guide.js?v=274"></script>
-<script src="prep.js?v=274"></script>
-<script src="fishing.js?v=274"></script>
-<script src="quest.js?v=274"></script>
-<script src="ui.js?v=274"></script>
-<script src="savefile.js?v=274"></script>
+<script src="data/ores.js?v=275"></script>
+<script src="data/fish.js?v=275"></script>
+<script src="data/locales.js?v=275"></script>
+<script src="data/meals.js?v=275"></script>
+<script src="data/canteen.js?v=275"></script>
+<script src="data/themes.js?v=275"></script>
+<script src="theme.js?v=275"></script>
+<script src="game.js?v=275"></script>
+<script src="roll.js?v=275"></script>
+<script src="app.js?v=275"></script>
+<script src="guide.js?v=275"></script>
+<script src="prep.js?v=275"></script>
+<script src="fishing.js?v=275"></script>
+<script src="quest.js?v=275"></script>
+<script src="ui.js?v=275"></script>
+<script src="savefile.js?v=275"></script>
 </body>
 </html>

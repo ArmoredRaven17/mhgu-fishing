@@ -382,8 +382,20 @@ select{
 
 /* ── Quest ─────────────────────────────────────────────────────────────── */
 .quest-head{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:14px}
-.gauges{display:grid;gap:5px;min-width:270px;flex:1}
-.gauge{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:8px;font-size:12px}
+/* ONE grid across both gauges, not a grid each: separate grids sized their own
+   number column to their own text, so "100 / 100" and "31 / 148" gave the two
+   bars different lengths. `display:contents` drops the rows into the shared
+   grid so all three columns line up.
+   The block is also a FIXED share of the head rather than flex:1, so the locale
+   name, the climate and danger pills and the bait can grow and wrap without
+   shortening the bars. */
+.gauges{
+  display:grid;grid-template-columns:64px minmax(0,1fr) 72px;
+  gap:5px 8px;align-items:center;font-size:12px;
+  flex:0 0 clamp(300px,46%,620px);min-width:0;
+}
+.gauge{display:contents}
+.gauge span{text-align:right}
 .gauge label{text-transform:uppercase;letter-spacing:.5px;opacity:.75}
 .gauge span{font-variant-numeric:tabular-nums;opacity:.85}
 .bar{height:11px;background:var(--bg1);border-radius:6px;overflow:hidden;border:1px solid var(--line)}
@@ -409,9 +421,18 @@ select{
 .climate.hot{color:#f0a070}.climate.cold{color:#8fd0e8}
 
 .quest-body{
-  display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start;
-  flex:1;min-height:0;overflow-y:auto;
+  display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:stretch;
+  flex:1;min-height:0;overflow:hidden;
 }
+/* A long haul scrolls INSIDE the pane. The body used to scroll instead, which
+   dragged the water and the gauges off the top of the screen mid-cast. */
+.quest-side{min-height:0;display:flex}
+.side-pane{display:flex;flex-direction:column;min-height:0;flex:1}
+.side-head{flex:none;flex-wrap:wrap;row-gap:6px}
+.side-head .subtabs{margin-bottom:0;flex:1 1 auto}
+.side-body{overflow-y:auto;min-height:0;flex:1}
+.side-view{display:none}
+.side-view.active{display:block}
 @media (max-width:900px){.quest-body{grid-template-columns:minmax(0,1fr)}}
 
 .water{

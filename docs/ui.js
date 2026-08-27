@@ -471,6 +471,18 @@
   el('navCamp').onclick = () => show('camp');
   el('navGuide').onclick = () => show('guide');
   el('navCombos').onclick = () => show('combos');
+  // The quest pane's tabs. Purely a view switch — every panel keeps its own id,
+  // so nothing that renders into them had to change.
+  el('sideTabs').addEventListener('click', e => {
+    const btn = e.target.closest('[data-side]');
+    if (!btn) return;
+    const want = btn.dataset.side;
+    for (const b of el('sideTabs').querySelectorAll('[data-side]'))
+      b.classList.toggle('active', b === btn);
+    for (const v of document.querySelectorAll('.side-view'))
+      v.classList.toggle('active', v.dataset.side === want);
+  });
+
   el('subRods').onclick = () => showSmithy('rods');
   el('subArmor').onclick = () => showSmithy('armor');
   el('subCart').onclick = () => showSmithy('cart');
