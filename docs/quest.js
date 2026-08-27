@@ -310,6 +310,16 @@
       monster: boss ? { ...boss, fight: boss.fight } : null,
       rod, armor, ctx, questHR: trip.questHR,
       bites: G.rodBites(rod) + G.effectPower(armor, 'bites'),
+      // Applied the instant it lands, so the bar moves on the blow rather than
+      // when the cast is settled up. Returns whether that put you down.
+      onHit: boss ? () => {
+        const bruise = Math.max(1, Math.round(
+          G.bossAttackDamage(trip.questHR) * (1 - guardNow())));
+        trip.hp -= bruise;
+        trip.notes.push(`${bossSVG(boss, 18)}${boss.name} connects — ${bruise} HP.`);
+        render();
+        return trip.hp <= 0 && !spendGuts();
+      } : null,
     });
 
     // Retiring is allowed with a fish on the line. If the trip is already wound
@@ -330,14 +340,11 @@
 
     if (boss) {
       spendStamina(boss.durationMs / 1000);
-      // Every attack you did not brace lands, whether or not you go on to win.
-      // Landing the monster does not undo the beating it gave you on the way.
-      if (res.hits) {
-        const bruise = res.hits * Math.max(1, Math.round(
-          G.bossAttackDamage(trip.questHR) * (1 - guardNow())));
-        trip.hp -= bruise;
-        trip.notes.push(`${bossSVG(boss, 18)}${boss.name} landed ${res.hits} `
-          + `attack${res.hits === 1 ? '' : 's'} — ${bruise} HP.`);
+      // An attack emptied the bar mid-fight. The HP was already taken and Guts
+      // already had its chance, so this is simply the cart.
+      if (res.reason === 'downed') {
+        A.recordMonster(boss.name, boss.rank, false);
+        return cartOut(boss);
       }
       // Losing costs HP, scaled by the rung this locale sits on. It only ends the
       // trip if it empties the bar — and then it is a cart like any other.

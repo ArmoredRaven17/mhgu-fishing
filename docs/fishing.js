@@ -42,7 +42,10 @@
     el('castArea')?.classList.remove('hidden');
     el('tensionWrap')?.classList.add('hidden');
     el('tensionTrack')?.classList.remove('out', 'low');
-    el('tensionWrap')?.classList.remove('strike');
+    // The brace classes have to go too. A fight that ends DURING an attack
+    // never reaches endBrace(), so without this the next cast opens wearing
+    // the last one's 'It connects' styling.
+    el('tensionWrap')?.classList.remove('strike', 'bracing', 'braced', 'hit');
     state = null;
     if (pending) { pending.settled = true; pending.resolve({ landed: false, cancelled: true }); }
   }
@@ -410,6 +413,13 @@
                 el('reelEscape').style.width = Math.min(1, S.escape) * 100 + '%';
                 el('tensionWrap').classList.add('hit');
                 el('reelHint').textContent = 'It connects.';
+                // Told here rather than at the end of the cast, so the HP bar
+                // drops on the blow that caused it. The caller answers whether
+                // that blow put you down.
+                if (S.onHit && S.onHit()) {
+                  el('reelHint').textContent = 'It puts you down.';
+                  return done({ landed: false, reason: 'downed', catch: S.hooked.c, hits: S.hits });
+                }
                 if (S.escape >= 1)
                   return done({ landed: false, reason: 'escaped', catch: S.hooked.c, hits: S.hits });
               }
@@ -445,6 +455,7 @@
       }
 
       // Upgrades read once per cast.
+      S.onHit = spec.onHit || null;
       S.rod = spec.rod || null;
       S.armor = spec.armor || null;
       S.bites = spec.bites || 0;
