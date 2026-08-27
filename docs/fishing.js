@@ -117,6 +117,10 @@
         progress: 0,
         tension: 0,
         fight: null,
+        brace: null,               // the attack in progress, if one is
+        braceIn: 0,                // seconds until it breaks off again
+        hits: 0,                   // attacks that landed on you
+        spaceSince: 0,             // when Space went down, 0 if it is up
         wakeIn: 0,                 // throttles the trail it leaves while gliding
         baited: spec.bait && spec.bait.id !== 'no_bait',
         monster: !!spec.monster,
@@ -126,7 +130,12 @@
       };
       state = S;
 
-      const done = out => { S.settled = true; cleanup(); resolve(out); };
+      const done = out => {
+        S.settled = true;
+        const hits = S.hits;      // read before cleanup drops the state
+        cleanup();
+        resolve({ hits, ...out });
+      };
       S.done = done;
 
       // ── Input ───────────────────────────────────────────────────────────
@@ -143,6 +152,12 @@
         if (e.code === 'Space') {
           e.preventDefault();
           if (e.repeat) return;
+          // Held, not pressed: remember WHEN it went down so a brace can ask how
+          // long it has been there.
+          if (!S.spaceSince) S.spaceSince = performance.now();
+          // While bracing the key is doing a different job, so it must not also
+          // pull — otherwise the brace hands you free ground.
+          if (S.brace) return;
           if (S.phase === 'hooked') strike();
           else if (S.phase === 'reel') pull();
           else if (S.phase === 'swim') reelIn();
@@ -151,6 +166,38 @@
         const dir = NUDGE[e.code];
         if (dir) { e.preventDefault(); nudge(dir[0], dir[1]); }
       };
+
+      window.onkeyup = e => {
+        if (e.code === 'Space') S.spaceSince = 0;
+      };
+
+      // ── The monster breaks off ──────────────────────────────────────────
+      //
+      // It lunges out of the middle, the hit lands at the far end of the lunge,
+      // and it slides back. Everything else in the fight is frozen meanwhile —
+      // see the `reel` branch, which returns early while a brace is running.
+      function beginBrace() {
+        const A = G().BOSS_ATTACK;
+        const a = Math.random() * Math.PI * 2;
+        S.brace = {
+          t: 0,
+          dx: Math.cos(a), dy: Math.sin(a),
+          windup: A.windupMs / 1000,
+          recover: A.recoverMs / 1000,
+          struck: false,
+        };
+        el('tensionWrap').classList.add('bracing');
+        el('reelHint').textContent = 'HOLD Space — brace!';
+      }
+
+      function endBrace() {
+        const sw = S.swimmers[0];
+        if (sw) sw.node.style.transform = '';
+        S.brace = null;
+        S.braceIn = G().BOSS_ATTACK.everyMs / 1000;
+        el('tensionWrap').classList.remove('bracing', 'braced', 'hit');
+        el('reelHint').textContent = 'Hammer Space. Keep it in the middle.';
+      }
 
       // A nudge sets a destination rather than moving the bobber. The slide to it
       // happens in the frame loop, and settles just before the next nudge is
@@ -183,6 +230,7 @@
 
       function strike() {
         S.phase = 'reel';
+        S.braceIn = S.monster ? G().BOSS_ATTACK.firstMs / 1000 : Infinity;
         S.fight = S.hooked.fight;
         S.tension = G().REEL_START;
         S.escape = 0;
@@ -334,6 +382,46 @@
           el('strikeFill').style.width = Math.max(0, S.strikeLeft / w) * 100 + '%';
           if (S.strikeLeft <= 0) return done({ landed: false, reason: 'missed', missed: true, catch: S.hooked.c });
         } else if (S.phase === 'reel') {
+          // The whole fight holds still while it comes at you. Nothing sinks,
+          // nothing is gained, nothing is lost — the only question is the key.
+          if (S.brace) {
+            const A = G().BOSS_ATTACK;
+            const b = S.brace;
+            b.t += dt;
+            const sw = S.swimmers[0];
+            // Out over the windup, back over the recover.
+            const out = b.t <= b.windup
+              ? b.t / b.windup
+              : Math.max(0, 1 - (b.t - b.windup) / b.recover);
+            if (sw) {
+              const REACH = 34;   // px at full lunge
+              sw.node.style.transform =
+                `translate(${b.dx * out * REACH}px, ${b.dy * out * REACH}px)`;
+            }
+            if (!b.struck && b.t >= b.windup) {
+              b.struck = true;
+              const heldFor = S.spaceSince ? performance.now() - S.spaceSince : 0;
+              if (heldFor >= A.holdMs) {
+                el('tensionWrap').classList.add('braced');
+                el('reelHint').textContent = 'Braced.';
+              } else {
+                S.hits++;
+                S.escape = Math.min(1, (S.escape || 0) + A.escapeOnHit);
+                el('reelEscape').style.width = Math.min(1, S.escape) * 100 + '%';
+                el('tensionWrap').classList.add('hit');
+                el('reelHint').textContent = 'It connects.';
+                if (S.escape >= 1)
+                  return done({ landed: false, reason: 'escaped', catch: S.hooked.c, hits: S.hits });
+              }
+            }
+            if (b.t >= b.windup + b.recover) endBrace();
+            raf = requestAnimationFrame(frame);
+            return;
+          }
+
+          S.braceIn -= dt;
+          if (S.braceIn <= 0) beginBrace();
+
           S.tension -= S.fight.sinkPerSec * dt;
           const t = S.tension;
           if (t <= 0) return done({ landed: false, reason: 'slack', catch: S.hooked.c });

@@ -2045,6 +2045,29 @@
   const BOSS_LOSS = { base: 34, perHR: 4 };
   const bossLossDamage = localeHR => BOSS_LOSS.base + BOSS_LOSS.perHR * localeHR;
 
+  // ── Bracing ───────────────────────────────────────────────────────────────
+  //
+  // Part-way through a fight the monster breaks off and comes at you. HOLD Space
+  // and you take the hit on the rod; let go and it lands on you. The whole fight
+  // freezes while it happens — indicator, band, both bars — so bracing is a
+  // moment of its own rather than one more thing to juggle mid-reel.
+  //
+  // `holdMs` is what defeats hammering. A player mashing Space at five presses a
+  // second is down about as often as they are up, so sampling the key at the
+  // moment of impact would let mashing pass half the time; requiring it held for
+  // a quarter of a second first means you have to actually stop and press.
+  const BOSS_ATTACK = {
+    firstMs: 2600,      // earliest it will break off, so a fight opens normally
+    everyMs: 5200,      // and again this often
+    windupMs: 750,      // it lunges out over this, and the hit lands at the end
+    recoverMs: 550,     // then slides back to the middle and reeling resumes
+    holdMs: 250,        // Space must already have been down this long at impact
+    damageShare: 0.4,   // of a lost fight's damage — several hits still kill
+    escapeOnHit: 0.15,  // and it takes this much of the escape bar with it
+  };
+  const bossAttackDamage = localeHR =>
+    Math.max(1, Math.round(bossLossDamage(localeHR) * BOSS_ATTACK.damageShare));
+
   window.MF_GAME = {
     RANKS, rankById, rankAt, hrForRank, tableRanksAt, xpFor, hrThreshold,
     RANK_HR, ORE_RANK_HR, curveRank, fishUnlockHR, oreUnlockHR, itemUnlockHR, baitUnlockHR, unlockLabel,
@@ -2085,6 +2108,6 @@
     POND, REEL_START, RUNG_TIGHTEN, fightFor, BOSS, BOSS_BAND_FLOOR, PEST, HIRE, ENCOUNTER_CHANCE,
     ENCOUNTER_RANK_SCALE, ENCOUNTER_ODDS, encounterCheckEvery,
     encounterChance, STOCK_CAP,
-    BOSS_LOSS, bossLossDamage,
+    BOSS_LOSS, bossLossDamage, BOSS_ATTACK, bossAttackDamage,
   };
 })();

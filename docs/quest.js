@@ -330,6 +330,15 @@
 
     if (boss) {
       spendStamina(boss.durationMs / 1000);
+      // Every attack you did not brace lands, whether or not you go on to win.
+      // Landing the monster does not undo the beating it gave you on the way.
+      if (res.hits) {
+        const bruise = res.hits * Math.max(1, Math.round(
+          G.bossAttackDamage(trip.questHR) * (1 - guardNow())));
+        trip.hp -= bruise;
+        trip.notes.push(`${bossSVG(boss, 18)}${boss.name} landed ${res.hits} `
+          + `attack${res.hits === 1 ? '' : 's'} — ${bruise} HP.`);
+      }
       // Losing costs HP, scaled by the rung this locale sits on. It only ends the
       // trip if it empties the bar — and then it is a cart like any other.
       if (!res.landed) {
@@ -358,6 +367,9 @@
       el('castPrompt').textContent = `${boss.name} caught. Worth ${z(bossPaid)}.`;
       flushNotes();
       releaseCast(); A.save(); render();
+      // You can win the fight and still go down from the attacks it landed.
+      if (trip.hp <= 0 && !spendGuts()) return cartOut(boss);
+      if (trip.sta <= 0) return finish('out of stamina');
       return;
     }
 

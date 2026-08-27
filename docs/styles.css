@@ -677,6 +677,26 @@ select{
 .tension-track.out.low .pill{background:var(--slack);box-shadow:0 0 0 3px color-mix(in srgb,var(--slack) 35%,transparent)}
 .tension-track.out.low{border-color:var(--slack)}
 
+/* Bracing. The fight is frozen, so the track goes still and dim and the hint
+   line does the talking; the point is that nothing you do to the bar matters
+   for a moment, only the key. */
+.tension.bracing .tension-track{opacity:.45;filter:saturate(.4)}
+/* reelHint is a SIBLING of the wrap, not a child. */
+.tension.bracing~.reel-hint,.tension.braced~.reel-hint,.tension.hit~.reel-hint{font-weight:700}
+.tension.bracing~.reel-hint{color:var(--warn,#d08a3a)}
+.tension.braced~.reel-hint{color:var(--good,#4fbf8b)}
+.tension.hit~.reel-hint{color:var(--danger)}
+.tension.bracing .tension-track{border-color:var(--warn,#d08a3a)}
+.tension.braced .tension-track{border-color:var(--good,#4fbf8b);opacity:.8;filter:none}
+.tension.hit .tension-track{border-color:var(--danger);opacity:.8;filter:none;animation:braceHit .28s ease-out}
+@keyframes braceHit{
+  0%{transform:translateX(0)}25%{transform:translateX(-5px)}
+  55%{transform:translateX(4px)}100%{transform:translateX(0)}
+}
+@media (prefers-reduced-motion: reduce){
+  .tension.hit .tension-track{animation:none}
+}
+
 .progress{height:12px;background:var(--bg1);border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .progress i{display:block;height:100%;width:0;background:var(--gauge-hp)}
 /* The fish's half of the race: fills whenever the line is outside the band, and
