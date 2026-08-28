@@ -41,7 +41,9 @@
     // Rank but read as a missing step rather than a deliberate one, and a game
     // about fishing should not open with you not owning a rod.
     gearOwned: { rod_old: 0 },   // rod/armor id -> level owned, 0..LEVELS
-    gear: { rod: { id: 'rod_old', lvl: 0 }, armor: null },   // equipped: {id, lvl} or null
+    // One slot per worn piece. `armor` is gone; an old save's suit becomes the
+    // CHEST in migrateGear, which is the only slot it can honestly have been.
+    gear: { rod: { id: 'rod_old', lvl: 0 }, helm: null, chest: null, waist: null },   // equipped: {id, lvl} or null
     cartLevel: 0,            // the Trade Cart you have paid up to, 0..TRADE_CART_MAX
     upgrades: { vitality: 0, endurance: 0, line: 0, lure: 0 },  // retired; refunded on load
     localeId: 'jurassic_frontier',
@@ -129,11 +131,34 @@
     if (!Object.prototype.hasOwnProperty.call(S.gearOwned, 'rod_old')) S.gearOwned.rod_old = 0;
     if (!S.gear.rod) S.gear.rod = { id: 'rod_old', lvl: S.gearOwned.rod_old || 0 };
 
+    // `gear` is replaced wholesale by hydrate rather than merged, so a save made
+    // before the three-piece rework arrives with `armor` and none of the new
+    // slots. Its suit becomes the CHEST — the slot it always was — and the id is
+    // remapped because `cephalos_g` is now `cephalos_chest_g`. Without this every
+    // existing save silently loses its armor.
+    if (S.gear.armor) {
+      const old = S.gear.armor;
+      const moved = old.id.replace(/_(low|high|g)$/, '_chest_$1');
+      if (G.armorById.has(moved)) {
+        S.gear.chest = { id: moved, lvl: old.lvl || 0 };
+        if (!Object.prototype.hasOwnProperty.call(S.gearOwned, moved))
+          S.gearOwned[moved] = old.lvl || 0;
+      }
+      delete S.gear.armor;
+    }
+    // Same remap for the wardrobe, or a suit you forged is unforgeable and gone.
+    for (const [id, lvl] of Object.entries({ ...S.gearOwned })) {
+      const moved = id.replace(/_(low|high|g)$/, '_chest_$1');
+      if (moved !== id && !G.armorById.has(id) && G.armorById.has(moved)) {
+        S.gearOwned[moved] = Math.max(S.gearOwned[moved] || 0, lvl || 0);
+        delete S.gearOwned[id];
+      }
+    }
+
     const spent = G.refundUpgrades(S.upgrades);
     if (!spent) return;
     S.zenny += spent;
     S.upgrades = { vitality: 0, endurance: 0, line: 0, lure: 0 };
-    S.gearRefund = spent;   // so the shop can say what happened, once
   }
 
   function loadFrom(saved) { hydrate(saved); save(); }
@@ -142,10 +167,10 @@
   const rank = () => G.rankAt(S.hr);
   // HP and stamina are what you are WEARING now, not levels bought on a slider.
   const maxHP = mealId =>
-    G.BASE_MAX_HP + meal(mealId).hp + fresh(mealId).hp + G.armorStat(S.gear.armor, 'hp');
+    G.BASE_MAX_HP + meal(mealId).hp + fresh(mealId).hp + G.armorStat(S.gear, 'hp');
   const maxStamina = mealId =>
     G.BASE_MAX_STAMINA + meal(mealId).stamina + fresh(mealId).stamina
-      + G.armorStat(S.gear.armor, 'stamina');
+      + G.armorStat(S.gear, 'stamina');
   // A selected meal is only YOUR meal while you can still cook it. Rank gates and
   // a pantry that can lose nothing mean a save can carry a selection it has since
   // outgrown — or, once the meal power ladder landed, one it has not yet grown
@@ -505,7 +530,10 @@
   function forgeParts(id) {
     const g = gearById(id);
     if (!g) return [];
-    if (g.slot === 'armor') return g.mat ? [{ mat: g.mat, need: g.matCount }] : [];
+    // Not `=== 'armor'` any more: the slot is helm, chest or waist. Left as it
+    // was, every armor piece would have fallen through to the ROD rule and
+    // accepted any part of its rank.
+    if (g.slot !== 'rod') return g.mat ? [{ mat: g.mat, need: g.matCount }] : [];
     return G.MONSTER_MATS.filter(m => m.rank === g.rank).map(m => ({ mat: m, need: g.matCount }));
   }
   const partsHeld = id => forgeParts(id).reduce((a, p) => a + (S.mats[p.mat.id] || 0), 0);
@@ -585,14 +613,15 @@
   function equip(id) {
     const g = gearById(id);
     if (!g || !gearOwned(id)) return false;
-    const slot = G.rodById.has(id) ? 'rod' : 'armor';
-    S.gear[slot] = { id, lvl: gearLevel(id) };
+    // The piece itself says where it goes. Rod-or-not stopped being enough the
+    // moment there were three armor slots to tell apart.
+    S.gear[g.slot] = { id, lvl: gearLevel(id) };
     return true;
   }
   // A level bought on the piece you are wearing has to reach the piece you are
   // wearing, or the shop and the water disagree about what you are holding.
   function syncEquipped() {
-    for (const slot of ['rod', 'armor']) {
+    for (const slot of ['rod', ...G.PIECE_SLOTS]) {
       const g = S.gear[slot];
       if (g && gearOwned(g.id)) g.lvl = gearLevel(g.id);
       else if (g) S.gear[slot] = null;

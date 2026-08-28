@@ -137,11 +137,15 @@
   // being a choice rather than a ladder is being able to compare them side by side.
   function listArmor() {
     const lines = [];
-    for (const key of Object.keys(G.ARMOR_LINES)) {
-      const L = G.ARMOR_LINES[key];
+    for (const key of Object.keys(G.ARMOR_PIECES)) {
       const sets = G.ARMORS.filter(a => a.line === key);
-      lines.push('== ' + L.name + ' == ' + G.effectName(L.a, 1) + ' + ' + G.effectName(L.b, 1)
-        + (L.third ? ',  G adds ' + G.effectName(L.third, 1) : ''));
+      // A line with no materials yet has no forgeable pieces. Sixty of the
+      // seventy-one are in that state until the Trader lands, and listing them
+      // as empty headings would bury the eleven you can actually make.
+      if (!sets.length) continue;
+      const bonus = G.ARMOR_PIECES[key].setBonus;
+      lines.push('== ' + G.armorLineName(key) + ' =='
+        + (bonus ? '  full set: ' + G.effectName(bonus.k, bonus.lvl) : ''));
       for (const a of sets) {
         const eff = a.effects.map(e => G.effectName(e.key, e.lvl)).join(' + ');
         lines.push('  ' + a.name.padEnd(16)

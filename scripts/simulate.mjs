@@ -20,7 +20,8 @@ const DOCS = join(REPO, 'docs');
 
 global.window = {};
 for (const f of [['data', 'ores.js'], ['data', 'fish.js'], ['data', 'locales.js'],
-                 ['data', 'meals.js'], ['data', 'canteen.js'], ['game.js'], ['roll.js']])
+                 ['data', 'meals.js'], ['data', 'canteen.js'],
+                 ['data', 'armorlines.js'], ['game.js'], ['roll.js']])
   require(join(DOCS, ...f));
 
 const { MF_GAME: G, MF_ROLL: R, MF_FISH: F, MF_LOCALES: L, CF_ORES: O } = global.window;
@@ -203,16 +204,22 @@ const SUPPLY_STAMINA = 25;  // Ration
 // Rank bare-handed — and the cart rates it produces are fiction.
 // Everything a suit takes off a hit, before meals and Armorskins.
 const guardOf = gear => Math.min(0.75,
-  G.armorStat(gear.armor, 'guard') + G.effectPower(gear.armor, 'defense'));
+  G.armorStat(gear, 'guard') + G.effectPower(gear, 'defense'));
 
 function rankGear(hr) {
   const rank = G.rankAt(hr).id;
   const rod = [...G.RODS].reverse().find(r => r.rank === rank);
-  const armor = G.ARMORS.find(a => a.rank === rank);
-  return {
-    rod: rod ? { id: rod.id, lvl: 3 } : null,
-    armor: armor ? { id: armor.id, lvl: 3 } : null,
-  };
+  // A FULL set of one line, not three pieces from three. A player who mixes is
+  // chasing particular skills and the sim cannot guess which, but a whole set of
+  // whatever is available at the rank is the honest baseline — and it is the
+  // case that earns the set bonus, so the sim sees that too.
+  const line = (G.ARMORS.find(a => a.rank === rank) || {}).line;
+  const gear = { rod: rod ? { id: rod.id, lvl: 3 } : null };
+  for (const slot of G.PIECE_SLOTS) {
+    const piece = line && G.ARMORS.find(a => a.rank === rank && a.line === line && a.slot === slot);
+    gear[slot] = piece ? { id: piece.id, lvl: 3 } : null;
+  }
+  return gear;
 }
 
 // A boss fight resolved statistically. Under the pond's reel model the tell is
@@ -234,11 +241,11 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
   const climate = G.climateOf(localeId);
   const rates = G.CLIMATE_RATES[climate];
   const gear = lo.gear;
-  const cl = G.climateFor(gear.armor, climate);
-  const longHaul = 1 - G.effectPower(gear.armor, 'stamina');
+  const cl = G.climateFor(gear, climate);
+  const longHaul = 1 - G.effectPower(gear, 'stamina');
 
-  const maxHP = G.BASE_MAX_HP + lo.meal.hp + G.armorStat(gear.armor, 'hp');
-  const maxSta = G.BASE_MAX_STAMINA + lo.meal.stamina + G.armorStat(gear.armor, 'stamina');
+  const maxHP = G.BASE_MAX_HP + lo.meal.hp + G.armorStat(gear, 'hp');
+  const maxSta = G.BASE_MAX_STAMINA + lo.meal.stamina + G.armorStat(gear, 'stamina');
   let hp = maxHP, sta = maxSta;
   let potions = lo.potions;
   // A working copy: the kit is shared across thousands of trips.
@@ -271,7 +278,7 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
     casts++;
 
     castsSince++;
-    const enc = R.rollEncounter(localeId, bait, hr, Math.random, gear.rod, gear.armor, null, castsSince);
+    const enc = R.rollEncounter(localeId, bait, hr, Math.random, gear.rod, gear, null, castsSince);
     if (enc) {
       castsSince = 0;
       bosses++;
@@ -285,9 +292,9 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
       continue;
     }
 
-    const c = R.rollCatch({ localeId, bait, hr, rod: gear.rod, armor: gear.armor });
+    const c = R.rollCatch({ localeId, bait, hr, rod: gear.rod, armor: gear });
     if (!c) break;
-    const fight = G.fightFor(c.fish, c.ore, gear.rod, hr, gear.armor);
+    const fight = G.fightFor(c.fish, c.ore, gear.rod, hr, gear);
     const secs = fight.durationMs / 1000;
 
     haul += c.value;
@@ -314,7 +321,7 @@ function runTrip(localeId, lo, hr, retireAt = Infinity, bailBelowHP = 0) {
     // Something small has a go at you. Rolled per ordinary cast, exactly as
     // quest.js does it, and the only thing that touches HP outside a hot locale.
     const pest = R.rollPest(localeId, hr, lo.hired, Math.random,
-                            G.effectPower(gear.armor, 'repel'));
+                            G.effectPower(gear, 'repel'));
     if (pest) { hp -= Math.max(1, Math.round(pest.damage * (1 - guardOf(gear)))); pests++; }
 
     // Bought items first, then the supply box — the order quest.js uses.

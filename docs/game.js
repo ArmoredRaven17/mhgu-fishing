@@ -1443,23 +1443,454 @@
   // Steady Mixer — existed in the code and could never be seen in the game. Now
   // every effect has a line carrying it up from 1, and the G thirds fill in the
   // ones whose own line starts at High Rank.
-  const ARMOR_LINES = {
-    //           two that climb together        one more at G, level 1
-    //
-    // Cephalos and Lagiacrus have their reel and grip swapped: Cephalos carries
-    // Sure Grip and Lagiacrus Quick Reel, not the other way round. Raven's call,
-    // so the real-skill notes below are left as the citation they always were
-    // rather than rewritten to justify a pairing they did not choose.
-    cephalos:   { a: 'heat',     b: 'band',     third: 'bites',    name: 'Cephalos' },    // Heat Res 20; Attack 20 / Water Atk 18
-    ludroth:    { a: 'stamina',  b: 'gather',   third: 'effectup', name: 'Ludroth' },     // Hunger 20, Stamina 20, Stam Recov 20
-    nibelsnarf: { a: 'effectup', b: 'saver',    third: 'repel',    name: 'Nibelsnarf' },  // Gluttony 22 (Gourmand/Scavenger), Eating 30
-    agnaktor:   { a: 'defense',  b: 'hotblood', third: 'band',     name: 'Agnaktor' },    // Guard Up 20, Guard 15; HotBlooded 20 = Tropic Hunter
-    lagiacrus:  { a: 'progress', b: 'cull',     third: 'zenny',    name: 'Lagiacrus' },   // Elemental 20 + Pierce Up 10
-    plesioth:   { a: 'trade',    b: 'bites',    third: 'gather',   name: 'Plesioth' },    // Capturer 20 = more reward items from what you land
-    zamtrios:   { a: 'cold',     b: 'combo',    third: 'stamina',  name: 'Zamtrios' },    // ColdBlooded 20; Artillery 22 = loaded ordnance
-    lavasioth:  { a: 'escape',   b: 'stamina',  third: 'guts',     name: 'Lavasioth' },   // Crisis/Survivor = will not be shaken off; Endurance 20
-  };
-  const RANK_LEVEL = { Low: 1, High: 2, G: 3 };
+  // Every large monster bar Deviants and Variants has a line. What each piece
+  // carries is Raven's, assigned in tools/armor.html and exported to
+  // tools/armor-assignment.mjs; scripts/ingest-armor.mjs copies it in below.
+  // EDIT THE BENCH, NOT THIS. A hand-edit here is overwritten by the next ingest
+  // and, worse, silently disagrees with the board he is designing against.
+  //
+  // Only the lines with materials in MAT_LINES can actually be forged today —
+  // the other sixty are exchange lines waiting on the Trader, which is why they
+  // carry an assignment but produce no ARMORS entries yet.
+  //
+  const PIECE_SLOTS = ['helm', 'chest', 'waist'];
+  // MHGU's own convention: the piece names the slot and the RANK suffixes the
+  // piece — Cephalos Helm, Cephalos Helm S, Cephalos Helm X.
+  const PIECE_LABEL = { helm: 'Helm', chest: 'Chest', waist: 'Waist' };
+
+  // >>> ARMOR_PIECES START
+  const ARMOR_PIECES = {
+  cephalos: {
+    floor: 'Low',
+    Low:  { helm: [{ k: 'heat', lvl: 1 }], chest: [{ k: 'strike', lvl: 1 }], waist: [{ k: 'strike', lvl: 1 }] },
+    High: { helm: [{ k: 'heat', lvl: 2 }, { k: 'duration', lvl: 1 }], chest: [{ k: 'strike', lvl: 2 }, { k: 'zenny', lvl: 1 }], waist: [{ k: 'strike', lvl: 2 }, { k: 'fresh', lvl: 1 }] },
+    G:    { helm: [{ k: 'heat', lvl: 2 }, { k: 'duration', lvl: 1 }, { k: 'parts', lvl: 1 }], chest: [{ k: 'strike', lvl: 2 }, { k: 'zenny', lvl: 1 }, { k: 'escape', lvl: 1 }], waist: [{ k: 'strike', lvl: 2 }, { k: 'fresh', lvl: 1 }, { k: 'trapping', lvl: 1 }] },
+    setBonus: null,
+  },
+  ludroth: {
+    floor: 'Low',
+    Low:  { helm: [{ k: 'gather', lvl: 1 }], chest: [{ k: 'stamina', lvl: 1 }], waist: [{ k: 'stamina', lvl: 1 }] },
+    High: { helm: [{ k: 'gather', lvl: 2 }, { k: 'effectup', lvl: 1 }], chest: [{ k: 'stamina', lvl: 2 }, { k: 'gather', lvl: 1 }], waist: [{ k: 'stamina', lvl: 2 }, { k: 'duration', lvl: 1 }] },
+    G:    { helm: [{ k: 'gather', lvl: 2 }, { k: 'effectup', lvl: 1 }, { k: 'trade', lvl: 1 }], chest: [{ k: 'stamina', lvl: 2 }, { k: 'gather', lvl: 2 }, { k: 'trade', lvl: 1 }], waist: [{ k: 'stamina', lvl: 3 }, { k: 'duration', lvl: 1 }, { k: 'trade', lvl: 2 }] },
+    setBonus: null,
+  },
+  nibelsnarf: {
+    floor: 'Low',
+    Low:  { helm: [{ k: 'escape', lvl: 1 }], chest: [{ k: 'escape', lvl: 1 }], waist: [{ k: 'bites', lvl: 1 }] },
+    High: { helm: [{ k: 'escape', lvl: 2 }, { k: 'lure', lvl: 1 }], chest: [{ k: 'escape', lvl: 2 }, { k: 'defense', lvl: 1 }], waist: [{ k: 'bites', lvl: 2 }, { k: 'control', lvl: 1 }] },
+    G:    { helm: [{ k: 'escape', lvl: 2 }, { k: 'lure', lvl: 1 }, { k: 'strike', lvl: 1 }], chest: [{ k: 'escape', lvl: 2 }, { k: 'defense', lvl: 1 }, { k: 'strike', lvl: 1 }], waist: [{ k: 'bites', lvl: 2 }, { k: 'control', lvl: 1 }, { k: 'strike', lvl: 1 }] },
+    setBonus: null,
+  },
+  plesioth: {
+    floor: 'High',
+    High: { helm: [{ k: 'basket', lvl: 1 }, { k: 'trapsize', lvl: 1 }, { k: 'trapping', lvl: 1 }], chest: [{ k: 'basket', lvl: 1 }, { k: 'trapsize', lvl: 1 }, { k: 'trapping', lvl: 1 }], waist: [{ k: 'basket', lvl: 1 }, { k: 'trapsize', lvl: 1 }, { k: 'trapping', lvl: 1 }] },
+    G:    { helm: [{ k: 'basket', lvl: 2 }, { k: 'trapsize', lvl: 1 }, { k: 'trapping', lvl: 2 }], chest: [{ k: 'basket', lvl: 2 }, { k: 'trapsize', lvl: 2 }, { k: 'trapping', lvl: 1 }], waist: [{ k: 'basket', lvl: 1 }, { k: 'trapping', lvl: 2 }, { k: 'trapsize', lvl: 1 }] },
+    setBonus: null,
+  },
+  zamtrios: {
+    floor: 'Low',
+    Low:  { helm: [{ k: 'cold', lvl: 1 }], chest: [{ k: 'parts', lvl: 1 }], waist: [{ k: 'cold', lvl: 1 }] },
+    High: { helm: [{ k: 'cold', lvl: 1 }, { k: 'parts', lvl: 1 }, { k: 'combo', lvl: 1 }], chest: [{ k: 'parts', lvl: 2 }, { k: 'strike', lvl: 1 }], waist: [{ k: 'cold', lvl: 2 }, { k: 'trapping', lvl: 1 }] },
+    G:    { helm: [{ k: 'cold', lvl: 2 }, { k: 'parts', lvl: 2 }, { k: 'combo', lvl: 1 }], chest: [{ k: 'parts', lvl: 2 }, { k: 'strike', lvl: 2 }, { k: 'defense', lvl: 1 }], waist: [{ k: 'cold', lvl: 3 }, { k: 'trapping', lvl: 1 }, { k: 'defense', lvl: 1 }] },
+    setBonus: null,
+  },
+  agnaktor: {
+    floor: 'High',
+    High: { helm: [{ k: 'brace', lvl: 2 }, { k: 'strike', lvl: 1 }], chest: [{ k: 'heat', lvl: 2 }, { k: 'strike', lvl: 1 }], waist: [{ k: 'heat', lvl: 2 }, { k: 'strike', lvl: 1 }] },
+    G:    { helm: [{ k: 'brace', lvl: 3 }, { k: 'strike', lvl: 1 }, { k: 'heat', lvl: 1 }], chest: [{ k: 'heat', lvl: 2 }, { k: 'strike', lvl: 2 }, { k: 'defense', lvl: 2 }], waist: [{ k: 'heat', lvl: 2 }, { k: 'strike', lvl: 1 }, { k: 'defense', lvl: 2 }] },
+    setBonus: null,
+  },
+  lagiacrus: {
+    floor: 'High',
+    High: { helm: [{ k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 1 }, { k: 'combo', lvl: 1 }], chest: [{ k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 1 }, { k: 'combo', lvl: 1 }], waist: [{ k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 1 }, { k: 'combo', lvl: 1 }] },
+    G:    { helm: [{ k: 'zenny', lvl: 2 }, { k: 'bounty', lvl: 2 }, { k: 'combo', lvl: 1 }], chest: [{ k: 'zenny', lvl: 2 }, { k: 'bounty', lvl: 1 }, { k: 'combo', lvl: 1 }], waist: [{ k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 2 }, { k: 'combo', lvl: 1 }] },
+    setBonus: null,
+  },
+  lavasioth: {
+    floor: 'High',
+    High: { helm: [{ k: 'siteMine', lvl: 1 }, { k: 'reach', lvl: 1 }, { k: 'bites', lvl: 1 }], chest: [{ k: 'siteMine', lvl: 1 }, { k: 'bobber', lvl: 1 }, { k: 'strike', lvl: 1 }], waist: [{ k: 'siteMine', lvl: 1 }, { k: 'band', lvl: 1 }, { k: 'escape', lvl: 1 }] },
+    G:    { helm: [{ k: 'siteMine', lvl: 2 }, { k: 'reach', lvl: 2 }, { k: 'bites', lvl: 2 }], chest: [{ k: 'siteMine', lvl: 1 }, { k: 'bobber', lvl: 2 }, { k: 'strike', lvl: 2 }], waist: [{ k: 'siteMine', lvl: 2 }, { k: 'band', lvl: 2 }, { k: 'escape', lvl: 2 }] },
+    setBonus: null,
+  },
+  hermitaur: {
+    floor: 'Low',
+    Low:  { helm: [{ k: 'trapsize', lvl: 1 }], chest: [{ k: 'progress', lvl: 1 }], waist: [{ k: 'progress', lvl: 1 }] },
+    High: { helm: [{ k: 'trapsize', lvl: 2 }, { k: 'brace', lvl: 1 }], chest: [{ k: 'progress', lvl: 2 }, { k: 'trapping', lvl: 1 }], waist: [{ k: 'progress', lvl: 1 }, { k: 'trapping', lvl: 2 }] },
+    G:    { helm: [{ k: 'trapsize', lvl: 2 }, { k: 'brace', lvl: 1 }], chest: [{ k: 'progress', lvl: 2 }, { k: 'trapping', lvl: 1 }], waist: [{ k: 'progress', lvl: 1 }, { k: 'trapping', lvl: 2 }] },
+    setBonus: null,
+  },
+  ceanataur: {
+    floor: 'High',
+    High: { helm: [{ k: 'band', lvl: 2 }, { k: 'parts', lvl: 1 }], chest: [{ k: 'band', lvl: 1 }, { k: 'parts', lvl: 2 }], waist: [{ k: 'band', lvl: 1 }, { k: 'repel', lvl: 1 }, { k: 'siteGather', lvl: 1 }] },
+    G:    { helm: [{ k: 'band', lvl: 2 }, { k: 'parts', lvl: 2 }, { k: 'cold', lvl: 2 }], chest: [{ k: 'band', lvl: 2 }, { k: 'parts', lvl: 2 }, { k: 'heat', lvl: 2 }], waist: [{ k: 'band', lvl: 1 }, { k: 'repel', lvl: 1 }, { k: 'siteGather', lvl: 1 }] },
+    setBonus: null,
+  },
+  mizutsune: {
+    floor: 'High',
+    High: { helm: [{ k: 'duration', lvl: 1 }, { k: 'control', lvl: 1 }, { k: 'stamina', lvl: 1 }], chest: [{ k: 'duration', lvl: 1 }, { k: 'control', lvl: 1 }, { k: 'stamina', lvl: 1 }], waist: [{ k: 'duration', lvl: 1 }, { k: 'control', lvl: 1 }, { k: 'band', lvl: 1 }] },
+    G:    { helm: [{ k: 'duration', lvl: 1 }, { k: 'control', lvl: 1 }, { k: 'stamina', lvl: 2 }], chest: [{ k: 'duration', lvl: 1 }, { k: 'control', lvl: 2 }, { k: 'stamina', lvl: 2 }], waist: [{ k: 'duration', lvl: 2 }, { k: 'control', lvl: 1 }, { k: 'band', lvl: 1 }] },
+    setBonus: null,
+  },
+  ahtal_ka: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  akantor: {   // exchange
+    floor: 'G',
+    G:    { helm: [{ k: 'defense', lvl: 1 }, { k: 'brace', lvl: 2 }, { k: 'lure', lvl: 1 }, { k: 'band', lvl: 1 }], chest: [{ k: 'defense', lvl: 2 }, { k: 'lure', lvl: 2 }, { k: 'brace', lvl: 1 }, { k: 'band', lvl: 1 }], waist: [{ k: 'defense', lvl: 2 }, { k: 'lure', lvl: 2 }, { k: 'brace', lvl: 2 }, { k: 'band', lvl: 1 }] },
+    setBonus: null,
+  },
+  alatreon: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  amatsu: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  arzuros: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'siteGather', lvl: 1 }], chest: [{ k: 'siteGather', lvl: 1 }], waist: [{ k: 'vigor', lvl: 1 }] },
+    High: { helm: [{ k: 'siteGather', lvl: 2 }, { k: 'brace', lvl: 1 }], chest: [{ k: 'siteGather', lvl: 2 }, { k: 'band', lvl: 1 }], waist: [{ k: 'vigor', lvl: 2 }, { k: 'effectup', lvl: 1 }] },
+    G:    { helm: [{ k: 'siteGather', lvl: 2 }, { k: 'brace', lvl: 1 }, { k: 'band', lvl: 1 }], chest: [{ k: 'siteGather', lvl: 2 }, { k: 'band', lvl: 1 }, { k: 'stamina', lvl: 1 }], waist: [{ k: 'vigor', lvl: 2 }, { k: 'effectup', lvl: 1 }, { k: 'stamina', lvl: 1 }] },
+    setBonus: null,
+  },
+  astalos: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'progress', lvl: 2 }, { k: 'zenny', lvl: 1 }], chest: [{ k: 'progress', lvl: 1 }, { k: 'stamina', lvl: 1 }], waist: [{ k: 'progress', lvl: 1 }, { k: 'lure', lvl: 2 }] },
+    G:    { helm: [{ k: 'progress', lvl: 3 }, { k: 'zenny', lvl: 1 }, { k: 'escape', lvl: 1 }], chest: [{ k: 'progress', lvl: 1 }, { k: 'stamina', lvl: 2 }, { k: 'escape', lvl: 2 }], waist: [{ k: 'progress', lvl: 1 }, { k: 'lure', lvl: 2 }, { k: 'escape', lvl: 2 }] },
+    setBonus: null,
+  },
+  barioth: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'cold', lvl: 2 }, { k: 'escape', lvl: 1 }], chest: [{ k: 'cold', lvl: 2 }, { k: 'escape', lvl: 1 }], waist: [{ k: 'cold', lvl: 1 }, { k: 'band', lvl: 1 }] },
+    G:    { helm: [{ k: 'cold', lvl: 2 }, { k: 'escape', lvl: 2 }, { k: 'reach', lvl: 2 }], chest: [{ k: 'cold', lvl: 2 }, { k: 'escape', lvl: 2 }, { k: 'reach', lvl: 1 }], waist: [{ k: 'cold', lvl: 1 }, { k: 'band', lvl: 2 }, { k: 'reach', lvl: 2 }] },
+    setBonus: null,
+  },
+  barroth: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'heat', lvl: 1 }, { k: 'vigor', lvl: 1 }, { k: 'defense', lvl: 1 }], chest: [{ k: 'heat', lvl: 1 }, { k: 'vigor', lvl: 1 }, { k: 'brace', lvl: 1 }], waist: [{ k: 'heat', lvl: 2 }, { k: 'defense', lvl: 1 }] },
+    G:    { helm: [{ k: 'heat', lvl: 2 }, { k: 'vigor', lvl: 2 }, { k: 'defense', lvl: 2 }], chest: [{ k: 'heat', lvl: 1 }, { k: 'vigor', lvl: 2 }, { k: 'brace', lvl: 1 }], waist: [{ k: 'heat', lvl: 2 }, { k: 'defense', lvl: 1 }, { k: 'escape', lvl: 2 }] },
+    setBonus: null,
+  },
+  basarios: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'siteMine', lvl: 1 }, { k: 'defense', lvl: 2 }], chest: [{ k: 'siteMine', lvl: 1 }, { k: 'effectup', lvl: 2 }], waist: [{ k: 'siteMine', lvl: 2 }, { k: 'saver', lvl: 1 }] },
+    G:    { helm: [{ k: 'siteMine', lvl: 2 }, { k: 'defense', lvl: 2 }, { k: 'lesson', lvl: 1 }], chest: [{ k: 'siteMine', lvl: 1 }, { k: 'effectup', lvl: 2 }, { k: 'lesson', lvl: 2 }], waist: [{ k: 'siteMine', lvl: 2 }, { k: 'saver', lvl: 1 }, { k: 'lesson', lvl: 2 }] },
+    setBonus: null,
+  },
+  blangonga: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'repel', lvl: 2 }, { k: 'cold', lvl: 1 }], chest: [{ k: 'repel', lvl: 1 }, { k: 'stamina', lvl: 2 }], waist: [{ k: 'repel', lvl: 1 }, { k: 'strike', lvl: 2 }] },
+    G:    { helm: [{ k: 'repel', lvl: 2 }, { k: 'cold', lvl: 1 }], chest: [{ k: 'repel', lvl: 1 }, { k: 'stamina', lvl: 2 }], waist: [{ k: 'repel', lvl: 1 }, { k: 'strike', lvl: 2 }] },
+    setBonus: null,
+  },
+  brachydios: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 1 }, { k: 'lure', lvl: 1 }], chest: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 1 }], waist: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 2 }] },
+    G:    { helm: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 1 }, { k: 'lure', lvl: 3 }], chest: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 2 }, { k: 'zenny', lvl: 2 }], waist: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 2 }, { k: 'zenny', lvl: 2 }] },
+    setBonus: null,
+  },
+  bulldrome: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'repel', lvl: 1 }], chest: [{ k: 'defense', lvl: 1 }], waist: [{ k: 'repel', lvl: 1 }] },
+    High: { helm: [{ k: 'repel', lvl: 2 }, { k: 'defense', lvl: 1 }], chest: [{ k: 'defense', lvl: 2 }, { k: 'stamina', lvl: 1 }], waist: [{ k: 'repel', lvl: 2 }, { k: 'bobber', lvl: 1 }] },
+    G:    { helm: [{ k: 'repel', lvl: 2 }, { k: 'defense', lvl: 1 }, { k: 'trade', lvl: 1 }], chest: [{ k: 'defense', lvl: 2 }, { k: 'stamina', lvl: 1 }, { k: 'zenny', lvl: 1 }], waist: [{ k: 'repel', lvl: 2 }, { k: 'bobber', lvl: 1 }, { k: 'saver', lvl: 1 }] },
+    setBonus: null,
+  },
+  chameleos: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  congalala: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'effectup', lvl: 1 }], chest: [{ k: 'effectup', lvl: 1 }], waist: [{ k: 'combo', lvl: 1 }] },
+    High: { helm: [{ k: 'effectup', lvl: 2 }, { k: 'carry', lvl: 1 }], chest: [{ k: 'effectup', lvl: 2 }, { k: 'carry', lvl: 1 }], waist: [{ k: 'combo', lvl: 2 }, { k: 'carry', lvl: 1 }] },
+    G:    { helm: [{ k: 'effectup', lvl: 2 }, { k: 'carry', lvl: 2 }, { k: 'combo', lvl: 1 }], chest: [{ k: 'effectup', lvl: 2 }, { k: 'carry', lvl: 2 }, { k: 'combo', lvl: 1 }], waist: [{ k: 'combo', lvl: 2 }, { k: 'carry', lvl: 1 }, { k: 'effectup', lvl: 1 }] },
+    setBonus: null,
+  },
+  crimson_fatalis: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  deviljho: {   // exchange
+    floor: 'G',
+    G:    { helm: [{ k: 'bounty', lvl: 2 }, { k: 'lure', lvl: 1 }, { k: 'band', lvl: 1 }, { k: 'progress', lvl: 1 }], chest: [{ k: 'bounty', lvl: 2 }, { k: 'lure', lvl: 2 }, { k: 'band', lvl: 2 }, { k: 'progress', lvl: 1 }], waist: [{ k: 'bounty', lvl: 1 }, { k: 'lure', lvl: 2 }, { k: 'band', lvl: 2 }, { k: 'escape', lvl: 1 }] },
+    setBonus: null,
+  },
+  diablos: {   // exchange
+    floor: 'G',
+    G:    { helm: [{ k: 'escape', lvl: 2 }, { k: 'progress', lvl: 1 }, { k: 'reach', lvl: 2 }, { k: 'strike', lvl: 2 }], chest: [{ k: 'escape', lvl: 2 }, { k: 'progress', lvl: 2 }, { k: 'reach', lvl: 1 }, { k: 'strike', lvl: 2 }], waist: [{ k: 'escape', lvl: 1 }, { k: 'progress', lvl: 2 }, { k: 'reach', lvl: 2 }, { k: 'strike', lvl: 1 }] },
+    setBonus: null,
+  },
+  duramboros: {   // exchange
+    floor: 'G',
+    G:    { helm: [{ k: 'vigor', lvl: 2 }, { k: 'stamina', lvl: 2 }, { k: 'defense', lvl: 1 }, { k: 'brace', lvl: 2 }], chest: [{ k: 'vigor', lvl: 2 }, { k: 'stamina', lvl: 1 }, { k: 'defense', lvl: 2 }, { k: 'brace', lvl: 2 }], waist: [{ k: 'vigor', lvl: 1 }, { k: 'stamina', lvl: 2 }, { k: 'defense', lvl: 2 }, { k: 'brace', lvl: 1 }] },
+    setBonus: null,
+  },
+  fatalis: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  gammoth: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'vigor', lvl: 1 }, { k: 'cold', lvl: 1 }, { k: 'stamina', lvl: 1 }], chest: [{ k: 'vigor', lvl: 1 }, { k: 'cold', lvl: 1 }, { k: 'stamina', lvl: 1 }], waist: [{ k: 'vigor', lvl: 1 }, { k: 'cold', lvl: 1 }, { k: 'stamina', lvl: 1 }] },
+    G:    { helm: [{ k: 'vigor', lvl: 2 }, { k: 'cold', lvl: 2 }, { k: 'stamina', lvl: 1 }, { k: 'parts', lvl: 1 }], chest: [{ k: 'vigor', lvl: 2 }, { k: 'cold', lvl: 1 }, { k: 'stamina', lvl: 2 }, { k: 'parts', lvl: 1 }], waist: [{ k: 'vigor', lvl: 1 }, { k: 'cold', lvl: 2 }, { k: 'stamina', lvl: 2 }] },
+    setBonus: null,
+  },
+  gendrome: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'bounty', lvl: 1 }], chest: [{ k: 'zenny', lvl: 1 }], waist: [{ k: 'bounty', lvl: 1 }] },
+    High: { helm: [{ k: 'bounty', lvl: 1 }, { k: 'zenny', lvl: 1 }], chest: [{ k: 'zenny', lvl: 2 }, { k: 'band', lvl: 1 }], waist: [{ k: 'bounty', lvl: 2 }, { k: 'band', lvl: 1 }] },
+    G:    { helm: [{ k: 'bounty', lvl: 1 }, { k: 'zenny', lvl: 1 }, { k: 'lesson', lvl: 1 }], chest: [{ k: 'zenny', lvl: 2 }, { k: 'band', lvl: 1 }, { k: 'lesson', lvl: 1 }], waist: [{ k: 'bounty', lvl: 2 }, { k: 'band', lvl: 1 }, { k: 'lesson', lvl: 1 }] },
+    setBonus: null,
+  },
+  giadrome: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'trade', lvl: 1 }], chest: [{ k: 'fresh', lvl: 1 }], waist: [{ k: 'fresh', lvl: 1 }] },
+    High: { helm: [{ k: 'trade', lvl: 2 }, { k: 'reach', lvl: 1 }], chest: [{ k: 'fresh', lvl: 2 }, { k: 'band', lvl: 1 }], waist: [{ k: 'fresh', lvl: 2 }, { k: 'band', lvl: 1 }] },
+    G:    { helm: [{ k: 'trade', lvl: 2 }, { k: 'reach', lvl: 1 }, { k: 'hire', lvl: 1 }], chest: [{ k: 'fresh', lvl: 2 }, { k: 'band', lvl: 1 }, { k: 'hire', lvl: 1 }], waist: [{ k: 'fresh', lvl: 2 }, { k: 'band', lvl: 1 }, { k: 'hire', lvl: 1 }] },
+    setBonus: null,
+  },
+  glavenus: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'brace', lvl: 1 }, { k: 'bounty', lvl: 1 }], chest: [{ k: 'brace', lvl: 1 }, { k: 'bounty', lvl: 1 }], waist: [{ k: 'brace', lvl: 1 }, { k: 'combo', lvl: 1 }] },
+    G:    { helm: [{ k: 'brace', lvl: 1 }, { k: 'bounty', lvl: 2 }, { k: 'siteMine', lvl: 1 }, { k: 'band', lvl: 1 }], chest: [{ k: 'brace', lvl: 2 }, { k: 'bounty', lvl: 1 }, { k: 'siteMine', lvl: 1 }, { k: 'band', lvl: 1 }], waist: [{ k: 'brace', lvl: 2 }, { k: 'combo', lvl: 1 }, { k: 'siteMine', lvl: 2 }] },
+    setBonus: null,
+  },
+  gold_rathian: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  gore_magala: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'bounty', lvl: 1 }, { k: 'band', lvl: 1 }, { k: 'escape', lvl: 1 }], chest: [{ k: 'bounty', lvl: 1 }, { k: 'band', lvl: 1 }, { k: 'escape', lvl: 1 }], waist: [{ k: 'bounty', lvl: 1 }, { k: 'band', lvl: 1 }, { k: 'escape', lvl: 1 }] },
+    G:    { helm: [{ k: 'bounty', lvl: 2 }, { k: 'band', lvl: 2 }, { k: 'escape', lvl: 1 }], chest: [{ k: 'bounty', lvl: 1 }, { k: 'band', lvl: 2 }, { k: 'escape', lvl: 2 }], waist: [{ k: 'bounty', lvl: 2 }, { k: 'band', lvl: 1 }, { k: 'escape', lvl: 2 }] },
+    setBonus: null,
+  },
+  gravios: {   // exchange
+    floor: 'G',
+    G:    { helm: [{ k: 'heat', lvl: 1 }, { k: 'siteMine', lvl: 1 }, { k: 'siteBug', lvl: 1 }, { k: 'siteGather', lvl: 1 }, { k: 'gather', lvl: 1 }], chest: [{ k: 'heat', lvl: 1 }, { k: 'siteMine', lvl: 1 }, { k: 'siteBug', lvl: 1 }, { k: 'siteGather', lvl: 1 }, { k: 'gather', lvl: 1 }], waist: [{ k: 'heat', lvl: 1 }, { k: 'siteMine', lvl: 1 }, { k: 'siteBug', lvl: 1 }, { k: 'siteGather', lvl: 1 }, { k: 'gather', lvl: 1 }] },
+    setBonus: null,
+  },
+  great_maccao: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'duration', lvl: 1 }], chest: [{ k: 'duration', lvl: 1 }], waist: [{ k: 'hook', lvl: 1 }] },
+    High: { helm: [{ k: 'duration', lvl: 2 }, { k: 'control', lvl: 1 }], chest: [{ k: 'duration', lvl: 2 }, { k: 'bites', lvl: 1 }], waist: [{ k: 'hook', lvl: 2 }, { k: 'control', lvl: 1 }] },
+    G:    { helm: [{ k: 'duration', lvl: 2 }, { k: 'control', lvl: 1 }, { k: 'brace', lvl: 1 }], chest: [{ k: 'duration', lvl: 2 }, { k: 'bites', lvl: 2 }, { k: 'brace', lvl: 1 }], waist: [{ k: 'hook', lvl: 2 }, { k: 'control', lvl: 1 }, { k: 'brace', lvl: 2 }] },
+    setBonus: null,
+  },
+  gypceros: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'brace', lvl: 1 }], chest: [{ k: 'lure', lvl: 1 }], waist: [{ k: 'brace', lvl: 1 }] },
+    High: { helm: [{ k: 'brace', lvl: 2 }, { k: 'hook', lvl: 1 }], chest: [{ k: 'lure', lvl: 2 }, { k: 'hook', lvl: 1 }], waist: [{ k: 'brace', lvl: 2 }, { k: 'band', lvl: 1 }] },
+    G:    { helm: [{ k: 'brace', lvl: 2 }, { k: 'hook', lvl: 1 }], chest: [{ k: 'lure', lvl: 2 }, { k: 'hook', lvl: 1 }], waist: [{ k: 'brace', lvl: 2 }, { k: 'band', lvl: 1 }] },
+    setBonus: null,
+  },
+  iodrome: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'vigor', lvl: 1 }], chest: [{ k: 'vigor', lvl: 1 }], waist: [{ k: 'saver', lvl: 1 }] },
+    High: { helm: [{ k: 'vigor', lvl: 2 }, { k: 'siteGather', lvl: 1 }], chest: [{ k: 'vigor', lvl: 2 }, { k: 'stamina', lvl: 1 }], waist: [{ k: 'saver', lvl: 2 }, { k: 'siteGather', lvl: 1 }] },
+    G:    { helm: [{ k: 'vigor', lvl: 2 }, { k: 'siteGather', lvl: 1 }, { k: 'repel', lvl: 1 }], chest: [{ k: 'vigor', lvl: 2 }, { k: 'stamina', lvl: 1 }, { k: 'repel', lvl: 1 }], waist: [{ k: 'saver', lvl: 2 }, { k: 'siteGather', lvl: 1 }, { k: 'repel', lvl: 1 }] },
+    setBonus: null,
+  },
+  kecha_wacha: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'stamina', lvl: 2 }, { k: 'lesson', lvl: 1 }], chest: [{ k: 'stamina', lvl: 1 }, { k: 'lesson', lvl: 2 }], waist: [{ k: 'stamina', lvl: 2 }, { k: 'basket', lvl: 1 }] },
+    G:    { helm: [{ k: 'stamina', lvl: 2 }, { k: 'lesson', lvl: 1 }, { k: 'duration', lvl: 2 }], chest: [{ k: 'stamina', lvl: 2 }, { k: 'lesson', lvl: 2 }, { k: 'duration', lvl: 1 }], waist: [{ k: 'stamina', lvl: 1 }, { k: 'basket', lvl: 2 }, { k: 'duration', lvl: 1 }] },
+    setBonus: null,
+  },
+  khezu: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'trapping', lvl: 2 }, { k: 'progress', lvl: 1 }], chest: [{ k: 'trapping', lvl: 1 }, { k: 'saver', lvl: 1 }], waist: [{ k: 'trapping', lvl: 1 }, { k: 'progress', lvl: 2 }] },
+    G:    { helm: [{ k: 'trapping', lvl: 2 }, { k: 'progress', lvl: 2 }, { k: 'bruising', lvl: 2 }], chest: [{ k: 'trapping', lvl: 2 }, { k: 'saver', lvl: 1 }, { k: 'bruising', lvl: 1 }], waist: [{ k: 'trapping', lvl: 1 }, { k: 'progress', lvl: 2 }, { k: 'bruising', lvl: 2 }] },
+    setBonus: null,
+  },
+  kirin: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  kushala_daora: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  lagombi: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'reach', lvl: 1 }], chest: [{ k: 'siteGather', lvl: 1 }], waist: [{ k: 'reach', lvl: 1 }] },
+    High: { helm: [{ k: 'reach', lvl: 2 }, { k: 'stamina', lvl: 1 }], chest: [{ k: 'siteGather', lvl: 2 }, { k: 'stamina', lvl: 1 }], waist: [{ k: 'reach', lvl: 2 }, { k: 'cold', lvl: 1 }] },
+    G:    { helm: [{ k: 'reach', lvl: 2 }, { k: 'stamina', lvl: 1 }, { k: 'duration', lvl: 1 }], chest: [{ k: 'siteGather', lvl: 2 }, { k: 'stamina', lvl: 1 }, { k: 'duration', lvl: 1 }], waist: [{ k: 'reach', lvl: 2 }, { k: 'cold', lvl: 1 }, { k: 'duration', lvl: 1 }] },
+    setBonus: null,
+  },
+  lao_shan_lung: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  malfestio: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'parts', lvl: 1 }, { k: 'lure', lvl: 1 }, { k: 'reach', lvl: 1 }], chest: [{ k: 'parts', lvl: 1 }, { k: 'lure', lvl: 1 }, { k: 'reach', lvl: 1 }], waist: [{ k: 'parts', lvl: 1 }, { k: 'lure', lvl: 1 }, { k: 'reach', lvl: 1 }] },
+    G:    { helm: [{ k: 'parts', lvl: 2 }, { k: 'lure', lvl: 1 }, { k: 'reach', lvl: 2 }], chest: [{ k: 'parts', lvl: 2 }, { k: 'lure', lvl: 2 }, { k: 'reach', lvl: 2 }], waist: [{ k: 'parts', lvl: 1 }, { k: 'lure', lvl: 2 }, { k: 'reach', lvl: 1 }] },
+    setBonus: null,
+  },
+  najarala: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'band', lvl: 1 }], chest: [{ k: 'trapping', lvl: 1 }], waist: [{ k: 'trapping', lvl: 1 }] },
+    High: { helm: [{ k: 'band', lvl: 2 }, { k: 'bobber', lvl: 1 }], chest: [{ k: 'trapping', lvl: 2 }, { k: 'reach', lvl: 1 }], waist: [{ k: 'trapping', lvl: 2 }, { k: 'escape', lvl: 1 }] },
+    G:    { helm: [{ k: 'band', lvl: 2 }, { k: 'bobber', lvl: 1 }], chest: [{ k: 'trapping', lvl: 2 }, { k: 'reach', lvl: 1 }], waist: [{ k: 'trapping', lvl: 2 }, { k: 'escape', lvl: 1 }] },
+    setBonus: null,
+  },
+  nakarkos: {   // exchange
+    floor: 'G',
+    G:    { helm: [{ k: 'band', lvl: 1 }, { k: 'progress', lvl: 1 }, { k: 'escape', lvl: 1 }, { k: 'control', lvl: 1 }, { k: 'bites', lvl: 1 }, { k: 'reach', lvl: 1 }], chest: [{ k: 'band', lvl: 1 }, { k: 'progress', lvl: 1 }, { k: 'escape', lvl: 1 }, { k: 'control', lvl: 1 }, { k: 'strike', lvl: 1 }, { k: 'hook', lvl: 1 }], waist: [{ k: 'band', lvl: 1 }, { k: 'progress', lvl: 1 }, { k: 'escape', lvl: 1 }, { k: 'control', lvl: 1 }, { k: 'bites', lvl: 1 }, { k: 'reach', lvl: 1 }] },
+    setBonus: null,
+  },
+  nargacuga: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'band', lvl: 1 }, { k: 'hook', lvl: 2 }], chest: [{ k: 'escape', lvl: 2 }, { k: 'reach', lvl: 1 }], waist: [{ k: 'control', lvl: 2 }, { k: 'strike', lvl: 1 }] },
+    G:    { helm: [{ k: 'band', lvl: 1 }, { k: 'hook', lvl: 2 }, { k: 'lure', lvl: 1 }], chest: [{ k: 'escape', lvl: 2 }, { k: 'reach', lvl: 1 }, { k: 'lure', lvl: 1 }], waist: [{ k: 'control', lvl: 2 }, { k: 'strike', lvl: 1 }, { k: 'lure', lvl: 1 }] },
+    setBonus: null,
+  },
+  nerscylla: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'blast', lvl: 2 }, { k: 'trapping', lvl: 1 }], chest: [{ k: 'bruising', lvl: 2 }, { k: 'blast', lvl: 1 }], waist: [{ k: 'trapping', lvl: 3 }, { k: 'trapsize', lvl: 1 }] },
+    G:    { helm: [{ k: 'blast', lvl: 2 }, { k: 'trapping', lvl: 2 }, { k: 'reach', lvl: 1 }], chest: [{ k: 'bruising', lvl: 2 }, { k: 'blast', lvl: 2 }, { k: 'reach', lvl: 2 }], waist: [{ k: 'trapping', lvl: 3 }, { k: 'trapsize', lvl: 1 }, { k: 'reach', lvl: 2 }] },
+    setBonus: null,
+  },
+  old_fatalis: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  rajang: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'parts', lvl: 1 }, { k: 'band', lvl: 1 }, { k: 'duration', lvl: 1 }], chest: [{ k: 'parts', lvl: 1 }, { k: 'band', lvl: 1 }, { k: 'duration', lvl: 1 }], waist: [{ k: 'parts', lvl: 1 }, { k: 'band', lvl: 1 }, { k: 'duration', lvl: 1 }] },
+    G:    { helm: [{ k: 'parts', lvl: 2 }, { k: 'band', lvl: 2 }, { k: 'duration', lvl: 1 }], chest: [{ k: 'parts', lvl: 2 }, { k: 'band', lvl: 2 }, { k: 'duration', lvl: 2 }], waist: [{ k: 'parts', lvl: 1 }, { k: 'band', lvl: 1 }, { k: 'duration', lvl: 2 }] },
+    setBonus: null,
+  },
+  rathalos: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'blast', lvl: 1 }, { k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 1 }], chest: [{ k: 'blast', lvl: 1 }, { k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 1 }], waist: [{ k: 'blast', lvl: 1 }, { k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 1 }] },
+    G:    { helm: [{ k: 'blast', lvl: 2 }, { k: 'zenny', lvl: 2 }, { k: 'bounty', lvl: 1 }], chest: [{ k: 'blast', lvl: 1 }, { k: 'zenny', lvl: 2 }, { k: 'bounty', lvl: 2 }], waist: [{ k: 'blast', lvl: 2 }, { k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 2 }] },
+    setBonus: null,
+  },
+  rathian: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'blast', lvl: 1 }], chest: [{ k: 'lesson', lvl: 1 }], waist: [{ k: 'blast', lvl: 1 }] },
+    High: { helm: [{ k: 'blast', lvl: 2 }, { k: 'hook', lvl: 1 }], chest: [{ k: 'lesson', lvl: 2 }, { k: 'bites', lvl: 1 }], waist: [{ k: 'blast', lvl: 2 }, { k: 'band', lvl: 1 }] },
+    G:    { helm: [{ k: 'blast', lvl: 2 }, { k: 'hook', lvl: 1 }, { k: 'escape', lvl: 1 }], chest: [{ k: 'lesson', lvl: 2 }, { k: 'bites', lvl: 1 }, { k: 'escape', lvl: 1 }], waist: [{ k: 'blast', lvl: 2 }, { k: 'band', lvl: 1 }, { k: 'escape', lvl: 1 }] },
+    setBonus: null,
+  },
+  seltas: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'carry', lvl: 1 }], chest: [{ k: 'carry', lvl: 1 }], waist: [{ k: 'lure', lvl: 1 }] },
+    High: { helm: [{ k: 'carry', lvl: 2 }, { k: 'escape', lvl: 1 }], chest: [{ k: 'carry', lvl: 2 }, { k: 'band', lvl: 1 }], waist: [{ k: 'lure', lvl: 1 }, { k: 'escape', lvl: 1 }, { k: 'bites', lvl: 1 }] },
+    G:    { helm: [{ k: 'carry', lvl: 2 }, { k: 'escape', lvl: 1 }, { k: 'fresh', lvl: 1 }], chest: [{ k: 'carry', lvl: 2 }, { k: 'band', lvl: 1 }, { k: 'fresh', lvl: 1 }], waist: [{ k: 'lure', lvl: 1 }, { k: 'escape', lvl: 1 }, { k: 'bites', lvl: 1 }, { k: 'fresh', lvl: 1 }] },
+    setBonus: null,
+  },
+  seltas_queen: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'siteBug', lvl: 1 }, { k: 'siteGather', lvl: 1 }, { k: 'gather', lvl: 1 }], chest: [{ k: 'siteBug', lvl: 1 }, { k: 'siteGather', lvl: 1 }, { k: 'gather', lvl: 1 }], waist: [{ k: 'siteBug', lvl: 1 }, { k: 'siteGather', lvl: 1 }, { k: 'gather', lvl: 1 }] },
+    G:    { helm: [{ k: 'siteBug', lvl: 3 }, { k: 'siteGather', lvl: 1 }, { k: 'gather', lvl: 1 }], chest: [{ k: 'siteBug', lvl: 1 }, { k: 'siteGather', lvl: 3 }, { k: 'gather', lvl: 1 }], waist: [{ k: 'siteBug', lvl: 1 }, { k: 'siteGather', lvl: 1 }, { k: 'gather', lvl: 3 }] },
+    setBonus: null,
+  },
+  seregios: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'stamina', lvl: 1 }, { k: 'heat', lvl: 1 }, { k: 'bounty', lvl: 1 }], chest: [{ k: 'stamina', lvl: 1 }, { k: 'zenny', lvl: 2 }], waist: [{ k: 'stamina', lvl: 1 }, { k: 'heat', lvl: 1 }, { k: 'trade', lvl: 1 }] },
+    G:    { helm: [{ k: 'stamina', lvl: 1 }, { k: 'heat', lvl: 2 }, { k: 'bounty', lvl: 2 }], chest: [{ k: 'stamina', lvl: 1 }, { k: 'zenny', lvl: 2 }, { k: 'strike', lvl: 2 }], waist: [{ k: 'stamina', lvl: 2 }, { k: 'heat', lvl: 2 }, { k: 'trade', lvl: 2 }] },
+    setBonus: null,
+  },
+  shagaru_magala: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  silver_rathalos: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  teostra: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  tetsucabra: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'siteMine', lvl: 1 }], chest: [{ k: 'progress', lvl: 1 }], waist: [{ k: 'siteMine', lvl: 1 }] },
+    High: { helm: [{ k: 'siteMine', lvl: 2 }, { k: 'stamina', lvl: 1 }], chest: [{ k: 'progress', lvl: 2 }, { k: 'stamina', lvl: 1 }], waist: [{ k: 'siteMine', lvl: 1 }, { k: 'cold', lvl: 2 }] },
+    G:    { helm: [{ k: 'siteMine', lvl: 2 }, { k: 'stamina', lvl: 1 }, { k: 'bounty', lvl: 1 }], chest: [{ k: 'progress', lvl: 2 }, { k: 'stamina', lvl: 1 }, { k: 'bounty', lvl: 1 }], waist: [{ k: 'siteMine', lvl: 1 }, { k: 'cold', lvl: 2 }, { k: 'bounty', lvl: 1 }] },
+    setBonus: null,
+  },
+  tigrex: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'vigor', lvl: 2 }, { k: 'band', lvl: 1 }], chest: [{ k: 'vigor', lvl: 2 }, { k: 'band', lvl: 1 }], waist: [{ k: 'vigor', lvl: 1 }, { k: 'band', lvl: 1 }] },
+    G:    { helm: [{ k: 'vigor', lvl: 2 }, { k: 'band', lvl: 2 }, { k: 'progress', lvl: 1 }], chest: [{ k: 'vigor', lvl: 2 }, { k: 'band', lvl: 1 }, { k: 'progress', lvl: 2 }], waist: [{ k: 'vigor', lvl: 1 }, { k: 'band', lvl: 2 }, { k: 'progress', lvl: 2 }] },
+    setBonus: null,
+  },
+  ukanlos: {   // exchange
+    floor: 'G',
+    G:    { helm: [{ k: 'bounty', lvl: 1 }, { k: 'zenny', lvl: 1 }, { k: 'haggle', lvl: 1 }, { k: 'effectup', lvl: 1 }], chest: [{ k: 'bounty', lvl: 1 }, { k: 'zenny', lvl: 1 }, { k: 'haggle', lvl: 1 }, { k: 'effectup', lvl: 1 }], waist: [{ k: 'bounty', lvl: 1 }, { k: 'zenny', lvl: 1 }, { k: 'haggle', lvl: 1 }, { k: 'effectup', lvl: 1 }] },
+    setBonus: null,
+  },
+  uragaan: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'siteMine', lvl: 2 }, { k: 'siteGather', lvl: 1 }], chest: [{ k: 'siteMine', lvl: 1 }, { k: 'siteGather', lvl: 2 }], waist: [{ k: 'siteGather', lvl: 1 }, { k: 'heat', lvl: 2 }] },
+    G:    { helm: [{ k: 'siteMine', lvl: 2 }, { k: 'siteGather', lvl: 1 }, { k: 'heat', lvl: 1 }, { k: 'gather', lvl: 1 }], chest: [{ k: 'siteMine', lvl: 2 }, { k: 'siteGather', lvl: 2 }, { k: 'heat', lvl: 1 }, { k: 'gather', lvl: 1 }], waist: [{ k: 'siteGather', lvl: 1 }, { k: 'heat', lvl: 2 }, { k: 'siteMine', lvl: 1 }] },
+    setBonus: null,
+  },
+  valstrax: {   // exchange
+    floor: 'G',
+    G:    { helm: [], chest: [], waist: [] },
+    setBonus: null,
+  },
+  velocidrome: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'basket', lvl: 1 }], chest: [{ k: 'strike', lvl: 1 }], waist: [{ k: 'band', lvl: 1 }] },
+    High: { helm: [{ k: 'basket', lvl: 2 }, { k: 'repel', lvl: 1 }], chest: [{ k: 'strike', lvl: 2 }, { k: 'zenny', lvl: 1 }], waist: [{ k: 'band', lvl: 2 }, { k: 'repel', lvl: 1 }] },
+    G:    { helm: [{ k: 'basket', lvl: 2 }, { k: 'repel', lvl: 2 }, { k: 'stamina', lvl: 1 }], chest: [{ k: 'strike', lvl: 2 }, { k: 'zenny', lvl: 2 }, { k: 'stamina', lvl: 1 }], waist: [{ k: 'band', lvl: 2 }, { k: 'repel', lvl: 2 }, { k: 'stamina', lvl: 1 }] },
+    setBonus: null,
+  },
+  volvidon: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'haggle', lvl: 1 }], chest: [{ k: 'siteBug', lvl: 1 }], waist: [{ k: 'siteBug', lvl: 1 }] },
+    High: { helm: [{ k: 'haggle', lvl: 1 }, { k: 'trade', lvl: 1 }, { k: 'combo', lvl: 1 }], chest: [{ k: 'siteBug', lvl: 2 }, { k: 'trade', lvl: 1 }], waist: [{ k: 'siteBug', lvl: 2 }, { k: 'siteMine', lvl: 1 }] },
+    G:    { helm: [{ k: 'haggle', lvl: 1 }, { k: 'trade', lvl: 1 }, { k: 'combo', lvl: 2 }], chest: [{ k: 'siteBug', lvl: 2 }, { k: 'trade', lvl: 1 }, { k: 'trapsize', lvl: 2 }], waist: [{ k: 'siteBug', lvl: 2 }, { k: 'siteMine', lvl: 2 }, { k: 'parts', lvl: 1 }] },
+    setBonus: null,
+  },
+  yian_garuga: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'band', lvl: 1 }, { k: 'progress', lvl: 1 }, { k: 'escape', lvl: 1 }], chest: [{ k: 'band', lvl: 1 }, { k: 'progress', lvl: 1 }, { k: 'escape', lvl: 1 }], waist: [{ k: 'band', lvl: 1 }, { k: 'progress', lvl: 1 }, { k: 'escape', lvl: 1 }] },
+    G:    { helm: [{ k: 'band', lvl: 2 }, { k: 'progress', lvl: 2 }, { k: 'escape', lvl: 1 }], chest: [{ k: 'band', lvl: 2 }, { k: 'progress', lvl: 1 }, { k: 'escape', lvl: 2 }], waist: [{ k: 'band', lvl: 1 }, { k: 'progress', lvl: 2 }, { k: 'escape', lvl: 2 }] },
+    setBonus: null,
+  },
+  yian_kut_ku: {   // exchange
+    floor: 'Low',
+    Low:  { helm: [{ k: 'control', lvl: 1 }], chest: [{ k: 'control', lvl: 1 }], waist: [{ k: 'hire', lvl: 1 }] },
+    High: { helm: [{ k: 'control', lvl: 2 }, { k: 'hook', lvl: 1 }], chest: [{ k: 'control', lvl: 2 }, { k: 'parts', lvl: 1 }], waist: [{ k: 'hire', lvl: 2 }, { k: 'hook', lvl: 1 }] },
+    G:    { helm: [{ k: 'control', lvl: 2 }, { k: 'hook', lvl: 1 }], chest: [{ k: 'control', lvl: 2 }, { k: 'parts', lvl: 1 }], waist: [{ k: 'hire', lvl: 2 }, { k: 'hook', lvl: 1 }] },
+    setBonus: null,
+  },
+  zinogre: {   // exchange
+    floor: 'High',
+    High: { helm: [{ k: 'duration', lvl: 1 }, { k: 'escape', lvl: 1 }, { k: 'strike', lvl: 1 }], chest: [{ k: 'duration', lvl: 1 }, { k: 'escape', lvl: 1 }, { k: 'strike', lvl: 1 }], waist: [{ k: 'duration', lvl: 2 }, { k: 'strike', lvl: 1 }] },
+    G:    { helm: [{ k: 'duration', lvl: 2 }, { k: 'escape', lvl: 1 }, { k: 'strike', lvl: 2 }, { k: 'bounty', lvl: 1 }], chest: [{ k: 'duration', lvl: 1 }, { k: 'escape', lvl: 2 }, { k: 'strike', lvl: 1 }, { k: 'zenny', lvl: 1 }], waist: [{ k: 'duration', lvl: 2 }, { k: 'strike', lvl: 2 }, { k: 'effectup', lvl: 1 }, { k: 'trade', lvl: 1 }] },
+    setBonus: null,
+  },
+};
+  // <<< ARMOR_PIECES END
+
+  // Names come from mhgu.db, not from splitting an id: "yian_kut_ku" has to read
+  // Yian Kut-Ku, and no amount of underscore-splitting produces that hyphen.
+  const armorLineName = line => (window.MF_ARMOR_LINE_NAMES || {})[line] || line;
   // S is the MIDDLE of a line, not "the High Rank one". A line with only two
   // suits has no middle, so it runs base then X — the same shape the skill names
   // take, where a two-tier skill goes Sure Grip -> Master's Grip with no `+`.
@@ -1467,12 +1898,16 @@
   // What a suit is worth defensively, before its levels. HP and stamina replace
   // Vitality and Endurance outright, so a G suit at full level lands near where
   // twenty levels of each used to.
-  const ARMOR_BASE = {
-    Low:  { hp: 15, stamina: 10, guard: 0.05 },
-    High: { hp: 40, stamina: 26, guard: 0.11 },
-    G:    { hp: 70, stamina: 44, guard: 0.17 },
+  // A THIRD of what one suit used to give, so a full set of three lands where a
+  // suit did and the money and the numbers both stay comparable across the
+  // rework. Wearing one piece is then honestly worth a third of a set, which is
+  // the trade mixing is supposed to make you weigh.
+  const ARMOR_PIECE_BASE = {
+    Low:  { hp: 5,  stamina: 3,  guard: 0.017 },
+    High: { hp: 13, stamina: 9,  guard: 0.037 },
+    G:    { hp: 23, stamina: 15, guard: 0.057 },
   };
-  const ARMOR_PER_LEVEL = { hp: 4, stamina: 3, guard: 0.008 };
+  const ARMOR_PER_LEVEL = { hp: 1.33, stamina: 1, guard: 0.0027 };
   // Levels are money only, and locked behind HR so a suit cannot be pushed far
   // ahead of the rank it belongs to. Same shape as the Books of Fishing Combos.
   const ARMOR_LEVELS = 5;
@@ -1513,6 +1948,10 @@
       levelCost: n => Math.round(14000 * Math.pow(1.45, n)),
       matCount: 3, icon: 'assets/BaitIcons/MH4G-Bait_Icon_Red.png' },
   ];
+  // equip() reads the slot off the piece now that there are four of them, so a
+  // rod has to say it is a rod. Stamped here rather than on each entry: it is
+  // true of every rod and always will be.
+  for (const r of RODS) r.slot = 'rod';
   const rodById = new Map(RODS.map(r => [r.id, r]));
   const ROD_PER_LEVEL = { sink: 0.022, band: 0.018, lift: 0.0018, bites: 0.012 };
   const ROD_LEVELS = 5;
@@ -1537,15 +1976,34 @@
   // What the armor you are wearing actually grants, as {effectKey: level}.
   // THE merge point. Everything downstream — effectPower, effectLevel,
   // climateFor, heatBand, culledOres — reads only this, which is why three
-  // pieces summing into one total is a change here and nowhere else.
+  // pieces became one total here and nowhere else.
   //
-  // Still one suit today, so Math.max over its own list is all it does. The
-  // clamp is live already so the ceiling exists before anything can exceed it.
-  function armorEffects(armor) {
-    const a = armor && armorById.get(armor.id);
+  // Takes the worn SET, `{helm, chest, waist}`, each a `{id, lvl}` or null. It
+  // is handed the whole `gear` object at every call site, extra keys and all,
+  // so the ~30 consumers kept their signatures through the rework.
+  //
+  // Levels SUM and clamp. Summing is what makes mixing a real decision: two
+  // pieces carrying Lv 2 of one skill beat one carrying Lv 3.
+  const wornPieces = gear => PIECE_SLOTS
+    .map(slot => gear && gear[slot] && armorById.get(gear[slot].id))
+    .filter(Boolean);
+
+  // The bonus for not mixing. Three pieces of ONE line at ANY ranks — a Low helm
+  // beside a G waist still counts, which is what keeps an old favourite worth
+  // finishing rather than abandoning at the rank you outgrew it.
+  const wornSetLine = gear => {
+    const worn = wornPieces(gear);
+    return worn.length === PIECE_SLOTS.length
+      && worn.every(p => p.line === worn[0].line) ? worn[0].line : null;
+  };
+
+  function armorEffects(gear) {
     const out = {};
-    if (!a) return out;
-    for (const e of a.effects) out[e.key] = Math.max(out[e.key] || 0, e.lvl);
+    for (const p of wornPieces(gear))
+      for (const e of p.effects) out[e.key] = (out[e.key] || 0) + e.lvl;
+    const line = wornSetLine(gear);
+    const bonus = line && ARMOR_PIECES[line] && ARMOR_PIECES[line].setBonus;
+    if (bonus) out[bonus.k] = (out[bonus.k] || 0) + bonus.lvl;
     for (const k of Object.keys(out)) out[k] = Math.min(EFFECT_MAX, out[k]);
     return out;
   }
@@ -1566,7 +2024,12 @@
     let lvl = 0;
     for (const [key, e] of Object.entries(EFFECTS))
       if (e.climate === climate) lvl = Math.max(lvl, effectLevel(armor, key));
-    return { lvl, immune: lvl >= 3, drinkMult: lvl >= 3 ? 1 : 1 + 0.5 * lvl };
+    // One constant, and the whole heat/cold economy turns on it. At EFFECT_MAX
+    // only a set built for the climate is immune; at 3 any two committed pieces
+    // would be, and levels 4 and 5 would buy nothing at all.
+    const CANCEL_AT = EFFECT_MAX;
+    return { lvl, immune: lvl >= CANCEL_AT,
+             drinkMult: lvl >= CANCEL_AT ? 1 : 1 + 0.5 * lvl };
   };
 
   // Tropic Hunter's half that is not resistance. Standing in the heat widens the
@@ -1606,10 +2069,18 @@
   }
 
 
-  const armorStat = (armor, key) => {
-    const a = armor && armorById.get(armor.id);
-    if (!a) return 0;
-    return a[key] + (ARMOR_PER_LEVEL[key] || 0) * (armor.lvl || 0);
+  // The second merge, and deliberately NOT routed through armorEffects — hp,
+  // stamina and guard are properties of the metal, not skills, and each piece
+  // levels separately. Rounds once at the end so three pieces do not each lose
+  // a fraction.
+  const armorStat = (gear, key) => {
+    let n = 0;
+    for (const slot of PIECE_SLOTS) {
+      const w = gear && gear[slot];
+      const a = w && armorById.get(w.id);
+      if (a) n += a[key] + (ARMOR_PER_LEVEL[key] || 0) * (w.lvl || 0);
+    }
+    return key === 'guard' ? n : Math.round(n);
   };
 
   // ── Money by rank ─────────────────────────────────────────────────────────
@@ -1829,34 +2300,32 @@
 
   const ARMORS = (() => {
     const out = [];
-    for (const [line, L] of Object.entries(ARMOR_LINES)) {
+    for (const [line, L] of Object.entries(ARMOR_PIECES)) {
+      // No materials, no way to forge it. The sixty exchange lines sit here with
+      // a full assignment and no entries until the Trader gives them a material.
+      if (!MAT_LINES[line]) continue;
       // A tier needs BOTH a real part name and a monster you can meet at that
       // rank to drop it. Reading only the first is what produced three suits
       // nobody could ever forge.
       const boss = Object.values(BOSS).find(b => b.line === line);
       const ranks = ['Low', 'High', 'G'].filter(r =>
-        MAT_LINES[line][r] && (!boss || bossMeetableAt(boss.name, r)));
+        L[r] && MAT_LINES[line][r] && (!boss || bossMeetableAt(boss.name, r)));
       ranks.forEach((rank, i) => {
-        // Rank is the level — base at Low, `+` at High, top name at G — EXCEPT on
-        // a line that has no Low tier at all. Those run 1 then 3, which is the
-        // other half of the naming rule: a skill that only exists from High Rank
-        // reads Sure Grip -> Master's Grip with no `+` between. Without it the
-        // base name of anything carried only by Plesioth, Zamtrios or Lavasioth
-        // could never appear in the game.
-        const lvl = ranks.length === 3 ? RANK_LEVEL[rank] : (i === 0 ? 1 : 3);
-        const eff = [{ key: L.a, lvl }, { key: L.b, lvl }];
-        if (rank === 'G' && L.third) eff.push({ key: L.third, lvl: 1 });
-        out.push({
-          id: `${line}_${rank.toLowerCase()}`, line, rank,
-          name: L.name + armorSuffix(i, ranks.length),
-          slot: 'armor',
-          ...ARMOR_BASE[rank],
-          effects: eff,
-          mat: bossMat(line, rank),
-          matCount: rank === 'Low' ? 2 : 3,
-          cost: rank === 'Low' ? 1800 : rank === 'High' ? 9000 : 34000,
-          levelCost: n => Math.round((rank === 'Low' ? 700 : rank === 'High' ? 3200 : 11000) * Math.pow(1.45, n)),
-        });
+        for (const slot of PIECE_SLOTS) {
+          out.push({
+            id: `${line}_${slot}_${rank.toLowerCase()}`, line, rank, slot,
+            name: `${armorLineName(line)} ${PIECE_LABEL[slot]}${armorSuffix(i, ranks.length)}`,
+            ...ARMOR_PIECE_BASE[rank],
+            // Levels are the board's now, not the rank's. A G helm can carry a
+            // level 2 where its chest carries a 1 — which is the whole reason
+            // three pieces are worth having.
+            effects: (L[rank][slot] || []).map(e => ({ key: e.k, lvl: e.lvl })),
+            mat: bossMat(line, rank),
+            matCount: 1,
+            cost: rank === 'Low' ? 600 : rank === 'High' ? 3000 : 11400,
+            levelCost: n => Math.round((rank === 'Low' ? 235 : rank === 'High' ? 1070 : 3670) * Math.pow(1.45, n)),
+          });
+        }
       });
     }
     return out;
@@ -2122,7 +2591,8 @@
     MAT_LINES, MONSTER_MATS, monsterMatById, bossMat, matId,
     EFFECTS, EFFECT_MAX, effectName, effectBlurb, isFlagEffect, effectPower, armorEffects,
     effectLevel, climateFor, heatBand, culledOres,
-    ARMOR_LINES, ARMORS, armorById, armorStat, ARMOR_LEVELS, ARMOR_PER_LEVEL, armorSuffix,
+    ARMOR_PIECES, armorLineName, PIECE_SLOTS, PIECE_LABEL, wornSetLine,
+    ARMORS, armorById, armorStat, ARMOR_LEVELS, ARMOR_PER_LEVEL, armorSuffix,
     RODS, rodById, ROD_LEVELS, ROD_PER_LEVEL,
     rodSink, rodBand, rodLift, rodBites, rodSchool, rodStat,
     GEAR_LEVEL_HR, RANK_PAY, payMult, RANK_PEAK,

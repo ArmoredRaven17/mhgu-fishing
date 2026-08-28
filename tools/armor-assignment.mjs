@@ -189,7 +189,7 @@ export const ARMOR_PIECES = {
   gammoth: {   // exchange
     floor: 'High',
     High: { helm: [{ k: 'vigor', lvl: 1 }, { k: 'cold', lvl: 1 }, { k: 'stamina', lvl: 1 }], chest: [{ k: 'vigor', lvl: 1 }, { k: 'cold', lvl: 1 }, { k: 'stamina', lvl: 1 }], waist: [{ k: 'vigor', lvl: 1 }, { k: 'cold', lvl: 1 }, { k: 'stamina', lvl: 1 }] },
-    G:    { helm: [{ k: 'vigor', lvl: 2 }, { k: 'cold', lvl: 2 }, { k: 'stamina', lvl: 1 }, { k: 'parts', lvl: 1 }], chest: [{ k: 'vigor', lvl: 2 }, { k: 'cold', lvl: 1 }, { k: 'stamina', lvl: 2 }, { k: 'parts', lvl: 1 }], waist: [{ k: 'vigor', lvl: 2 }, { k: 'cold', lvl: 2 }, { k: 'stamina', lvl: 2 }] },
+    G:    { helm: [{ k: 'vigor', lvl: 2 }, { k: 'cold', lvl: 2 }, { k: 'stamina', lvl: 1 }, { k: 'parts', lvl: 1 }], chest: [{ k: 'vigor', lvl: 2 }, { k: 'cold', lvl: 1 }, { k: 'stamina', lvl: 2 }, { k: 'parts', lvl: 1 }], waist: [{ k: 'vigor', lvl: 1 }, { k: 'cold', lvl: 2 }, { k: 'stamina', lvl: 2 }] },
     setBonus: null,
   },
   gendrome: {   // exchange
@@ -252,7 +252,7 @@ export const ARMOR_PIECES = {
   kecha_wacha: {   // exchange
     floor: 'High',
     High: { helm: [{ k: 'stamina', lvl: 2 }, { k: 'lesson', lvl: 1 }], chest: [{ k: 'stamina', lvl: 1 }, { k: 'lesson', lvl: 2 }], waist: [{ k: 'stamina', lvl: 2 }, { k: 'basket', lvl: 1 }] },
-    G:    { helm: [{ k: 'stamina', lvl: 3 }, { k: 'lesson', lvl: 1 }, { k: 'duration', lvl: 2 }], chest: [{ k: 'stamina', lvl: 2 }, { k: 'lesson', lvl: 2 }, { k: 'duration', lvl: 1 }], waist: [{ k: 'stamina', lvl: 1 }, { k: 'basket', lvl: 2 }, { k: 'duration', lvl: 1 }] },
+    G:    { helm: [{ k: 'stamina', lvl: 2 }, { k: 'lesson', lvl: 1 }, { k: 'duration', lvl: 2 }], chest: [{ k: 'stamina', lvl: 2 }, { k: 'lesson', lvl: 2 }, { k: 'duration', lvl: 1 }], waist: [{ k: 'stamina', lvl: 1 }, { k: 'basket', lvl: 2 }, { k: 'duration', lvl: 1 }] },
     setBonus: null,
   },
   khezu: {   // exchange
@@ -380,7 +380,7 @@ export const ARMOR_PIECES = {
   },
   tigrex: {   // exchange
     floor: 'High',
-    High: { helm: [{ k: 'vigor', lvl: 2 }, { k: 'band', lvl: 1 }], chest: [{ k: 'vigor', lvl: 2 }, { k: 'band', lvl: 1 }], waist: [{ k: 'vigor', lvl: 2 }, { k: 'band', lvl: 1 }] },
+    High: { helm: [{ k: 'vigor', lvl: 2 }, { k: 'band', lvl: 1 }], chest: [{ k: 'vigor', lvl: 2 }, { k: 'band', lvl: 1 }], waist: [{ k: 'vigor', lvl: 1 }, { k: 'band', lvl: 1 }] },
     G:    { helm: [{ k: 'vigor', lvl: 2 }, { k: 'band', lvl: 2 }, { k: 'progress', lvl: 1 }], chest: [{ k: 'vigor', lvl: 2 }, { k: 'band', lvl: 1 }, { k: 'progress', lvl: 2 }], waist: [{ k: 'vigor', lvl: 1 }, { k: 'band', lvl: 2 }, { k: 'progress', lvl: 2 }] },
     setBonus: null,
   },
@@ -430,7 +430,7 @@ export const ARMOR_PIECES = {
   zinogre: {   // exchange
     floor: 'High',
     High: { helm: [{ k: 'duration', lvl: 1 }, { k: 'escape', lvl: 1 }, { k: 'strike', lvl: 1 }], chest: [{ k: 'duration', lvl: 1 }, { k: 'escape', lvl: 1 }, { k: 'strike', lvl: 1 }], waist: [{ k: 'duration', lvl: 2 }, { k: 'strike', lvl: 1 }] },
-    G:    { helm: [{ k: 'duration', lvl: 2 }, { k: 'escape', lvl: 1 }, { k: 'strike', lvl: 2 }, { k: 'bounty', lvl: 1 }], chest: [{ k: 'duration', lvl: 1 }, { k: 'escape', lvl: 2 }, { k: 'strike', lvl: 1 }, { k: 'zenny', lvl: 1 }], waist: [{ k: 'duration', lvl: 3 }, { k: 'strike', lvl: 2 }, { k: 'effectup', lvl: 1 }, { k: 'trade', lvl: 1 }] },
+    G:    { helm: [{ k: 'duration', lvl: 2 }, { k: 'escape', lvl: 1 }, { k: 'strike', lvl: 2 }, { k: 'bounty', lvl: 1 }], chest: [{ k: 'duration', lvl: 1 }, { k: 'escape', lvl: 2 }, { k: 'strike', lvl: 1 }, { k: 'zenny', lvl: 1 }], waist: [{ k: 'duration', lvl: 2 }, { k: 'strike', lvl: 2 }, { k: 'effectup', lvl: 1 }, { k: 'trade', lvl: 1 }] },
     setBonus: null,
   },
 };

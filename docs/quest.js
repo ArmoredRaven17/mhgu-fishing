@@ -174,7 +174,7 @@
       .filter(b => A.state.hr >= G.baitUnlockHR(b))
       .map(b => ({ bait: b, ...(G.comboRecipe(b) || {}) }))
       .filter(r => r.mod && (trip.carried[r.mod] || 0) > 0 && (trip.carried[r.base] || 0) > 0)
-      .map(r => ({ ...r, rate: G.comboRate(r.bait, trip.carried, A.state.gear.armor) }))
+      .map(r => ({ ...r, rate: G.comboRate(r.bait, trip.carried, A.state.gear) }))
       .sort((a, b) => b.rate - a.rate || a.bait.name.localeCompare(b.bait.name));
   }
 
@@ -216,7 +216,7 @@
 
     trip.carried[rec.base]--;
     trip.carried[rec.mod]--;
-    const rate = G.comboRate(bait, trip.carried, A.state.gear.armor);
+    const rate = G.comboRate(bait, trip.carried, A.state.gear);
     const made = Math.random() * 100 < rate;
     if (made) {
       trip.tackle[baitId] = (trip.tackle[baitId] || 0) + 1;
@@ -290,7 +290,7 @@
     // not the line comes back with anything.
     trip.sinceBoss++;
 
-    const rod = S.gear.rod, armor = S.gear.armor;
+    const rod = S.gear.rod, armor = S.gear;
     const ctx = { climate: trip.climate, hotDrink: trip.hotDrinkLeft > 0 };
     const boss = R.rollEncounter(trip.localeId, trip.bait, trip.questHR, Math.random, rod, armor, ctx,
       trip.sinceBoss);
@@ -331,7 +331,7 @@
     // Pulled the line back before anything took it. That costs the cast — you
     // still threw it — but not the bait, since nothing was ever offered a hook.
     if (res.reason === 'reeled-in') {
-      trip.sta -= G.STAMINA_COST.cast * (1 - G.effectPower(A.state.gear.armor, 'stamina'));
+      trip.sta -= G.STAMINA_COST.cast * (1 - G.effectPower(A.state.gear, 'stamina'));
       el('castPrompt').textContent = 'You reel the line back in.';
       releaseCast(); A.save(); render();
       if (trip.sta <= 0) return finish('out of stamina');
@@ -399,7 +399,7 @@
     // Something small has a go at you while your hands are full. This is what
     // makes HP worth carrying potions for away from the two hot locales.
     const pest = R.rollPest(trip.localeId, trip.questHR, trip.hired, Math.random,
-                            G.effectPower(S.gear.armor, 'repel'));
+                            G.effectPower(S.gear, 'repel'));
     if (pest) {
       pest.damage = Math.max(1, Math.round(pest.damage * (1 - guardNow())));
       trip.hp -= pest.damage;
@@ -412,7 +412,7 @@
       trip.landed++;
       const isNew = A.record(c.id, trip.localeId, c.fish.id);
       const paid = Math.round(c.value * (1 + trip.fresh.zenny)
-        * G.payMult(trip.questHR) * (1 + G.effectPower(S.gear.armor, 'zenny')));
+        * G.payMult(trip.questHR) * (1 + G.effectPower(S.gear, 'zenny')));
       trip.haul.push({ name: c.name, value: paid, icon: window.MF_GUIDE.fishImg(c.ore, 22, c.name) });
       trip.value += paid;
       A.addXP(c.xp);
@@ -444,7 +444,7 @@
 
     // Spent whatever happened — unless Sparing Hand keeps it out of the water.
     const bid = trip.bait.id;
-    const spared = Math.random() < G.effectPower(S.gear.armor, 'saver');
+    const spared = Math.random() < G.effectPower(S.gear, 'saver');
     if (spared && bid !== 'no_bait') trip.notes.push('The bait came back with the line.');
     if (bid !== 'no_bait' && !spared) {
       trip.tackle[bid] = Math.max(0, (trip.tackle[bid] || 0) - 1);
@@ -468,7 +468,7 @@
   // which is every cold locale, so a Hot Drink was never drunk and never did
   // anything; the cold penalty applied whether you carried one or not.
   const protectedNow = () =>
-    trip.drinkLeft > 0 || G.climateFor(A.state.gear.armor, trip.climate).immune;
+    trip.drinkLeft > 0 || G.climateFor(A.state.gear, trip.climate).immune;
 
   function staminaMult() {
     const climate = trip.climate === 'cold' && protectedNow() ? 1 : trip.rates.staminaMult;
@@ -477,7 +477,7 @@
 
   function spendStamina(secs) {
     // Long Haul takes its cut off the whole cast — the throw and the fight both.
-    const cut = 1 - G.effectPower(A.state.gear.armor, 'stamina');
+    const cut = 1 - G.effectPower(A.state.gear, 'stamina');
     trip.sta -= (G.STAMINA_COST.cast + secs * G.STAMINA_COST.reelTick * staminaMult()) * cut;
   }
 
@@ -500,7 +500,7 @@
   // The one blow a trip that does not finish you. Returns true if it caught you.
   function spendGuts() {
     if (!trip || trip.gutsUsed) return false;
-    if (!G.effectPower(A.state.gear.armor, 'guts')) return false;
+    if (!G.effectPower(A.state.gear, 'guts')) return false;
     trip.gutsUsed = true;
     trip.hp = 1;
     trip.notes.push('That should have finished you. It did not.');
@@ -514,8 +514,8 @@
     Math.min(0.75, trip.fresh.guard + (trip.defLeft > 0 ? trip.defAmount : 0)
       // What you are WEARING, which is the whole reason armor exists and the
       // reason monster damage is allowed to climb with the rank at all.
-      + G.armorStat(A.state.gear.armor, 'guard')
-      + G.effectPower(A.state.gear.armor, 'defense'));
+      + G.armorStat(A.state.gear, 'guard')
+      + G.effectPower(A.state.gear, 'defense'));
 
   // Nothing is drunk for you. A climate drink used to top itself up the moment the
   // last one lapsed, which spent items you might have been saving and made the
@@ -524,7 +524,7 @@
   function tickClimate(secs) {
     if (trip.climate === 'temperate') return;
     // Heat Cancel / Cold Cancel: the climate simply does not reach you.
-    if (G.climateFor(A.state.gear.armor, trip.climate).immune) return;
+    if (G.climateFor(A.state.gear, trip.climate).immune) return;
     if (trip.drinkLeft > 0) trip.drinkLeft -= secs;
     // Only heat costs HP, and only while you are unprotected.
     if (trip.rates.hpPerTick && !protectedNow()) trip.hp -= trip.rates.hpPerTick * secs;
@@ -565,7 +565,7 @@
     if (!(trip.carried[id] > 0) || !wouldHelp(id)) return;
     const e = G.effectOf(id);
     // Effect Up — Gluttony's Gourmand and Scavenger, in one number.
-    const more = 1 + G.effectPower(A.state.gear.armor, 'effectup');
+    const more = 1 + G.effectPower(A.state.gear, 'effectup');
     trip.carried[id]--;
     if (e.hp) trip.hp = Math.min(trip.maxHP, trip.hp + e.hp * more);
     if (e.stamina) trip.sta = Math.min(trip.maxSta, trip.sta + e.stamina * more);
@@ -573,7 +573,7 @@
     // there, so track it whether or not it is guarding you against anything.
     if (e.protects === 'cold') trip.hotDrinkLeft = G.DRINK_SECONDS * more;
     if (e.protects === trip.climate)
-      trip.drinkLeft = G.DRINK_SECONDS * G.climateFor(A.state.gear.armor, trip.climate).drinkMult * more;
+      trip.drinkLeft = G.DRINK_SECONDS * G.climateFor(A.state.gear, trip.climate).drinkMult * more;
     if (e.dash) trip.dashLeft = G.DASH_SECONDS * e.dash;
     if (e.def) { trip.defLeft = G.ARMOR_SECONDS * e.secs; trip.defAmount = e.def; }
     A.save();
@@ -773,7 +773,7 @@
   function handOverTrade() {
     if (!trip || !trip.traded) return null;
     const id = trip.traded.id;
-    const extra = R.tradeExtra(trip.landed, G.effectPower(A.state.gear.armor, 'trade'),
+    const extra = R.tradeExtra(trip.landed, G.effectPower(A.state.gear, 'trade'),
                                A.cartLevel());
     const have = A.state.pouch[id] || 0;
     const room = Math.max(0, G.ownCap(id) - have);

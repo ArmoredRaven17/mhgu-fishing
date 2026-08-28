@@ -32,7 +32,7 @@ const OUT = process.argv[3] || join(REPO, `mhgu-fishing-${STAGE}.json`);
 
 globalThis.window = globalThis;
 for (const f of ['data/ores.js', 'data/fish.js', 'data/locales.js', 'data/meals.js',
-                 'data/canteen.js', 'game.js', 'roll.js']) {
+                 'data/canteen.js', 'data/armorlines.js', 'game.js', 'roll.js']) {
   new Function(readFileSync(join(REPO, 'docs', f), 'utf8')).call(globalThis);
 }
 
@@ -139,9 +139,17 @@ const armorOwned = S.ownAllGear ? armors : armors.filter(a => a.line === 'cephal
 for (const a of armorOwned) gearOwned[a.id] = S.gearLevel();
 
 const bestRod = rods[rods.length - 1] || G.RODS[0];
-const bestArmor = S.ownAllGear
-  ? G.armorById.get('lavasioth_g')
-  : armorOwned[armorOwned.length - 1];
+// A worn SET now, one slot at a time. Picking the best piece per slot from the
+// best line available is what a player at this stage would actually be wearing,
+// and keeping all three on ONE line means these saves exercise the set bonus
+// rather than always testing the mixed case.
+const wornLine = S.ownAllGear ? 'lavasioth' : 'cephalos';
+const bestPieces = {};
+for (const slot of G.PIECE_SLOTS) {
+  const forSlot = armorOwned.filter(a => a.slot === slot && a.line === wornLine);
+  bestPieces[slot] = forSlot[forSlot.length - 1]
+    || armorOwned.filter(a => a.slot === slot).pop() || null;
+}
 
 // Parts you would plausibly be holding: only from monsters you can actually meet.
 const mats = {};
@@ -187,7 +195,8 @@ const state = {
   gearOwned,
   gear: {
     rod: { id: bestRod.id, lvl: gearOwned[bestRod.id] || 0 },
-    armor: bestArmor ? { id: bestArmor.id, lvl: gearOwned[bestArmor.id] || 0 } : null,
+    ...Object.fromEntries(G.PIECE_SLOTS.map(slot => [slot, bestPieces[slot]
+      ? { id: bestPieces[slot].id, lvl: gearOwned[bestPieces[slot].id] || 0 } : null])),
   },
   // The four retired sliders, left at zero so the refund migration has nothing to
   // pay out — these saves were never on the old system.
@@ -221,4 +230,5 @@ console.log(`  ${Object.keys(caughtAt).length} locales fished, ${Object.keys(vis
 console.log(`  ${Object.keys(state.owned).length} baits, ${Object.keys(state.pouch).length} pouch items`);
 console.log(`  ${Object.keys(gearOwned).length} gear pieces, ${Object.keys(mats).length} monster parts, ` +
             `${Object.keys(monsters).length} monsters met`);
-console.log(`  wearing ${bestRod.name}` + (bestArmor ? ` and ${bestArmor.name}` : ''));
+console.log(`  wearing ${bestRod.name}` + (G.PIECE_SLOTS.some(sl => bestPieces[sl])
+  ? ` and ${G.PIECE_SLOTS.map(sl => bestPieces[sl] ? bestPieces[sl].name : '—').join(' / ')}` : ''));

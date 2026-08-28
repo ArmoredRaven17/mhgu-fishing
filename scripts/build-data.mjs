@@ -721,6 +721,32 @@ const locales = dbLocales.map(l => {
   };
 });
 
+// ── Armor line names ──────────────────────────────────────────
+//
+// Every large monster gets an armor line, so the names have to come from the
+// game rather than from splitting an id on underscores -- that turns Yian Kut-Ku
+// into "Yian Kut Ku" and Lao-Shan Lung into "Lao Shan Lung".
+//
+// Deviants are class 2 and excluded because Raven asked for large monsters only.
+// The four Variants are excluded by name: the db files them as class 0 beside
+// their base forms, so nothing structural separates them.
+const VARIANTS = ['Furious Rajang', 'Savage Deviljho', 'Raging Brachydios', 'Chaotic Gore Magala'];
+// Four lines are named for the SPECIES, not the individual -- the pattern Raven
+// already set with Cephalos for Cephadrome and Ludroth for Royal Ludroth. The
+// crabs follow it because they are the same shape of name.
+const LINE_ALIAS = {
+  'Cephadrome':        ['cephalos',  'Cephalos'],
+  'Royal Ludroth':     ['ludroth',   'Ludroth'],
+  'Daimyo Hermitaur':  ['hermitaur', 'Hermitaur'],
+  'Shogun Ceanataur':  ['ceanataur', 'Ceanataur'],
+};
+const armorLineNames = {};
+for (const m of q(`SELECT name FROM monsters WHERE class = '0' ORDER BY name`)) {
+  if (VARIANTS.includes(m.name)) continue;
+  const [id, label] = LINE_ALIAS[m.name] || [slug(m.name), m.name];
+  armorLineNames[id] = label;
+}
+
 db.close();
 
 // ── Emit ────────────────────────────────────────────────────────────────────
@@ -760,6 +786,12 @@ writeFileSync(join(OUT, 'meals.js'),
   header('MHGU meals — Hunter HP and Stamina bonuses',
     'data-src/meals.html (Kiranico Meal List)') +
   `window.MF_MEALS = ${JSON.stringify(meals, null, 1)};
+`);
+
+writeFileSync(join(OUT, 'armorlines.js'),
+  header('MHGU armor line names — every large monster bar Deviants and Variants',
+    'mhgu.db monsters table') +
+  `window.MF_ARMOR_LINE_NAMES = ${JSON.stringify(armorLineNames, null, 1)};
 `);
 
 writeFileSync(join(OUT, 'locales.js'),

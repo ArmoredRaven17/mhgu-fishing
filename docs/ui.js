@@ -80,7 +80,7 @@
     const gearRow = (g, slot) => {
       const owned = A.gearOwned(g.id);
       const lvl = A.gearLevel(g.id), max = A.gearMax(g.id);
-      const worn = S.gear[slot] && S.gear[slot].id === g.id;
+      const worn = S.gear[slot] && S.gear[slot].id === g.id;   // per slot: three rows can be worn at once
       const capped = lvl >= max;
       const gate = owned && !capped ? A.levelUnlockHR(g.id, lvl) : 0;
       const locked = gate > S.hr;
@@ -88,7 +88,10 @@
 
       // One entry per skill in each column, in the same order, so a name and its
       // description always line up.
-      const armor = g.slot === 'armor';
+      // Was `=== 'armor'`, which silently stopped matching the moment the slot
+      // became helm/chest/waist — every row rendered with no skills and no
+      // stats. Anything that is not the rod is a piece of armor.
+      const armor = g.slot !== 'rod';
       const skills = armor
         ? g.effects.map(e => `<span class="ent">${G.effectName(e.key, e.lvl)}</span>`).join('')
         : '';
@@ -99,14 +102,19 @@
       // does NOT strengthen its skills — those are fixed by the tier — so
       // without this the Upgrade button spends money on nothing you can see.
       if (armor) {
-        const at = { id: g.id, lvl };
+        // armorStat reads a worn SET, so asking what one piece is worth means
+        // handing it a set containing only that piece. Passing the piece itself
+        // silently returned zero for all three.
+        const at = { [g.slot]: { id: g.id, lvl } };
         detail += `<span class="ent stat">+${G.armorStat(at, 'hp')} HP`
           + ` &middot; +${G.armorStat(at, 'stamina')} Stamina`
           + ` &middot; +${Math.round(G.armorStat(at, 'guard') * 100)}% DEF</span>`;
         if (owned && !capped) {
           const P = G.ARMOR_PER_LEVEL;
-          detail += `<span class="ent gain">Lv ${lvl + 1} adds +${P.hp} HP,`
-            + ` +${P.stamina} Stamina, +${(P.guard * 100).toFixed(1)}% DEF</span>`;
+          detail += `<span class="ent gain">Lv ${lvl + 1} adds`
+            + ` +${G.armorStat({ [g.slot]: { id: g.id, lvl: lvl + 1 } }, 'hp') - G.armorStat(at, 'hp')} HP,`
+            + ` +${G.armorStat({ [g.slot]: { id: g.id, lvl: lvl + 1 } }, 'stamina') - G.armorStat(at, 'stamina')} Stamina,`
+            + ` +${(P.guard * 100).toFixed(1)}% DEF</span>`;
         }
       }
       if (owned && locked) detail += `<span class="unlock">Next level at HR ${gate}</span>`;
@@ -152,15 +160,24 @@
     // A set at a time. Three tiers of one line side by side is the comparison a
     // player is actually making — "should I climb this line or start another" —
     // and eight lines in one list buried it.
-    const lines = Object.keys(G.ARMOR_LINES)
+    const lines = Object.keys(G.ARMOR_PIECES)
       .filter(l => knownArmor.some(a => a.line === l));
     if (!lines.includes(smithyLine)) smithyLine = lines[0] || '';
 
     el('armorLines').innerHTML = lines.map(l =>
       `<button class="subtab ${l === smithyLine ? 'active' : ''}" data-line="${l}">${
-        G.ARMOR_LINES[l].name}</button>`).join('');
+        G.armorLineName(l)}</button>`).join('');
     el('armorLines').querySelectorAll('[data-line]').forEach(btn =>
       btn.onclick = () => { smithyLine = btn.dataset.line; renderSmithy(); });
+
+    // The second axis. Same argument as the line tabs: what a player weighs here
+    // is "do I climb this piece a rank" — three ranks of ONE piece side by side —
+    // and all nine rows at once buried exactly that.
+    el('armorPieces').innerHTML = !lines.length ? '' : G.PIECE_SLOTS.map(sl =>
+      `<button class="subtab ${sl === smithyPiece ? 'active' : ''}" data-piece="${sl}">${
+        G.PIECE_LABEL[sl]}</button>`).join('');
+    el('armorPieces').querySelectorAll('[data-piece]').forEach(btn =>
+      btn.onclick = () => { smithyPiece = btn.dataset.piece; renderSmithy(); });
 
     const armorRows = [];
     if (!lines.length) {
@@ -171,8 +188,13 @@
       // No header row: the tab above already names the line, and the rows below
       // already name its skills. Saying both again in between was the same
       // information three times.
-      for (const g of knownArmor.filter(a => a.line === smithyLine))
-        armorRows.push(gearRow(g, 'armor'));
+      const rows = knownArmor.filter(a => a.line === smithyLine && a.slot === smithyPiece);
+      if (!rows.length) {
+        armorRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
+          + 'Nothing of this piece yet.</td></tr>');
+      } else {
+        for (const g of rows) armorRows.push(gearRow(g, g.slot));
+      }
     }
 
     // What you are holding, so the lists above can be read against something.
@@ -262,6 +284,7 @@
   // re-render without throwing you back to the rods.
   let smithyView = 'rods';
   let smithyLine = '';        // which set's tab is open, '' until one is known
+  let smithyPiece = 'helm';   // which of the three the armor tab is showing
   function showSmithy(view) {
     smithyView = view;
     for (const [name, tab, panel] of [['rods', 'subRods', 'viewRods'],

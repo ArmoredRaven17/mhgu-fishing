@@ -18,7 +18,8 @@ const DOCS = join(REPO, 'docs');
 
 global.window = {};
 for (const f of [['data', 'ores.js'], ['data', 'fish.js'], ['data', 'locales.js'],
-                 ['data', 'meals.js'], ['data', 'canteen.js'], ['game.js']])
+                 ['data', 'meals.js'], ['data', 'canteen.js'],
+                 ['data', 'armorlines.js'], ['game.js']])
   require(join(DOCS, ...f));
 require(join(REPO, 'tools', 'skills-data.js'));
 
