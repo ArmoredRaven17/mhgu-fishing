@@ -41,7 +41,7 @@
         <li data-id="${l.id}" data-hr="${S.hr}" class="${on ? 'sel' : ''} ${done ? 'done' : ''}">
           <div class="linfo">
             <span class="lname">${l.name}</span>
-            <span class="lmeta">no goal &mdash; land what lives here</span>
+            <span class="lmeta">Catch the Nakarkos &middot; ${G.oresAt(S.hr).length} varieties</span>
           </div>
           <div class="ltags">${done ? '<span class="tag done">Completed</span>' : ''}</div>
         </li>
@@ -361,8 +361,11 @@
     const rank = G.rankAt(rung).name;
     bits.push(line('Locale', loc.name));
     bits.push(line('Rank', rank));
-    bits.push(line('Main Objective',
-      `Catch <b class="goal">${z(R.questGoal(S.localeId, rung))}</b> in fish`));
+    // Wyvern's End is cleared by the catch, not by the till. Showing a zenny goal
+    // there would state a target that does nothing whatever you do about it.
+    bits.push(line('Main Objective', S.localeId === G.FINAL_LOCALE
+      ? `Catch the <b class="goal">${G.FINAL_BOSS}</b>`
+      : `Catch <b class="goal">${z(R.questGoal(S.localeId, rung))}</b> in fish`));
 
     // Three fixed readings, always present and always in this order. Stating the
     // good case out loud rather than omitting it is what keeps the block the same

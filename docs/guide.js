@@ -307,7 +307,7 @@
         <td class="nm">${name}</td>
         <td class="dt">${b.note || b.desc}</td>
         <td class="rk">${RANKS.filter(r => log.ranks[r]).join(' &middot; ')}</td>
-        <td class="tally"><b>${log.landed}</b> landed <i>/</i> <b>${lost}</b> lost
+        <td class="tally"><b>${log.landed}</b> caught <i>/</i> <b>${lost}</b> lost
           <span class="rate">${rate}%</span></td>
         <td class="pr">${at.reward.toLocaleString()}z</td>
         <td class="wh">${localesFor(name).join(' &middot; ') || '&mdash;'}</td></tr>`;

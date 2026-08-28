@@ -122,8 +122,15 @@
     el('questBait').textContent = trip.bait.name;
 
     el('haulValue').textContent = '';
-    el('haulGoal').textContent = `${z(trip.value)} / ${z(trip.goal)}`;
-    el('haulGoal').classList.toggle('met', trip.value >= trip.goal);
+    // At Wyvern's End the tally is not what you have earned but whether you have
+    // the one thing you came for, so the readout says that instead of a number
+    // that would never turn the marker green however high it climbed.
+    const finalHere = trip.localeId === G.FINAL_LOCALE;
+    const gotIt = finalHere && trip.haul.some(h => h.name === G.FINAL_BOSS);
+    el('haulGoal').textContent = finalHere
+      ? (gotIt ? `${G.FINAL_BOSS} caught` : G.FINAL_BOSS)
+      : `${z(trip.value)} / ${z(trip.goal)}`;
+    el('haulGoal').classList.toggle('met', finalHere ? gotIt : trip.value >= trip.goal);
     el('haulList').innerHTML = trip.haul.map(c =>
       `<li>${c.icon}<span>${c.name}</span><span class="v">${z(c.value)}</span></li>`
     ).join('') + trip.found.map(f =>

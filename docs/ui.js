@@ -186,7 +186,7 @@
     if (!lines.length) {
       armorRows.push(gearSection('Angler Armor'));
       armorRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
-        + 'Nothing to forge yet. Land a large monster and the smith will know what to do with it.</td></tr>');
+        + 'Nothing to forge yet. Catch a large monster and the smith will know what to do with it.</td></tr>');
     } else {
       // No header row: the tab above already names the line, and the rows below
       // already name its skills. Saying both again in between was the same
@@ -206,7 +206,7 @@
     rodRows.push(gearSection('Monster Parts'));
     if (!held.length) {
       rodRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
-        + 'Nothing yet. Parts come off the large monsters you land.</td></tr>');
+        + 'Nothing yet. Parts come off the large monsters you catch.</td></tr>');
     } else {
       for (const m of held) rodRows.push(gearRowHTML({
         icon: img('assets/ItemIcons/' + m.icon, m.name), name: m.name,
