@@ -2052,8 +2052,11 @@
     // only a set built for the climate is immune; at 3 any two committed pieces
     // would be, and levels 4 and 5 would buy nothing at all.
     const CANCEL_AT = EFFECT_MAX;
+    // 25% a level, not 50%: with a cap of five, half again per level ran a drink
+    // to 3.5x before immunity ever arrived, and the last rungs stopped mattering
+    // because the ones below had already solved the climate.
     return { lvl, immune: lvl >= CANCEL_AT,
-             drinkMult: lvl >= CANCEL_AT ? 1 : 1 + 0.5 * lvl };
+             drinkMult: lvl >= CANCEL_AT ? 1 : 1 + 0.25 * lvl };
   };
 
   // Tropic Hunter's half that is not resistance. Standing in the heat widens the

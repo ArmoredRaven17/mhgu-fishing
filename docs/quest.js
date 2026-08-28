@@ -76,7 +76,7 @@
       sinceBoss: 0,        // casts since one last turned up; the check cadence
       drinkLeft: 0,
       hotDrinkLeft: 0,   // a Hot Drink specifically, which Tropic Hunter reads
-      dashLeft: 0,
+      dashLeft: 0, dashMult: G.DASH_MULT,
       defLeft: 0, defAmount: 0,
       goal: R.questGoal(S.localeId, questHR),
       haul: [], value: 0,
@@ -478,7 +478,9 @@
 
   function staminaMult() {
     const climate = trip.climate === 'cold' && protectedNow() ? 1 : trip.rates.staminaMult;
-    return climate * (trip.dashLeft > 0 ? G.DASH_MULT : 1);
+    // The cut the juice you actually drank was worth, not the constant: Effect
+    // Up is applied when it is drunk, so an old trip keeps what it paid for.
+    return climate * (trip.dashLeft > 0 ? (trip.dashMult ?? G.DASH_MULT) : 1);
   }
 
   function spendStamina(secs) {
@@ -577,11 +579,30 @@
     if (e.stamina) trip.sta = Math.min(trip.maxSta, trip.sta + e.stamina * more);
     // A Hot Drink is the wrong drink for hot water, but Tropic Hunter wants it
     // there, so track it whether or not it is guarding you against anything.
-    if (e.protects === 'cold') trip.hotDrinkLeft = G.drinkSeconds(A.state.gear) * more;
+    // NOT Effect Up. Making a drink last longer is Heat Resist's and Cold
+    // Resist's whole job, and two skills doing one job means neither reads as
+    // its own thing. Duration is the other half and lives inside drinkSeconds.
+    if (e.protects === 'cold') trip.hotDrinkLeft = G.drinkSeconds(A.state.gear);
     if (e.protects === trip.climate)
-      trip.drinkLeft = G.drinkSeconds(A.state.gear) * G.climateFor(A.state.gear, trip.climate).drinkMult * more;
-    if (e.dash) trip.dashLeft = G.dashSeconds(A.state.gear) * e.dash;
-    if (e.def) { trip.defLeft = G.armorSeconds(A.state.gear) * e.secs; trip.defAmount = e.def; }
+      trip.drinkLeft = G.drinkSeconds(A.state.gear) * G.climateFor(A.state.gear, trip.climate).drinkMult;
+    // Dash and Armorskin DO take Effect Up — on how much they do, never on how
+    // long they last, because how long is Duration's job and doubling up there
+    // would recreate exactly the overlap the drinks just lost.
+    //
+    // Dash Juice has no per-item magnitude: `dash` is 1 or 2 and means how long,
+    // while the cut itself is the global DASH_MULT. So Effect Up deepens the cut.
+    if (e.dash) {
+      trip.dashLeft = G.dashSeconds(A.state.gear) * e.dash;
+      // DIVIDE the remaining cost rather than deepening the cut against a cap:
+      // capping it meant Effect Up 2 already bought everything Dash had to give
+      // and levels 3 to 5 did nothing at all. This way every level still moves
+      // the number, and a cast can approach free without ever reaching it.
+      trip.dashMult = Math.max(0.15, G.DASH_MULT / more);
+    }
+    if (e.def) {
+      trip.defLeft = G.armorSeconds(A.state.gear) * e.secs;
+      trip.defAmount = e.def * more;
+    }
     A.save();
     render();
   }

@@ -118,7 +118,10 @@
     trade:      (G, g) => 'the cart brings +' + pct(G.effectPower(g, 'trade')),
     haggle:     (G, g) => '1000z of hire costs ' + G.haggle(g, 1000) + 'z',
     saver:      (G, g) => pct(G.effectPower(g, 'saver')) + ' chance an item is not used',
-    effectup:   (G, g) => 'items do +' + pct(G.effectPower(g, 'effectup')),
+    // Says what it touches, because it deliberately does NOT touch drinks —
+    // Heat Resist and Cold Resist own those.
+    effectup:   (G, g) => 'potions, rations, Dash and Armorskin +'
+                        + pct(G.effectPower(g, 'effectup')) + ' (not drinks)',
     combo:      (G, g) => 'combining +' + pct(G.effectPower(g, 'combo')),
     lesson:     (G, g) => 'XP +' + pct(G.effectPower(g, 'lesson')),
     basket:     (G, g) => G.basketTarget(g) + ' fish for a full basket (from ' + G.BASKET.target + ')',
