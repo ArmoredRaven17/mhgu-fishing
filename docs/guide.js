@@ -361,18 +361,10 @@
       ['Species Bait', A.BAITS.filter(b => b.family === 'species')],
       ['Variety Bait', A.BAITS.filter(b => b.family === 'ore')],
     ];
+    // No explainer panel above the tables. It told the player the tier system, the
+    // three bases and the whole book ladder before they had combined anything —
+    // and the recipes underneath already show every one of those things.
     wrap.innerHTML =
-      `<section class="panel">
-        <h3 class="panel-head">Combining</h3>
-        <div class="panel-body">
-          <p class="hint">Every recipe is a base plus one material. The base says the tier:
-            Insect Husk for the early baits, Worm for the middle, Mega Fishing Fly for the best.
-            All three are sold at the shop.</p>
-          <p class="hint">The rates below are the base rates. Each Book of Fishing Combos
-            adds 10% to the success rate, so long as the earlier books are brought along
-            too &mdash; Book 2 needs Book 1, and Book 3 needs both.</p>
-        </div>
-      </section>` +
       groups.map(([label, list]) => {
         return `<section class="panel">
           <h3 class="panel-head">${label}</h3>
