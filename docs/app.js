@@ -479,7 +479,7 @@
   // S.plan and S.tackle hold what you WANT to bring — your intent — clamped only
   // by the item's own carry limit. Stock clamps at read time instead, so running
   // low never rewrites the plan: restock and you are back to bringing ten.
-  const wanted = id => Math.min(S.plan[id] || 0, G.carryLimit(id));
+  const wanted = id => Math.min(S.plan[id] || 0, G.carryLimit(id, S.gear));
   const planned = id => Math.min(wanted(id), itemStock(id));
   const wantedBait = id => Math.min(S.tackle[id] || 0, G.baitCarry(S.gear));
 
@@ -514,7 +514,7 @@
   };
 
   function setPlan(id, n) {
-    const want = Math.max(0, Math.min(n, G.carryLimit(id)));
+    const want = Math.max(0, Math.min(n, G.carryLimit(id, S.gear)));
     // Claiming a new slot is refused once the pouch is full; emptying one is fine.
     if (want > 0 && !wanted(id) && slotsUsed() >= G.pouchSlots(S.gear)) return false;
     S.plan[id] = want;

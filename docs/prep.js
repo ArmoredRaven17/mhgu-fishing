@@ -314,7 +314,7 @@
           p.kind === 'book' ? `+${p.bonus}% combine`
           : p.kind === 'mat' ? 'combine material'
           : G.effectOf(p.id).label}</span></div>
-        <span class="qty">${take}${want ? ` / ${want}` : ` / ${Math.min(owned, G.carryLimit(p.id))}`}</span>
+        <span class="qty">${take}${want ? ` / ${want}` : ` / ${Math.min(owned, G.carryLimit(p.id, S.gear))}`}</span>
         <button class="btn tiny" data-toggle="${p.id}" ${!want && (noSlot || !owned) ? 'disabled' : ''}>
           ${want ? 'Remove' : 'Add'}</button>
       </li>`;

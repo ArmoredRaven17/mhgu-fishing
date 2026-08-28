@@ -53,7 +53,8 @@
     { k: 'brace',      name: 'Brace',      group: 'The trip', at: 'BOSS_ATTACK.holdMs, the leeway a brace allows' },
     { k: 'heat',       name: 'Heat',       group: 'The trip', at: 'heat protection' },
     { k: 'cold',       name: 'Cold',       group: 'The trip', at: 'cold protection' },
-    { k: 'carry',      name: 'Carrying',   group: 'The trip', at: 'POUCH_SLOTS / TACKLE_SLOTS / BAIT_CARRY' },
+    { k: 'carry',      name: 'Carrying',   group: 'The trip', at: 'POUCH_SLOTS / TACKLE_SLOTS — how many different things' },
+    { k: 'stack',      name: 'Stacks',     group: 'The trip', at: 'carryLimit / BAIT_CARRY — how many of each' },
     { k: 'duration',   name: 'Duration',   group: 'The trip', at: 'DASH_SECONDS / ARMOR_SECONDS — not drinks' },
     { k: 'hire',       name: 'Hire',       group: 'The trip', at: 'PEST.hireCut, how much the watch turns away' },
     { k: 'fresh',      name: 'Fresh',      group: 'The trip', at: 'FRESH_CHANCE / FRESH_MAX at camp' },
@@ -104,8 +105,10 @@
                         + ' (from ' + n1(G.POND.attractRange * 100) + '%)',
     bobber:     (G, g) => 'nudge every ' + Math.round(G.pondFor(g).stepCooldownMs) + 'ms'
                         + ' (from ' + G.POND.stepCooldownMs + 'ms)',
-    carry:      (G, g) => G.pouchSlots(g) + ' pouch, ' + G.tackleSlots(g) + ' bait kinds, '
-                        + G.baitCarry(g) + ' of each',
+    carry:      (G, g) => G.pouchSlots(g) + ' pouch slots and ' + G.tackleSlots(g) + ' bait kinds',
+    stack:      (G, g) => G.baitCarry(g) + ' bait of each, and '
+                        + G.carryLimit('barrel_bomb_l', g) + ' Barrel Bomb L against '
+                        + G.carryLimit('barrel_bomb_l') + ' bare',
     duration:   (G, g) => 'Dash and Armorskin last ' + Math.round(G.dashSeconds(g))
                         + 's (from ' + G.DASH_SECONDS + 's), drinks unaffected',
     vigor:      (G, g) => 'HP and Stamina +' + pct(G.effectPower(g, 'vigor')),

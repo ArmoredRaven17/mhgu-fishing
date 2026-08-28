@@ -138,8 +138,8 @@ export const ARMOR_PIECES = {
   },
   brachydios: {   // exchange
     floor: 'High',
-    High: { helm: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 1 }, { k: 'trapsize', lvl: 1 }], chest: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 1 }], waist: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 2 }] },
-    G:    { helm: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 1 }, { k: 'trapsize', lvl: 3 }], chest: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 2 }, { k: 'zenny', lvl: 2 }], waist: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 2 }, { k: 'zenny', lvl: 2 }] },
+    High: { helm: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 1 }, { k: 'stack', lvl: 1 }], chest: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 1 }], waist: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 2 }] },
+    G:    { helm: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 1 }, { k: 'stack', lvl: 3 }], chest: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 2 }, { k: 'zenny', lvl: 2 }], waist: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 2 }, { k: 'zenny', lvl: 2 }] },
     setBonus: null,
   },
   bulldrome: {   // exchange

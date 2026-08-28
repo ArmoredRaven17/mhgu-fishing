@@ -642,8 +642,16 @@
 
   // A book is knowledge, not a supply: one is all that does anything, and letting
   // it stack to ten would be a slot-eating trap.
-  const carryLimit = id =>
-    bookById.has(id) ? 1 : (ITEM_EFFECT[id]?.carry ?? 10);
+  // Carrying raises the PER-ITEM cap as well as the number of slots. It only did
+  // slots, which made it useless for the thing it most obviously should help:
+  // Barrel Bomb L is capped at three and L+ at two, so a set built to go all in
+  // on bombing could not actually take more bombs.
+  //
+  // `gear` is optional so every caller that never cared keeps working — a book is
+  // still one book whatever you have on.
+  const carryLimit = (id, gear = null) =>
+    bookById.has(id) ? 1
+      : Math.round((ITEM_EFFECT[id]?.carry ?? 10) * (1 + effectPower(gear, 'stack')));
   // How many you may OWN. A second book does nothing a first one does not, so
   // the shop should not let you buy 99 of them and call it stock.
   const ownCap = id => (bookById.has(id) ? 1 : STOCK_CAP);
@@ -1539,7 +1547,14 @@
     // easing it. 0.12 leaves 100ms, which still has to be a deliberate hold.
     brace:      { name: 'Brace',      per: 0.12, blurb: 'Bracing against a large monster is more forgiving' },  // BOSS_ATTACK.holdMs
     // 0.20 doubled the pouch at the cap. 0.10 takes 10 slots to 15.
-    carry:      { name: 'Carrying',   per: 0.10, blurb: 'You can take more bait and more items with you' },  // POUCH_SLOTS / TACKLE_SLOTS / BAIT_CARRY
+    // Two skills, because they are two different wants. Carrying is how many
+    // DIFFERENT things you can bring; Stacks is how many of each. One skill doing
+    // both meant a set built for bombing raised the pouch it did not need and
+    // barely moved the three Barrel Bomb L it did.
+    //
+    // "Stack" is the game's own word for it — mhgu.db calls the column stack_size.
+    carry:      { name: 'Carrying',   per: 0.10, blurb: 'You can take more different things with you' },  // POUCH_SLOTS / TACKLE_SLOTS
+    stack:      { name: 'Stacks',     per: 0.10, blurb: 'You can take more of each thing with you' },     // carryLimit / BAIT_CARRY
     duration:   { name: 'Duration',   per: 0.20, blurb: 'Dash Juice and Armorskin last longer' },  // DASH_SECONDS / ARMOR_SECONDS
     hire:       { name: 'Hire',       per: 0.20, blurb: 'The Hunter for Hire turns away more of what comes at you' },  // PEST.hireCut
     fresh:      { name: 'Fresh',      per: 0.15, blurb: 'More of the pantry is fresh when you get back to camp' },  // FRESH_CHANCE / FRESH_MAX
@@ -1733,8 +1748,8 @@
   },
   brachydios: {   // exchange
     floor: 'High',
-    High: { helm: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 1 }, { k: 'trapsize', lvl: 1 }], chest: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 1 }], waist: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 2 }] },
-    G:    { helm: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 1 }, { k: 'trapsize', lvl: 3 }], chest: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 2 }, { k: 'zenny', lvl: 2 }], waist: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 2 }, { k: 'zenny', lvl: 2 }] },
+    High: { helm: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 1 }, { k: 'stack', lvl: 1 }], chest: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 1 }], waist: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 2 }] },
+    G:    { helm: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 1 }, { k: 'stack', lvl: 3 }], chest: [{ k: 'blast', lvl: 1 }, { k: 'bruising', lvl: 2 }, { k: 'zenny', lvl: 2 }], waist: [{ k: 'blast', lvl: 2 }, { k: 'bruising', lvl: 2 }, { k: 'zenny', lvl: 2 }] },
     setBonus: null,
   },
   bulldrome: {   // exchange
@@ -2905,9 +2920,11 @@
   const up = (gear, key, base) => base * (1 + effectPower(gear, key));
   const down = (gear, key, base) => base * (1 - effectPower(gear, key));
 
+  // Carrying is SLOTS — how many different things fit.
   const pouchSlots = gear => Math.round(up(gear, 'carry', POUCH_SLOTS));
   const tackleSlots = gear => Math.round(up(gear, 'carry', TACKLE_SLOTS));
-  const baitCarry = gear => Math.round(up(gear, 'carry', BAIT_CARRY));
+  // Stacks is AMOUNT — how many of each of them.
+  const baitCarry = gear => Math.round(up(gear, 'stack', BAIT_CARRY));
 
   // No drinkSeconds: a drink's length belongs to Heat Resist and Cold Resist,
   // so Duration deliberately cannot reach it.
