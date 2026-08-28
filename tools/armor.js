@@ -490,17 +490,22 @@
   // onto the others — but never into a rank below a line's floor, where the set
   // does not exist.
   el('applyAll').onclick = () => {
-    const others = RANKS.filter(r => r !== rank);
+    // Upward only. A set is assigned at the rank it first exists and carried up;
+    // copying G down onto Low would push late skills into a suit that should not
+    // have them yet, and would overwrite the rank you had already thought about.
+    const above = RANKS.filter(r => rankIndex(r) > rankIndex(rank));
+    if (!above.length) { alert('Nothing above ' + rank + ' Rank.'); return; }
     // Count BEFORE touching anything, so cancelling really cancels.
     const doable = lineIds.filter(id =>
       atOrAbove(id, rank)
       && PIECES.some(p => cellOf(id, rank, p.key).length)
-      && others.some(r => atOrAbove(id, r)));
+      && above.some(r => atOrAbove(id, r)));
     if (!doable.length) { alert('Nothing on this rank to copy.'); return; }
-    if (!confirm(`Copy ${rank} Rank onto the other ranks for ${doable.length} line`
-        + `${doable.length === 1 ? '' : 's'}? This replaces whatever is on them.`)) return;
+    if (!confirm(`Copy ${rank} Rank up onto ${above.join(' and ')} for `
+        + `${doable.length} line${doable.length === 1 ? '' : 's'}? `
+        + `This replaces whatever is on them.`)) return;
     for (const id of doable)
-      for (const r of others) {
+      for (const r of above) {
         if (!atOrAbove(id, r)) continue;
         for (const p of PIECES)
           board[id][r][p.key] = cellOf(id, rank, p.key).map(e => ({ ...e }));
