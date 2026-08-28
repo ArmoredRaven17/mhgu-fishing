@@ -91,8 +91,10 @@
         <span class="lv">${a ? 'Lv ' + lvl : ''}</span>
       </li>`;
 
+    // Bare content, no panel-body of its own: the camp pane already IS one, and
+    // nesting them gave the tab double the padding of Items and Canteen beside it.
+    // The smithy adds its own wrapper below.
     return `
-      <div class="panel-body">
         <ul class="worn-set">${pieces.map(pieceRow).join('')}</ul>
         <ul class="worn-stat">
           <li><b>${G.armorStat(S.gear, 'hp')}</b> HP</li>
@@ -106,15 +108,16 @@
           ? `<ul class="worn-skills">${skills.map(([k, lvl]) =>
               `<li><span class="sn">${G.effectName(k, lvl)}</span>
                  <span class="sd">${G.effectBlurb(k)}</span></li>`).join('')}</ul>`
-          : '<p class="hint">Nothing worn.</p>'}
-      </div>`;
+          : '<p class="hint">Nothing equipped.</p>'}`;
   }
 
   // Both places, whichever happen to be on the page.
   function renderWorn() {
     const html = wornHTML();
     const panel = el('wornPanel');
-    if (panel) panel.innerHTML = '<div class="panel-head">Worn</div>' + html;
+    if (panel) panel.innerHTML = '<div class="panel-head">Equipment</div>'
+      + '<div class="panel-body">' + html + '</div>';
+    // The camp pane is already a panel-body, so it takes the content as it is.
     const camp = el('paneWorn');
     if (camp) camp.innerHTML = html;
   }
