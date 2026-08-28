@@ -25,93 +25,13 @@
     { key: 'waist', label: 'Waist' },
   ];
 
-  // Skills that do not exist in the game yet, kept as data so they can be
-  // arranged alongside the real ones. The notes that used to sit on these are
-  // gone from the data as well as the display — one was long enough to break
-  // the grid.
-  const PROPOSED = ['parts', 'control', 'strike', 'lure', 'brace',
-                    'haggle', 'lesson', 'rich', 'vigor',
-                    // one per gathering site: every material in fish.js carries a
-                    // `site` of Gather, Bug or Mine, so the three are the game's
-                    // own taxonomy rather than categories invented here.
-                    'siteGather', 'siteBug', 'siteMine',
-                    // and one per remaining tunable nothing reads yet — see the
-                    // comments beside each name below for what it moves.
-                    'bobber', 'reach', 'hook', 'carry', 'duration',
-                    'cats', 'hire', 'fresh', 'bounty', 'salvage', 'basket',
-                    // bombs and traps — designed, not built; see MHGU-TASKS.md
-                    'blast', 'bruising', 'trapping', 'trapsize'];
-  const isProposed = k => PROPOSED.includes(k);
-
-  // WORKING NAMES — one word for the thing the skill affects, nothing more.
-  // Raven names these properly once the allotment is settled; until then a label
-  // has to read as obviously temporary and never be mistaken for a decision.
-  //
-  // Only the skills that are a simple dial on one quantity get a generic name.
-  // Shock Bobber, Heat Hunter and Guts are left alone: their effects are not
-  // "more or less of X" — one indexes a rank band, one is conditional on heat
-  // and stacks onto grip, and one is a once-a-trip flag. Genericising those
-  // would misdescribe them.
-  const SPECIFIC = { cull: 'Shock Bobber', hotblood: 'Heat Hunter', guts: 'Guts' };
-  const NAMES = {
-    // taking fish without the rod
-    blast:    'Blast',       // how wide a bomb reaches
-    bruising: 'Bruising',    // value lost to a blast, and to a Shock Trap
-    trapping: 'Trapping',    // a trap's odds of catching
-    trapsize: 'Capacity',    // how many fish a trap holds for the trip.
-                             // Not Carrying, which is pouch and bait slots
-    // before the hook — a whole phase with nothing on it today
-    bobber:   'Bobber',      // POND.bobberStep / stepCooldownMs / glideRate
-    reach:    'Reach',       // POND.attract / attractRange, how far bait pulls
-    hook:     'Hooking',     // POND.hookChance, a nibble becoming a bite
-    // the reel
-    band:     'Sweetspot',   // how wide the sweet spot is
-    progress: 'Capture',     // how fast the capture bar fills inside it
-    escape:   'Escape',      // how fast the escape bar fills outside it
-    control:  'Control',     // how far one press moves the line
-    strike:   'Strike',      // how long you have to strike a nibble
-    // the water
-    bites:    'Bites',       // how eagerly fish take the line
-    rich:     'Ore',         // which ore varieties turn up
-    lure:     'Lure',        // how soon a large monster checks in
-    repel:    'Pests',       // how often small monsters attack
-    parts:    'Parts',       // what a monster leaves behind
-    // What the Palicos bring back. `gather` is the existing one and lifts the
-    // whole haul; the three below each favour one gathering site.
-    gather:   'Palicos',     // how much the Palicos bring back at all
-    siteGather: 'Gathering', // Huskberry, Honey, Whetstone, the mushrooms, berries
-    siteBug:  'Bugs',        // Bitterbug, the crickets, King Scarab, Divine Rhino
-    siteMine: 'Mining',      // every ore, crystal and stone
-    // the trip
-    stamina:  'Stamina',     // what a cast costs
-    vigor:    'Vitality',    // how much HP and Stamina you carry
-    defense:  'Defense',     // how hard a hit lands
-    brace:    'Brace',       // how much leeway a brace allows
-    heat:     'Heat',        // heat protection
-    cold:     'Cold',        // cold protection
-    // what you carry and what it lasts
-    carry:    'Carrying',    // POUCH_SLOTS / TACKLE_SLOTS / BAIT_CARRY
-    duration: 'Duration',    // DRINK_SECONDS / DASH_SECONDS / ARMOR_SECONDS.
-                             // Distinct from Items, which is potency not length
-    // who comes with you
-    cats:     'Cats',        // PALICO.max, how many you may bring
-    hire:     'Hire',        // PEST.hireCut, how much the watch turns away
-    fresh:    'Fresh',       // FRESH_CHANCE / FRESH_MAX at camp
-    // the ledger
-    bounty:   'Bounty',      // BOSS_REWARD_MULT, monster pay only
-    basket:   'Basket',      // BASKET.target, fish needed for the bonus
-    salvage:  'Salvage',     // what survives a cart — nothing softens that today
-    zenny:    'Value',       // what a catch is worth
-    trade:    'Trade',       // what the Trade Cart brings back
-    haggle:   'Costs',       // what services charge
-    saver:    'Saver',       // whether an item is consumed
-    effectup: 'Items',       // how much an item does
-    combo:    'Combining',   // combine success
-    lesson:   'Experience',  // XP per catch
-    ...SPECIFIC,
-  };
-  const nameOf = k => NAMES[k] || k;
-  const isSpecific = k => Object.prototype.hasOwnProperty.call(SPECIFIC, k);
+  // The skill list lives in skills-data.js so the bench and the skill list page
+  // cannot drift apart. Shipped means the game already reads it; everything else
+  // is a proposal and shows dashed in the palette.
+  const SK = window.MF_SKILLS;
+  const isProposed = k => !SK.isShipped(k);
+  const nameOf = k => SK.nameOf(k);
+  const isSpecific = k => !!SK.byKey[k] && !!SK.byKey[k].own;
 
   // Every other large monster in MHGU. Their parts are not fished; they come
   // from the Trader, exchanged for parts of the eight that are. Listed by
@@ -187,7 +107,7 @@
   // How the 71 lines are ordered. 'water' is the default and puts what you can
   // fish at the top, since those are the sets a player reaches first.
   let sortMode = 'water';
-  const skillKeys = [...Object.keys(G.EFFECTS), ...PROPOSED];
+  const skillKeys = SK.list.map(s => s.k);
 
   // ── The board ─────────────────────────────────────────────────────────
   //

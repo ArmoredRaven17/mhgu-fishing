@@ -171,7 +171,8 @@
   (function () {
     var t = '?t=' + Date.now();
     var files = ['data/ores.js', 'data/fish.js', 'data/locales.js', 'data/meals.js',
-                 'data/canteen.js', 'game.js', '../tools/armor.js'];
+                 'data/canteen.js', 'game.js',
+                 '../tools/skills-data.js', '../tools/armor.js'];
     for (var i = 0; i < files.length; i++)
       document.write('<script src="' + files[i] + t + '"><\/script>');
   })();
