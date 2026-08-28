@@ -2298,7 +2298,9 @@
       name: 'Nakarkos', icon: 'MHGU-Nakarkos_Body_Icon.webp', bait: null,
       floor: 'G', tier: 1, line: 'nakarkos',
       desc: '',
-      note: '',
+      note: 'After covering its prey in a repulsive mucus, it has been seen '
+          + 'dragging them back to feast in its macabre nest of bones and '
+          + "undulating darkness known as Wyvern's End.",
     },
     Nibelsnarf: {
       name: 'Nibelsnarf', icon: 'MHGU-Nibelsnarf_Icon.webp', bait: null,

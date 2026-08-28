@@ -282,8 +282,11 @@
     const names = Object.keys(G.BOSS);
     const met = names.filter(n => A.monsterMet(n));
 
+    // The special locale has to be admitted here too, or the one monster that
+    // lives in exactly one place is the only one whose row cannot say where.
     const localesFor = name => (window.MF_LOCALES || [])
-      .filter(l => (l.boss || []).includes(name) && (l.hasFishing || G.SHOW_DESIGNED_LOCALES))
+      .filter(l => (l.boss || []).includes(name)
+        && (l.hasFishing || G.isSpecialLocale(l.id) || G.SHOW_DESIGNED_LOCALES))
       .map(l => l.name);
 
     const rows = names.map(name => {
