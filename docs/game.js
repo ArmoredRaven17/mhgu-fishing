@@ -1451,10 +1451,11 @@
     // `band` is how far up the ore ranks the cull reaches; it clears everything
     // beneath that rank and then the lower half of the rank itself. Never the
     // whole pool — see CULL_KEEP.
-    cull:     { name: 'Shock Bobber',     band: [0, 1, 2, 2, 2], blurb: '' },
-    heat:     { name: 'Heat Resist',      climate: 'hot',  blurb: '' },
-    cold:     { name: 'Cold Resist',      climate: 'cold', blurb: '' },
-    hotblood: { name: 'Heat Hunter',      climate: 'hot', bandInHeat: true, blurb: '' },
+    cull:     { name: 'Shock Bobber',     band: [0, 1, 2, 2, 2], blurb: 'Repels the lower varieties, leaving the better ones biting' },
+    heat:     { name: 'Heat Resist',      climate: 'hot',  blurb: 'Protects you from the heat of hot regions' },
+    cold:     { name: 'Cold Resist',      climate: 'cold',
+                blurb: 'Protects you from the cold of cold regions' },
+    hotblood: { name: 'Heat Hunter',      climate: 'hot', bandInHeat: true, blurb: 'You are more comfortable in Hot regions and like Hot Drinks' },
 
     // ── Declared, nothing reads them yet ──────────────────────────────────
     // These exist so the armor board can name them and the checker can verify
@@ -1462,37 +1463,37 @@
     // sim once the thing it moves is actually wired up; the comment names the
     // constant each one is for, which is the same spec tools/skills-data.js
     // carries. Working names throughout — Raven's to replace.
-    strike:     { name: 'Strike',     per: 0.10, blurb: '' },  // strikeWindowMs
-    control:    { name: 'Control',    per: 0.10, blurb: '' },  // lift per press
-    hook:       { name: 'Hooking',    per: 0.12, blurb: '' },  // POND.hookChance
-    reach:      { name: 'Reach',      per: 0.15, blurb: '' },  // POND.attract / attractRange
-    bobber:     { name: 'Bobber',     per: 0.12, blurb: '' },  // POND.bobberStep / glideRate
-    lure:       { name: 'Lure',       per: 0.15, blurb: '' },  // how soon a monster checks in
+    strike:     { name: 'Strike',     per: 0.10, blurb: 'You have longer to answer a bite before it is gone' },  // strikeWindowMs
+    control:    { name: 'Control',    per: 0.10, blurb: 'The line holds in the sweet spot more easily, and climbs back to it faster' },  // lift per press
+    hook:       { name: 'Hooking',    per: 0.12, blurb: 'A nibbling fish is more likely to take the line under' },  // POND.hookChance
+    reach:      { name: 'Reach',      per: 0.15, blurb: 'Baited fish notice the bobber from further away' },  // POND.attract / attractRange
+    bobber:     { name: 'Bobber',     per: 0.12, blurb: 'The bobber travels further with each nudge and settles sooner' },  // POND.bobberStep / glideRate
+    lure:       { name: 'Lure',       per: 0.15, blurb: 'Large monsters show themselves more often' },  // how soon a monster checks in
     // Same reasoning as the site skills: at 0.20 a full commitment made the
     // second part certain, which stops it reading as luck at all.
-    parts:      { name: 'Parts',      per: 0.16, blurb: '' },  // what a monster leaves behind
+    parts:      { name: 'Parts',      per: 0.16, blurb: 'A chance a large monster leaves behind a second part' },  // what a monster leaves behind
     // 0.20 meant a CERTAIN second find at the cap. 0.14 leaves it a roll.
-    siteGather: { name: 'Gathering',  per: 0.14, blurb: '' },  // Gather sites
-    siteBug:    { name: 'Bugs',       per: 0.14, blurb: '' },  // Bug sites
-    siteMine:   { name: 'Mining',     per: 0.14, blurb: '' },  // Mine sites
-    vigor:      { name: 'Vitality',   per: 0.05, blurb: '' },  // HP and Stamina carried
+    siteGather: { name: 'Gathering',  per: 0.14, blurb: 'A chance the Palicos bring back a second of what they gathered' },  // Gather sites
+    siteBug:    { name: 'Bugs',       per: 0.14, blurb: 'A chance the Palicos bring back a second bug' },  // Bug sites
+    siteMine:   { name: 'Mining',     per: 0.14, blurb: 'A chance the Palicos bring back a second of what they mined' },  // Mine sites
+    vigor:      { name: 'Vitality',   per: 0.05, blurb: 'You carry more HP and Stamina' },  // HP and Stamina carried
     // 0.20 took holdMs to ZERO at the cap, deleting the mechanic rather than
     // easing it. 0.12 leaves 100ms, which still has to be a deliberate hold.
-    brace:      { name: 'Brace',      per: 0.12, blurb: '' },  // BOSS_ATTACK.holdMs
+    brace:      { name: 'Brace',      per: 0.12, blurb: 'Bracing against a large monster is more forgiving' },  // BOSS_ATTACK.holdMs
     // 0.20 doubled the pouch at the cap. 0.10 takes 10 slots to 15.
-    carry:      { name: 'Carrying',   per: 0.10, blurb: '' },  // POUCH_SLOTS / TACKLE_SLOTS / BAIT_CARRY
-    duration:   { name: 'Duration',   per: 0.20, blurb: '' },  // DASH_SECONDS / ARMOR_SECONDS
-    hire:       { name: 'Hire',       per: 0.20, blurb: '' },  // PEST.hireCut
-    fresh:      { name: 'Fresh',      per: 0.15, blurb: '' },  // FRESH_CHANCE / FRESH_MAX
-    bounty:     { name: 'Bounty',     per: 0.15, blurb: '' },  // BOSS_REWARD_MULT
-    haggle:     { name: 'Costs',      per: 0.10, blurb: '' },  // hire / Palico / cart charges
-    lesson:     { name: 'Experience', per: 0.20, blurb: '' },  // XP per catch
-    basket:     { name: 'Basket',     per: 0.10, blurb: '' },  // BASKET.target
+    carry:      { name: 'Carrying',   per: 0.10, blurb: 'You can take more bait and more items with you' },  // POUCH_SLOTS / TACKLE_SLOTS / BAIT_CARRY
+    duration:   { name: 'Duration',   per: 0.20, blurb: 'Dash Juice and Armorskin last longer' },  // DASH_SECONDS / ARMOR_SECONDS
+    hire:       { name: 'Hire',       per: 0.20, blurb: 'The Hunter for Hire turns away more of what comes at you' },  // PEST.hireCut
+    fresh:      { name: 'Fresh',      per: 0.15, blurb: 'More of the pantry is fresh when you get back to camp' },  // FRESH_CHANCE / FRESH_MAX
+    bounty:     { name: 'Bounty',     per: 0.15, blurb: 'Large monsters are worth more' },  // BOSS_REWARD_MULT
+    haggle:     { name: 'Costs',      per: 0.10, blurb: 'The hire, the Palicos and the Trade Cart all charge less' },  // hire / Palico / cart charges
+    lesson:     { name: 'Experience', per: 0.20, blurb: 'You learn more from every catch' },  // XP per catch
+    basket:     { name: 'Basket',     per: 0.10, blurb: 'A full basket takes fewer fish' },  // BASKET.target
     // Bombs and traps are designed but unbuilt; these four wait on that feature.
-    blast:      { name: 'Blast',      per: 0.15, blurb: '' },  // bomb blast radius
-    bruising:   { name: 'Bruising',   per: 0.15, blurb: '' },  // value lost to a blast / Shock Trap
-    trapping:   { name: 'Trapping',   per: 0.15, blurb: '' },  // a trap's odds of catching
-    trapsize:   { name: 'Capacity',   per: 0.15, blurb: '' },  // how many fish a trap holds
+    blast:      { name: 'Blast',      per: 0.15, blurb: 'A bomb takes fish from further out' },  // bomb blast radius
+    bruising:   { name: 'Bruising',   per: 0.15, blurb: 'Fish taken by a bomb or a Shock Trap keep more of their value' },  // value lost to a blast / Shock Trap
+    trapping:   { name: 'Trapping',   per: 0.15, blurb: 'Traps catch fish more often' },  // a trap's odds of catching
+    trapsize:   { name: 'Capacity',   per: 0.15, blurb: 'A trap holds more fish before it is full' },  // how many fish a trap holds
   };
   // Levels now STACK across pieces rather than being read off the rank, so a
   // ceiling is required where none used to be needed.
