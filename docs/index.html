@@ -6,7 +6,7 @@
 <title>MHGU Fishing</title>
 <!-- Whetfish: the first thing almost anyone catches here. -->
 <link rel="icon" type="image/png" href="assets/FishIcons/MH4G-Fish_Icon_Yellow.png">
-<link rel="stylesheet" href="styles.css?v=332">
+<link rel="stylesheet" href="styles.css?v=333">
 </head>
 <body>
 
@@ -341,9 +341,11 @@
              the rod and cart tables keep their full width. -->
         <section id="wornPanel" class="panel worn-panel"></section>
 
-        <!-- One tab per set, built at render time: a line only appears once you
-             hold a part of the monster it is made from. -->
-        <div id="armorLines" class="subtabs setline"></div>
+        <!-- One entry per set, built at render time: a line only appears once you
+             hold a part of the monster it is made from. A LIST rather than a tab
+             strip — the marketplace takes this to fifty-six monsters, and that is
+             not a row of tabs, it is a wall of them. -->
+        <div id="armorLines" class="line-list"></div>
         <!-- The second axis is the TIER — base, S, X. A set is forged and worn as
              a set, so the three pieces of one tier belong on screen together. -->
         <div id="armorPieces" class="subtabs setline"></div>
@@ -459,24 +461,24 @@
   </div>
 </div>
 
-<script src="data/ores.js?v=332"></script>
-<script src="data/fish.js?v=332"></script>
-<script src="data/locales.js?v=332"></script>
-<script src="data/meals.js?v=332"></script>
-<script src="data/canteen.js?v=332"></script>
-<script src="data/armorlines.js?v=332"></script>
-<script src="data/monsterparts.js?v=332"></script>
-<script src="data/armorstats.js?v=332"></script>
-<script src="data/themes.js?v=332"></script>
-<script src="theme.js?v=332"></script>
-<script src="game.js?v=332"></script>
-<script src="roll.js?v=332"></script>
-<script src="app.js?v=332"></script>
-<script src="guide.js?v=332"></script>
-<script src="prep.js?v=332"></script>
-<script src="fishing.js?v=332"></script>
-<script src="quest.js?v=332"></script>
-<script src="ui.js?v=332"></script>
-<script src="savefile.js?v=332"></script>
+<script src="data/ores.js?v=333"></script>
+<script src="data/fish.js?v=333"></script>
+<script src="data/locales.js?v=333"></script>
+<script src="data/meals.js?v=333"></script>
+<script src="data/canteen.js?v=333"></script>
+<script src="data/armorlines.js?v=333"></script>
+<script src="data/monsterparts.js?v=333"></script>
+<script src="data/armorstats.js?v=333"></script>
+<script src="data/themes.js?v=333"></script>
+<script src="theme.js?v=333"></script>
+<script src="game.js?v=333"></script>
+<script src="roll.js?v=333"></script>
+<script src="app.js?v=333"></script>
+<script src="guide.js?v=333"></script>
+<script src="prep.js?v=333"></script>
+<script src="fishing.js?v=333"></script>
+<script src="quest.js?v=333"></script>
+<script src="ui.js?v=333"></script>
+<script src="savefile.js?v=333"></script>
 </body>
 </html>

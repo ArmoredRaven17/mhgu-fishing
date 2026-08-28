@@ -1146,13 +1146,30 @@ select{
    inactive subview, so the armor view — and the panel in it — stayed on screen
    under the Rods and Trade Cart tabs as well. */
 #viewArmor.subview.active{display:grid;gap:12px;
-                          grid-template-columns:250px minmax(0,1fr);align-items:start}
-#viewArmor > .worn-panel{grid-column:1;grid-row:1 / span 99;
-                         position:sticky;top:12px;margin:0}
-#viewArmor > .subtabs,#viewArmor > .panel:not(.worn-panel){grid-column:2}
+                          grid-template-columns:250px minmax(0,1fr);
+                          grid-template-rows:auto auto 1fr;align-items:start}
+/* Left column: what you have on, then which set you are looking at. Right: the
+   tier tabs and the pieces themselves. */
+#viewArmor > .worn-panel{grid-column:1;grid-row:1;margin:0}
+#viewArmor > .line-list{grid-column:1;grid-row:2 / span 2;position:sticky;top:12px}
+#viewArmor > .subtabs{grid-column:2;grid-row:1}
+#viewArmor > .panel:not(.worn-panel){grid-column:2;grid-row:2 / span 2}
+
+/* Fifty-six monsters is a list you scroll, not a strip you hunt along. Its own
+   scroller so the table beside it keeps its full height. */
+.line-list{display:flex;flex-direction:column;gap:2px;
+           max-height:calc(100vh - 220px);overflow-y:auto;padding-right:4px}
+.line-list .subtab{text-align:left;width:100%;border:0;border-radius:6px;
+                   padding:6px 10px;font-size:13px;white-space:nowrap;
+                   overflow:hidden;text-overflow:ellipsis}
+.line-list .subtab.active{font-weight:600}
 @media (max-width:860px){
   #viewArmor.subview.active{display:block}
   #viewArmor > .worn-panel{position:static;margin-bottom:12px}
+  /* Back to a strip on a narrow screen, where a column costs more than it buys. */
+  #viewArmor > .line-list{position:static;flex-direction:row;flex-wrap:wrap;
+                          max-height:none;overflow:visible;margin-bottom:10px}
+  .line-list .subtab{width:auto}
 }
 .worn-set,.worn-stat,.worn-skills{list-style:none;margin:0;padding:0}
 .worn-set li{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:6px;
