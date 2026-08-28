@@ -45,11 +45,6 @@ window.MF_MONSTER_PARTS = {
    "name": "Alatreon Pallium",
    "rarity": 8,
    "icon": "FourthGen-Carapace_Icon_Purple.png"
-  },
-  "top": {
-   "name": "Skyswayer",
-   "rarity": 9,
-   "icon": "MH4G-Claw_Icon_Purple.png"
   }
  },
  "amatsu": {
@@ -240,9 +235,9 @@ window.MF_MONSTER_PARTS = {
  },
  "hermitaur": {
   "Low": {
-   "name": "Black Pearl",
+   "name": "Hermitaur Shell",
    "rarity": 4,
-   "icon": "MH4G-Scale_Icon_Grey.png"
+   "icon": "FourthGen-Shell_Icon_Red.png"
   },
   "High": {
    "name": "Hermitaur Carapace",
@@ -250,9 +245,9 @@ window.MF_MONSTER_PARTS = {
    "icon": "FourthGen-Shell_Icon_Red.png"
   },
   "G": {
-   "name": "Timeworn Crimson Horn",
+   "name": "Hermitaur Cortex",
    "rarity": 8,
-   "icon": "MH4G-Claw_Icon_Red.png"
+   "icon": "FourthGen-Shell_Icon_Red.png"
   }
  },
  "deviljho": {
@@ -286,9 +281,9 @@ window.MF_MONSTER_PARTS = {
  },
  "duramboros": {
   "High": {
-   "name": "Duram Carapace",
+   "name": "Duramboros Horn+",
    "rarity": 6,
-   "icon": "FourthGen-Carapace_Icon_Green.png"
+   "icon": "MH4G-Claw_Icon_Green.png"
   },
   "G": {
    "name": "Duramboros Cortex",
@@ -315,38 +310,38 @@ window.MF_MONSTER_PARTS = {
    "icon": "FourthGen-Hide_Icon_Dark_Blue.png"
   },
   "G": {
-   "name": "Trunkspine+",
+   "name": "Gammoth Fur",
    "rarity": 8,
-   "icon": "FourthGen-Monster_Parts_Icon_Dark_Blue.png"
+   "icon": "FourthGen-Hide_Icon_Dark_Blue.png"
   }
  },
  "gendrome": {
   "Low": {
-   "name": "Genprey Scale",
+   "name": "Gendrome Fang",
    "rarity": 4,
-   "icon": "MH4G-Scale_Icon_Green.png"
+   "icon": "MH4G-Claw_Icon_Green.png"
   },
   "High": {
-   "name": "Genprey Scale+",
+   "name": "Gendrome Fang+",
    "rarity": 6,
-   "icon": "MH4G-Scale_Icon_Green.png"
+   "icon": "MH4G-Claw_Icon_Green.png"
   },
   "G": {
-   "name": "Genprey Shard",
+   "name": "Gendrome Hardfang",
    "rarity": 8,
-   "icon": "MH4G-Scale_Icon_Green.png"
+   "icon": "MH4G-Claw_Icon_Green.png"
   }
  },
  "giadrome": {
   "High": {
-   "name": "Giaprey Hide+",
+   "name": "Giadrome Claw+",
    "rarity": 6,
-   "icon": "MH4G-Hide_Icon_White.png"
+   "icon": "MH4G-Claw_Icon_White.png"
   },
   "G": {
-   "name": "Giaprey Shard",
+   "name": "Giadrome Talon",
    "rarity": 8,
-   "icon": "MH4G-Scale_Icon_White.png"
+   "icon": "MH4G-Claw_Icon_White.png"
   }
  },
  "glavenus": {
@@ -372,20 +367,10 @@ window.MF_MONSTER_PARTS = {
    "rarity": 4,
    "icon": "MH4G-Webbing_Icon_Green.png"
   },
-  "High": {
-   "name": "G.Rathian Scale+",
-   "rarity": 6,
-   "icon": "MH4G-Scale_Icon_Yellow.png"
-  },
   "G": {
-   "name": "G.Rathian Shard",
+   "name": "Rathian Weave",
    "rarity": 8,
-   "icon": "MH4G-Scale_Icon_Yellow.png"
-  },
-  "top": {
-   "name": "G.Rath Surspike",
-   "rarity": 9,
-   "icon": "MH4G-Monster_Parts_Icon_Yellow.png"
+   "icon": "MH4G-Webbing_Icon_Green.png"
   }
  },
  "gore_magala": {
@@ -412,14 +397,14 @@ window.MF_MONSTER_PARTS = {
    "icon": "FourthGen-Carapace_Icon_White.png"
   },
   "G": {
-   "name": "Monster Slogbone",
+   "name": "Gravios Cortex",
    "rarity": 8,
-   "icon": "MH4G-Bone_Icon_Grey.png"
+   "icon": "FourthGen-Carapace_Icon_White.png"
   }
  },
  "great_maccao": {
   "Low": {
-   "name": "Maccao Scale",
+   "name": "Great Maccao Scale",
    "rarity": 4,
    "icon": "MH4G-Scale_Icon_Dark_Green.png"
   },
@@ -436,19 +421,19 @@ window.MF_MONSTER_PARTS = {
  },
  "gypceros": {
   "Low": {
-   "name": "Rubbery Hide",
+   "name": "Gypceros Webbing",
    "rarity": 4,
-   "icon": "MH4G-Hide_Icon_Blue.png"
+   "icon": "MH4G-Webbing_Icon_Blue.png"
   },
   "High": {
-   "name": "Rubbery Hide+",
+   "name": "Gypceros Wing",
    "rarity": 6,
-   "icon": "MH4G-Hide_Icon_Blue.png"
+   "icon": "MH4G-Monster_Parts_Icon_Blue.png"
   },
   "G": {
-   "name": "Rubbery Finehide",
+   "name": "Gypceros Weave",
    "rarity": 8,
-   "icon": "MH4G-Hide_Icon_Blue.png"
+   "icon": "MH4G-Webbing_Icon_Blue.png"
   },
   "top": {
    "name": "Gypceros Hardhead",
@@ -458,14 +443,14 @@ window.MF_MONSTER_PARTS = {
  },
  "iodrome": {
   "Low": {
-   "name": "Ioprey Scale",
+   "name": "Iodrome Violet Scale",
    "rarity": 4,
-   "icon": "MH4G-Scale_Icon_Red.png"
+   "icon": "MH4G-Scale_Icon_Purple.png"
   },
   "High": {
-   "name": "Ioprey Scale+",
+   "name": "Iodrome Violet Scale+",
    "rarity": 6,
-   "icon": "MH4G-Scale_Icon_Red.png"
+   "icon": "MH4G-Scale_Icon_Purple.png"
   },
   "G": {
    "name": "Iodrome Violet Shard",
@@ -486,20 +471,10 @@ window.MF_MONSTER_PARTS = {
   }
  },
  "khezu": {
-  "Low": {
-   "name": "Flabby Hide",
-   "rarity": 4,
-   "icon": "MH4G-Hide_Icon_White.png"
-  },
-  "High": {
-   "name": "Pearl Hide",
-   "rarity": 6,
-   "icon": "MH4G-Hide_Icon_White.png"
-  },
   "G": {
-   "name": "Pearl Glosshide",
+   "name": "Khezu Special Cut",
    "rarity": 8,
-   "icon": "MH4G-Hide_Icon_White.png"
+   "icon": "MH4G-Monster_Parts_Icon_White.png"
   }
  },
  "kirin": {
@@ -551,11 +526,6 @@ window.MF_MONSTER_PARTS = {
    "name": "Lagiacrus Shard",
    "rarity": 8,
    "icon": "MH4G-Scale_Icon_Light_Blue.png"
-  },
-  "top": {
-   "name": "Giant Lobstershell",
-   "rarity": 9,
-   "icon": "FourthGen-Shell_Icon_Pink.png"
   }
  },
  "lagombi": {
@@ -596,17 +566,17 @@ window.MF_MONSTER_PARTS = {
  },
  "malfestio": {
   "Low": {
-   "name": "Azurefeather",
+   "name": "Malfestio Wingtalon",
    "rarity": 4,
-   "icon": "FourthGen-Monster_Parts_Icon_Dark_Blue.png"
+   "icon": "FourthGen-Claw_Icon_Dark_Blue.png"
   },
   "High": {
-   "name": "Azurefeather+",
+   "name": "Malfestio Wingtalon+",
    "rarity": 6,
-   "icon": "FourthGen-Monster_Parts_Icon_Dark_Blue.png"
+   "icon": "FourthGen-Claw_Icon_Dark_Blue.png"
   },
   "G": {
-   "name": "Azure Plume",
+   "name": "Malfestio Luckear",
    "rarity": 8,
    "icon": "FourthGen-Monster_Parts_Icon_Dark_Blue.png"
   },
@@ -628,9 +598,9 @@ window.MF_MONSTER_PARTS = {
    "icon": "FourthGen-Hide_Icon_Dark_Purple.png"
   },
   "G": {
-   "name": "Purple Mizutsune Tail",
+   "name": "Mizutsune Purplefell",
    "rarity": 8,
-   "icon": "FourthGen-Monster_Parts_Icon_Dark_Purple.png"
+   "icon": "FourthGen-Hide_Icon_Dark_Purple.png"
   }
  },
  "najarala": {
@@ -648,11 +618,6 @@ window.MF_MONSTER_PARTS = {
    "name": "Najarala Cortex",
    "rarity": 8,
    "icon": "FourthGen-Carapace_Icon_Brown.png"
-  },
-  "top": {
-   "name": "Heart-stopping Beak",
-   "rarity": 9,
-   "icon": "MH4G-Bone_Icon_Brown.png"
   }
  },
  "nakarkos": {
@@ -691,14 +656,14 @@ window.MF_MONSTER_PARTS = {
  },
  "nerscylla": {
   "High": {
-   "name": "Rubbery Hide+",
+   "name": "Nerscylla Carapace",
    "rarity": 6,
-   "icon": "MH4G-Hide_Icon_Blue.png"
+   "icon": "FourthGen-Carapace_Icon_White.png"
   },
   "G": {
-   "name": "Rubbery Finehide",
+   "name": "Nerscylla Cortex",
    "rarity": 8,
-   "icon": "MH4G-Hide_Icon_Blue.png"
+   "icon": "FourthGen-Carapace_Icon_White.png"
   }
  },
  "nibelsnarf": {
@@ -708,9 +673,9 @@ window.MF_MONSTER_PARTS = {
    "icon": "FourthGen-Carapace_Icon_Brown.png"
   },
   "High": {
-   "name": "Nibel Carapace",
+   "name": "Nibelsnarf Hide+",
    "rarity": 6,
-   "icon": "MH4G-Monster_Parts_Icon_Yellow.png"
+   "icon": "MH4G-Hide_Icon_Brown.png"
   },
   "G": {
    "name": "Nibelsnarf Cortex",
@@ -740,11 +705,6 @@ window.MF_MONSTER_PARTS = {
    "name": "Plesioth Hardfang",
    "rarity": 8,
    "icon": "MH4G-Claw_Icon_Blue.png"
-  },
-  "top": {
-   "name": "Giant Lobstershell",
-   "rarity": 9,
-   "icon": "FourthGen-Shell_Icon_Pink.png"
   }
  },
  "rajang": {
@@ -851,9 +811,9 @@ window.MF_MONSTER_PARTS = {
    "icon": "MH4G-Scale_Icon_Yellow.png"
   },
   "G": {
-   "name": "Monster Slogbone",
+   "name": "Seregios Slavescale+",
    "rarity": 8,
-   "icon": "MH4G-Bone_Icon_Grey.png"
+   "icon": "MH4G-Scale_Icon_Yellow.png"
   }
  },
  "shagaru_magala": {
@@ -875,9 +835,9 @@ window.MF_MONSTER_PARTS = {
  },
  "ceanataur": {
   "Low": {
-   "name": "Black Pearl",
+   "name": "Ceanataur Shell",
    "rarity": 4,
-   "icon": "MH4G-Scale_Icon_Grey.png"
+   "icon": "FourthGen-Shell_Icon_Blue.png"
   },
   "High": {
    "name": "Ceanataur Carapace",
@@ -892,26 +852,26 @@ window.MF_MONSTER_PARTS = {
  },
  "silver_rathalos": {
   "High": {
-   "name": "S.Rathalos Scale+",
+   "name": "Rathalos Wing",
    "rarity": 6,
-   "icon": "MH4G-Scale_Icon_White.png"
+   "icon": "MH4G-Monster_Parts_Icon_Red.png"
   },
   "G": {
-   "name": "S.Rathalos Shard",
+   "name": "Rathalos Fellwing",
    "rarity": 8,
-   "icon": "MH4G-Scale_Icon_White.png"
+   "icon": "MH4G-Monster_Parts_Icon_Red.png"
   }
  },
  "teostra": {
   "Low": {
-   "name": "Fire Dragon Scale",
+   "name": "Teostra Webbing",
    "rarity": 4,
-   "icon": "MH4G-Scale_Icon_Red.png"
+   "icon": "MH4G-Webbing_Icon_Red.png"
   },
   "High": {
-   "name": "Fire Dragon Scale+",
+   "name": "Teostra Carapace",
    "rarity": 6,
-   "icon": "MH4G-Scale_Icon_Red.png"
+   "icon": "FourthGen-Carapace_Icon_Red.png"
   },
   "G": {
    "name": "Teostra Cortex",
@@ -934,11 +894,6 @@ window.MF_MONSTER_PARTS = {
    "name": "Tetsucabra Cortex",
    "rarity": 8,
    "icon": "FourthGen-Carapace_Icon_Red.png"
-  },
-  "top": {
-   "name": "Vicious Visage",
-   "rarity": 9,
-   "icon": "MH4G-Bone_Icon_Red.png"
   }
  },
  "tigrex": {
@@ -989,9 +944,9 @@ window.MF_MONSTER_PARTS = {
  },
  "valstrax": {
   "High": {
-   "name": "Burned Husk",
+   "name": "Valstrax Tail",
    "rarity": 6,
-   "icon": "FourthGen-Carapace_Icon_Grey.png"
+   "icon": "MH4G-Monster_Parts_Icon_White.png"
   },
   "G": {
    "name": "Valstrax Cortex",
@@ -1001,19 +956,19 @@ window.MF_MONSTER_PARTS = {
  },
  "velocidrome": {
   "Low": {
-   "name": "Velociprey Scale",
+   "name": "Velocidrome Claw",
    "rarity": 4,
-   "icon": "MH4G-Scale_Icon_Blue.png"
+   "icon": "MH4G-Claw_Icon_Blue.png"
   },
   "High": {
-   "name": "Velociprey Scale+",
+   "name": "Velocidrome Claw+",
    "rarity": 6,
-   "icon": "MH4G-Scale_Icon_Blue.png"
+   "icon": "MH4G-Claw_Icon_Blue.png"
   },
   "G": {
-   "name": "Velociprey Shard",
+   "name": "Velocidrome Talon",
    "rarity": 8,
-   "icon": "MH4G-Scale_Icon_Blue.png"
+   "icon": "MH4G-Claw_Icon_Blue.png"
   }
  },
  "volvidon": {

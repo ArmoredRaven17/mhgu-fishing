@@ -314,13 +314,12 @@
     const tiersHere = ['Low', 'High', 'G'].filter(r =>
       knownArmor.some(a => a.line === smithyLine && a.rank === r));
     if (!tiersHere.includes(smithyTier)) smithyTier = tiersHere[0] || '';
-    const tierLabel = (rank, i) => {
-      const suffix = G.armorSuffix(i, tiersHere.length).trim();
-      return suffix || 'Base';
-    };
+    // The tab says what the pieces under it are called, so it reads the rank the
+    // same way their names now do.
+    const tierLabel = rank => G.armorSuffix(rank).trim() || 'Base';
     el('armorPieces').innerHTML = !lines.length ? '' : tiersHere.map((r, i) =>
       `<button class="subtab ${r === smithyTier ? 'active' : ''}" data-tier="${r}">${
-        tierLabel(r, i)}</button>`).join('');
+        tierLabel(r)}</button>`).join('');
     el('armorPieces').querySelectorAll('[data-tier]').forEach(btn =>
       btn.onclick = () => { smithyTier = btn.dataset.tier; renderSmithy(); });
 

@@ -794,6 +794,13 @@ for (const r of q(`SELECT h.item_id, COUNT(DISTINCT h.monster_id) n
                    FROM hunting_rewards h GROUP BY h.item_id`))
   dropCount.set(r.item_id, r.n);
 const SPECIFIC = 3;
+// Words that lead a shared material rather than a monster's own part.
+const GENERIC_HEADS = new Set(['Monster', 'Large', 'Small', 'Wyvern', 'Dragon',
+  'Dragonbone', 'Ancient', 'Rare', 'Hard', 'Sharp', 'Pale', 'Bird', 'Piscine',
+  'Elder', 'Quality', 'Fucium', 'Carbalite', 'Machalite']);
+const allDrops = db.prepare(`SELECT i._id, i.name FROM hunting_rewards h
+   JOIN items i ON i._id = h.item_id JOIN monsters m ON m._id = h.monster_id
+   WHERE m.name = ? AND i.sell > 0 GROUP BY i._id`);
 // Hide, scale, shell, carapace, webbing, husk: the kinds a set is built from.
 // Fang and bone belong here as well as hide and scale — they are what half the
 // roster's armor is actually made of, and leaving them out cost a lot of lines
@@ -811,10 +818,30 @@ const monsterParts = {};
 for (const m of q(`SELECT name FROM monsters WHERE class = '0' ORDER BY name`)) {
   if (VARIANTS.includes(m.name)) continue;
   const [id] = LINE_ALIAS[m.name] || [slug(m.name)];
+  // What this monster's parts are actually CALLED. Not derivable from its name —
+  // Cephadrome drops Cephalos parts, Royal Ludroth "R.Ludroth", Seltas Queen
+  // "S.Queen" — so it is read back out of the drops themselves: the first word
+  // that leads the most of them.
+  const prefix = (() => {
+    const tally = new Map();
+    for (const r of allDrops.all(m.name)) {
+      if ((dropCount.get(r._id) || 99) > SPECIFIC) continue;
+      const head = r.name.split(' ')[0];
+      if (GENERIC_HEADS.has(head)) continue;
+      tally.set(head, (tally.get(head) || 0) + 1);
+    }
+    let best = null, n = 0;
+    for (const [head, count] of tally) if (count > n) { best = head; n = count; }
+    return n >= 2 ? best : null;
+  })();
   const tiers = {};
   for (const [rank, rarity] of PART_TIERS) {
     const rows = partPick.all(m.name, String(rarity))
-      .filter(r => (dropCount.get(r._id) || 99) <= SPECIFIC);
+      .filter(r => (dropCount.get(r._id) || 99) <= SPECIFIC)
+      // ...and named after the monster. Rarity and drop-count alone still let
+      // through things like Monster Slogbone and Dragonbone Relic: shared by few
+      // monsters, a real drop, and no more a Deviljho part than a rock is.
+      .filter(r => prefix && r.name.startsWith(prefix));
     // The things armor is made OF, and NOTHING else. Falling back to "cheapest
     // whatever" put an Aqua Sac in the marketplace as a Kecha Wacha part: a real
     // drop, a generic item the combine system already owns, and no kind of

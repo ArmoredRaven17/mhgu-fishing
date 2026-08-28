@@ -2039,10 +2039,18 @@
   })();
   const monsterMatById = new Map(MONSTER_MATS.map(m => [m.id, m]));
 
-  // S is the MIDDLE of a line, not "the High Rank one". A line with only two
-  // suits has no middle, so it runs base then X — the same shape the skill names
-  // take, where a two-tier skill goes Sure Grip -> Master's Grip with no `+`.
-  const armorSuffix = (i, n) => (i === 0 && n > 1) ? '' : (i === n - 1 ? ' X' : ' S');
+  // The suffix follows the RANK, exactly as MHGU's own armor does: base at Low,
+  // S at High, X at G.
+  //
+  // It used to be POSITIONAL — first of the line plain, last of the line X — on
+  // the reasoning that S is the middle and a two-suit line has no middle. That
+  // held while there were eight lines with two or three tiers each. It does not
+  // hold now: a line with a single tier got `armorSuffix(0, 1)` and came out X
+  // whatever rank it actually was, so twenty-three lines had a Low or High piece
+  // called X, wearing the skills of the rank it really is. Raven caught it on
+  // Bulldrome. Thirty pieces in total disagreed with their own name.
+  const RANK_SUFFIX = { Low: '', High: ' S', G: ' X' };
+  const armorSuffix = rank => RANK_SUFFIX[rank] || '';
   // What a suit is worth defensively, before its levels. HP and stamina replace
   // Vitality and Endurance outright, so a G suit at full level lands near where
   // twenty levels of each used to.
@@ -2514,7 +2522,7 @@
         for (const slot of PIECE_SLOTS) {
           out.push({
             id: `${line}_${slot}_${rank.toLowerCase()}`, line, rank, slot,
-            name: `${armorLineName(line)} ${PIECE_LABEL[slot]}${armorSuffix(i, ranks.length)}`,
+            name: `${armorLineName(line)} ${PIECE_LABEL[slot]}${armorSuffix(rank)}`,
             ...ARMOR_PIECE_BASE[rank],
             // Levels are the board's now, not the rank's. A G helm can carry a
             // level 2 where its chest carries a 1 — which is the whole reason
