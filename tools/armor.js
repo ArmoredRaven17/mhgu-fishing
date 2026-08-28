@@ -34,7 +34,11 @@
                     // one per gathering site: every material in fish.js carries a
                     // `site` of Gather, Bug or Mine, so the three are the game's
                     // own taxonomy rather than categories invented here.
-                    'siteGather', 'siteBug', 'siteMine'];
+                    'siteGather', 'siteBug', 'siteMine',
+                    // and one per remaining tunable nothing reads yet — see the
+                    // comments beside each name below for what it moves.
+                    'bobber', 'reach', 'hook', 'carry', 'duration',
+                    'cats', 'hire', 'fresh', 'bounty', 'salvage', 'basket'];
   const isProposed = k => PROPOSED.includes(k);
 
   // WORKING NAMES — one word for the thing the skill affects, nothing more.
@@ -48,6 +52,10 @@
   // would misdescribe them.
   const SPECIFIC = { cull: 'Shock Bobber', hotblood: 'Heat Hunter', guts: 'Guts' };
   const NAMES = {
+    // before the hook — a whole phase with nothing on it today
+    bobber:   'Bobber',      // POND.bobberStep / stepCooldownMs / glideRate
+    reach:    'Reach',       // POND.attract / attractRange, how far bait pulls
+    hook:     'Hooking',     // POND.hookChance, a nibble becoming a bite
     // the reel
     band:     'Sweetspot',   // how wide the sweet spot is
     progress: 'Capture',     // how fast the capture bar fills inside it
@@ -73,7 +81,18 @@
     brace:    'Brace',       // how much leeway a brace allows
     heat:     'Heat',        // heat protection
     cold:     'Cold',        // cold protection
+    // what you carry and what it lasts
+    carry:    'Carrying',    // POUCH_SLOTS / TACKLE_SLOTS / BAIT_CARRY
+    duration: 'Duration',    // DRINK_SECONDS / DASH_SECONDS / ARMOR_SECONDS.
+                             // Distinct from Items, which is potency not length
+    // who comes with you
+    cats:     'Cats',        // PALICO.max, how many you may bring
+    hire:     'Hire',        // PEST.hireCut, how much the watch turns away
+    fresh:    'Fresh',       // FRESH_CHANCE / FRESH_MAX at camp
     // the ledger
+    bounty:   'Bounty',      // BOSS_REWARD_MULT, monster pay only
+    basket:   'Basket',      // BASKET.target, fish needed for the bonus
+    salvage:  'Salvage',     // what survives a cart — nothing softens that today
     zenny:    'Value',       // what a catch is worth
     trade:    'Trade',       // what the Trade Cart brings back
     haggle:   'Costs',       // what services charge
