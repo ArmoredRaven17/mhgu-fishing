@@ -16,10 +16,12 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
        font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
-  /* The right column hugs the grid now that the grid hugs its content, so the
-     page is as wide as it needs to be and no wider. */
+  /* Deliberately 1fr and not max-content: the right column also holds the totals
+     table and the export block, so sizing it to content made the PAGE wider than
+     the window and scrolled it sideways. The grid inside is fixed-width and sits
+     left; a little air to its right costs nothing. */
   .wrap{max-width:1500px;margin:0 auto;padding:16px;display:grid;gap:14px;
-        grid-template-columns:210px minmax(0,max-content);justify-content:start}
+        grid-template-columns:210px minmax(0,1fr)}
   h1{grid-column:1/-1;margin:0;font-size:17px;font-weight:600}
   h1 small{font-weight:400;opacity:.55;font-size:12px;margin-left:8px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:12px}
@@ -61,11 +63,13 @@
      scroller instead, and the palette stays where it is. */
   .grid-scroll{max-height:calc(100vh - 210px);min-height:320px;overflow:auto;
                padding-right:4px}
-  /* Columns size to what is in them rather than splitting the width. As 1fr they
-     stayed wide no matter how small the entries got, and the grid sprawled across
-     the screen holding mostly air. `justify-content:start` stops the whole grid
-     stretching once the columns have what they need. */
-  .grid{display:grid;grid-template-columns:118px repeat(3,minmax(72px,max-content)) minmax(84px,max-content);
+  /* FIXED widths, deliberately not max-content. Entries wrap inside a cell, but
+     max-content measures as though they never do — so a piece holding five skills
+     dragged its whole column out to 328px, and every drop made the browser
+     recompute intrinsic widths across 355 cells. That is what was widening the
+     columns again and what was hanging Edge. Fixed columns cost nothing to lay
+     out and cannot be pushed around by their contents. */
+  .grid{display:grid;grid-template-columns:118px repeat(3,108px) 124px;
         gap:5px;justify-content:start}
   .ghead{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--dim);
          padding:4px 4px 4px;position:sticky;top:0;z-index:2;background:var(--card)}
@@ -86,6 +90,7 @@
   .cell{
     border:1px dashed var(--line);border-radius:7px;padding:4px;min-height:40px;
     display:flex;flex-wrap:wrap;align-items:flex-start;align-content:flex-start;gap:3px;
+    min-width:0;overflow:hidden;
   }
   .cell.over{border-style:solid;background:#ffffff0f}
   .cell.helm{border-left:3px solid var(--helm)}
