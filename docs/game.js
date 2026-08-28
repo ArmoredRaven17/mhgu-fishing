@@ -1660,8 +1660,8 @@
   },
   lagiacrus: {
     floor: 'High',
-    High: { helm: [{ k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 1 }, { k: 'combo', lvl: 1 }], chest: [{ k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 1 }, { k: 'combo', lvl: 1 }], waist: [{ k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 1 }, { k: 'combo', lvl: 1 }] },
-    G:    { helm: [{ k: 'zenny', lvl: 2 }, { k: 'bounty', lvl: 2 }, { k: 'combo', lvl: 1 }], chest: [{ k: 'zenny', lvl: 2 }, { k: 'bounty', lvl: 1 }, { k: 'combo', lvl: 1 }], waist: [{ k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 2 }, { k: 'combo', lvl: 1 }] },
+    High: { helm: [{ k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 1 }, { k: 'lure', lvl: 1 }], chest: [{ k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 1 }, { k: 'lure', lvl: 1 }], waist: [{ k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 1 }, { k: 'lure', lvl: 1 }] },
+    G:    { helm: [{ k: 'zenny', lvl: 2 }, { k: 'bounty', lvl: 2 }, { k: 'lure', lvl: 1 }], chest: [{ k: 'zenny', lvl: 2 }, { k: 'bounty', lvl: 1 }, { k: 'lure', lvl: 1 }], waist: [{ k: 'zenny', lvl: 1 }, { k: 'bounty', lvl: 2 }, { k: 'lure', lvl: 1 }] },
     setBonus: null,
   },
   lavasioth: {
