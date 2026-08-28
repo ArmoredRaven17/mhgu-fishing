@@ -579,12 +579,13 @@
     if (e.stamina) trip.sta = Math.min(trip.maxSta, trip.sta + e.stamina * more);
     // A Hot Drink is the wrong drink for hot water, but Tropic Hunter wants it
     // there, so track it whether or not it is guarding you against anything.
-    // NOT Effect Up. Making a drink last longer is Heat Resist's and Cold
-    // Resist's whole job, and two skills doing one job means neither reads as
-    // its own thing. Duration is the other half and lives inside drinkSeconds.
-    if (e.protects === 'cold') trip.hotDrinkLeft = G.drinkSeconds(A.state.gear);
+    // A drink's length is Heat Resist's and Cold Resist's business and NOBODY
+    // else's — not Effect Up, not Duration. Two skills doing one job means
+    // neither reads as its own thing, and three meant a drink could run twenty
+    // minutes. The climate skill is the only multiplier here.
+    if (e.protects === 'cold') trip.hotDrinkLeft = G.DRINK_SECONDS;
     if (e.protects === trip.climate)
-      trip.drinkLeft = G.drinkSeconds(A.state.gear) * G.climateFor(A.state.gear, trip.climate).drinkMult;
+      trip.drinkLeft = G.DRINK_SECONDS * G.climateFor(A.state.gear, trip.climate).drinkMult;
     // Dash and Armorskin DO take Effect Up — on how much they do, never on how
     // long they last, because how long is Duration's job and doubling up there
     // would recreate exactly the overlap the drinks just lost.

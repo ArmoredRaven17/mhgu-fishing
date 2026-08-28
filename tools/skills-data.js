@@ -54,7 +54,7 @@
     { k: 'heat',       name: 'Heat',       group: 'The trip', at: 'heat protection' },
     { k: 'cold',       name: 'Cold',       group: 'The trip', at: 'cold protection' },
     { k: 'carry',      name: 'Carrying',   group: 'The trip', at: 'POUCH_SLOTS / TACKLE_SLOTS / BAIT_CARRY' },
-    { k: 'duration',   name: 'Duration',   group: 'The trip', at: 'DRINK_SECONDS / DASH_SECONDS / ARMOR_SECONDS' },
+    { k: 'duration',   name: 'Duration',   group: 'The trip', at: 'DASH_SECONDS / ARMOR_SECONDS — not drinks' },
     { k: 'hire',       name: 'Hire',       group: 'The trip', at: 'PEST.hireCut, how much the watch turns away' },
     { k: 'fresh',      name: 'Fresh',      group: 'The trip', at: 'FRESH_CHANCE / FRESH_MAX at camp' },
 
@@ -105,7 +105,8 @@
                         + ' (from ' + G.POND.stepCooldownMs + 'ms)',
     carry:      (G, g) => G.pouchSlots(g) + ' pouch, ' + G.tackleSlots(g) + ' bait kinds, '
                         + G.baitCarry(g) + ' of each',
-    duration:   (G, g) => 'drinks last ' + Math.round(G.drinkSeconds(g)) + 's (from ' + G.DRINK_SECONDS + 's)',
+    duration:   (G, g) => 'Dash and Armorskin last ' + Math.round(G.dashSeconds(g))
+                        + 's (from ' + G.DASH_SECONDS + 's), drinks unaffected',
     vigor:      (G, g) => 'HP and Stamina +' + pct(G.effectPower(g, 'vigor')),
     defense:    (G, g) => 'damage -' + pct(G.effectPower(g, 'defense')),
     brace:      (G, g) => 'brace by ' + G.braceHoldMs(g) + 'ms (from ' + G.BOSS_ATTACK.holdMs + 'ms)',

@@ -1367,13 +1367,24 @@
                 blurb: 'The Trade Cart will obtain more items' },
     combo:    { name: 'Steady Mixer',     per: 0.08,
                 blurb: 'Increases your combo success chances' },
-    defense:  { name: 'Defense Up',       per: 0.18,
+    // 0.18 was the three-level value. Over five levels it reached 90% off a
+    // hit, which is most of the way to not being attacked at all.
+    defense:  { name: 'Defense Up',       per: 0.10,
                 blurb: 'When attacked by a monster, you take less damage' },
     stamina:  { name: 'Long Haul',        per: 0.08,
                 blurb: 'Casting and reeling cost less stamina' },
     effectup: { name: 'Effect Up',        per: 0.25,
                 blurb: 'Increases the effects of items' },
-    repel:    { name: "Fisherman's Talisman", per: 0.35,
+    // 0.08 a level, so five levels land on exactly 40% and every level counts.
+    //
+    // It was 0.35 — a three-level figure that went past 1.0 at Lv 3 once the cap
+    // rose to five. pestChance multiplies by `1 - repel`, so it went NEGATIVE,
+    // and `rng() >= chance` is always true against a negative: levels 3 to 5
+    // were not "175% repel", they were silent, total immunity to small monsters.
+    //
+    // 40% also keeps it under the Hunter for Hire's 85%, which is the point of
+    // the hire — a reputation should not beat a man standing watch.
+    repel:    { name: "Fisherman's Talisman", per: 0.08,
                 blurb: 'Repels small monsters, making attacks from them less common' },
     guts:     { name: 'Guts',             flag: true,
                 blurb: 'Once per trip, instead of carting from any HP, you will be left with 1 HP.' },
@@ -1404,13 +1415,13 @@
     siteGather: { name: 'Gathering',  per: 0.14, blurb: '' },  // Gather sites
     siteBug:    { name: 'Bugs',       per: 0.14, blurb: '' },  // Bug sites
     siteMine:   { name: 'Mining',     per: 0.14, blurb: '' },  // Mine sites
-    vigor:      { name: 'Vitality',   per: 0.10, blurb: '' },  // HP and Stamina carried
+    vigor:      { name: 'Vitality',   per: 0.05, blurb: '' },  // HP and Stamina carried
     // 0.20 took holdMs to ZERO at the cap, deleting the mechanic rather than
     // easing it. 0.12 leaves 100ms, which still has to be a deliberate hold.
     brace:      { name: 'Brace',      per: 0.12, blurb: '' },  // BOSS_ATTACK.holdMs
     // 0.20 doubled the pouch at the cap. 0.10 takes 10 slots to 15.
     carry:      { name: 'Carrying',   per: 0.10, blurb: '' },  // POUCH_SLOTS / TACKLE_SLOTS / BAIT_CARRY
-    duration:   { name: 'Duration',   per: 0.20, blurb: '' },  // DRINK_SECONDS / DASH_SECONDS / ARMOR_SECONDS
+    duration:   { name: 'Duration',   per: 0.20, blurb: '' },  // DASH_SECONDS / ARMOR_SECONDS
     hire:       { name: 'Hire',       per: 0.20, blurb: '' },  // PEST.hireCut
     fresh:      { name: 'Fresh',      per: 0.15, blurb: '' },  // FRESH_CHANCE / FRESH_MAX
     bounty:     { name: 'Bounty',     per: 0.15, blurb: '' },  // BOSS_REWARD_MULT
@@ -2622,7 +2633,8 @@
   const tackleSlots = gear => Math.round(up(gear, 'carry', TACKLE_SLOTS));
   const baitCarry = gear => Math.round(up(gear, 'carry', BAIT_CARRY));
 
-  const drinkSeconds = gear => up(gear, 'duration', DRINK_SECONDS);
+  // No drinkSeconds: a drink's length belongs to Heat Resist and Cold Resist,
+  // so Duration deliberately cannot reach it.
   const dashSeconds = gear => up(gear, 'duration', DASH_SECONDS);
   const armorSeconds = gear => up(gear, 'duration', ARMOR_SECONDS);
 
@@ -2683,7 +2695,7 @@
     TRADE_CART, TRADE_CART_MAX, TRADE_CART_UNLOCK_HR, cartAt, cartTierOpen,
     MATERIALS, materialById, isBuyableMat, isQuestRewardMat, MAT_BUYABLE, pouchItems, pouchItemById,
     POUCH_SLOTS, TACKLE_SLOTS, BAIT_CARRY, carryLimit, ownCap, SUPPLY_RANK, SUPPLY_EACH,
-    pouchSlots, tackleSlots, baitCarry, drinkSeconds, dashSeconds, armorSeconds,
+    pouchSlots, tackleSlots, baitCarry, dashSeconds, armorSeconds,
     freshChance, freshMax, hireCut, haggle, basketTarget, braceHoldMs,
     partsChance, siteChance, xpGain, pondFor,
     DESIGNED_POOLS, ARENA_POOL, RANK_ORDER, rankIndex, SHOW_DESIGNED_LOCALES,
