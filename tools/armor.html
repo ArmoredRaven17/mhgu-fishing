@@ -21,10 +21,12 @@
   h1{grid-column:1/-1;margin:0;font-size:17px;font-weight:600}
   h1 small{font-weight:400;opacity:.55;font-size:12px;margin-left:8px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:12px}
+  /* Stays beside the grid however far down the page you go. */
+  .wrap > .card:first-of-type{position:sticky;top:16px;align-self:start}
   h2{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--dim)}
 
   /* ── Palette ─────────────────────────────────────────────────────────── */
-  .pal{display:grid;gap:3px;max-height:78vh;overflow-y:auto}
+  .pal{display:grid;gap:3px;max-height:calc(100vh - 150px);overflow-y:auto}
   .chip{
     background:#232833;border:1px solid var(--line);border-radius:6px;
     padding:4px 8px;font-size:12.5px;cursor:grab;user-select:none;
@@ -51,9 +53,15 @@
   .count{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
 
   /* ── The grid ────────────────────────────────────────────────────────── */
+  /* Seventy-one lines is taller than any screen, and the palette you drag FROM
+     sits beside it — so if the page scrolls, the source leaves the viewport and
+     the lines further down cannot be reached at all. The grid gets its own
+     scroller instead, and the palette stays where it is. */
+  .grid-scroll{max-height:calc(100vh - 210px);min-height:320px;overflow-y:auto;
+               padding-right:4px}
   .grid{display:grid;grid-template-columns:112px repeat(3,minmax(0,1fr)) 156px;gap:6px}
   .ghead{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--dim);
-         padding:0 4px 2px}
+         padding:4px 4px 4px;position:sticky;top:0;z-index:2;background:var(--card)}
   .lname{display:flex;align-items:center;font-weight:600;font-size:13px;color:var(--dim)}
   /* The eight whose parts you FISH. Everything else is Trader-only. */
   .lname.fished{color:var(--ink)}
@@ -136,7 +144,7 @@
         <button class="act" id="clear">Clear all</button>
         <button class="act" id="copy">Copy output</button>
       </div>
-      <div class="grid" id="grid"></div>
+      <div class="grid-scroll"><div class="grid" id="grid"></div></div>
     </div>
 
     <div class="card">

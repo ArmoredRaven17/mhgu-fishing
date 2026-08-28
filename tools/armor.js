@@ -291,6 +291,13 @@
   }
 
   function renderGrid() {
+    // Every drop re-renders the whole grid, and the grid lives in its own
+    // scroller. Without this, dropping on a line near the bottom would throw you
+    // back to the top — which is most of the way back to the problem the
+    // scroller was added to fix.
+    const scroller = document.querySelector('.grid-scroll');
+    const keepScroll = scroller ? scroller.scrollTop : 0;
+
     const head = `<div class="ghead"></div>`
       + PIECES.map(p => `<div class="ghead">${p.label}</div>`).join('')
       + `<div class="ghead">Set bonus &middot; all three</div>`;
@@ -337,6 +344,7 @@
     }).join('');
 
     el('grid').innerHTML = head + rows;
+    if (scroller) scroller.scrollTop = keepScroll;
     el('shownCount').textContent = shown.length + ' of ' + lineIds.length + ' lines';
 
     // Sorting by rank while changing a floor would jump the row out from under
