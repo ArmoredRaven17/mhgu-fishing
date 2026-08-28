@@ -32,7 +32,11 @@
   fill('rod', G.RODS.map(r => ({ id: r.id, name: r.name + ' (' + r.rank + ')' })), 'bare hands');
   for (const slot of G.PIECE_SLOTS)
     fill('armor' + slot[0].toUpperCase() + slot.slice(1),
-         G.ARMORS.filter(a => a.slot === slot).map(a => ({ id: a.id, name: a.name })), 'none');
+         G.ARMORS.filter(a => a.slot === slot)
+           // Forgeable first, so the eleven lines the game can actually make are
+           // not buried among sixty that are waiting on the Trader.
+           .sort((a, b) => (b.forgeable - a.forgeable) || a.name.localeCompare(b.name))
+           .map(a => ({ id: a.id, name: a.name + (a.forgeable ? '' : '  (exchange)') })), 'none');
   // A real locale rather than a bare climate, so the climate comes off the game's
   // own map — what the bench tests is somewhere you can actually stand.
   fill('locale', (window.MF_LOCALES || []).filter(l => l.hasFishing)
@@ -139,7 +143,8 @@
           return row('still biting', kept.length + ' of ' + all.length + ' varieties')
             + row('', kept.map(x => x.name).join(', '));
         })()
-      + row('forged from', pieces.map(p => p.matCount + ' x ' + (p.mat ? p.mat.name : '-')).join(', '))
+      + row('forged from', pieces.every(p => !p.forgeable) ? 'exchange line — no material yet'
+          : pieces.map(p => p.forgeable ? p.matCount + ' x ' + p.mat.name : 'exchange').join(', '))
       + (() => {
           const ctx = { climate: G.climateOf(el('locale').value),
                         hotDrink: el('hotDrink').checked };

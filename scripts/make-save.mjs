@@ -130,7 +130,7 @@ for (const l of LOCALES) {
 
 // ── Gear ────────────────────────────────────────────────────────────────────
 const rods = G.RODS.filter(r => rankOK(r.rank));
-const armors = G.ARMORS.filter(a => rankOK(a.rank));
+const armors = G.ARMORS.filter(a => a.forgeable && rankOK(a.rank));
 const gearOwned = { rod_old: 0 };
 for (const r of rods) gearOwned[r.id] = S.gearLevel();
 // At Low Rank you have forged the set whose monster you have actually been

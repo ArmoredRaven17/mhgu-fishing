@@ -1147,6 +1147,13 @@
   const BAND_WIDE = 0.22;      // half-width for the cheapest thing in the water
   const BAND_TIGHT = 0.055;    // ...and for the most valuable
   const BAND_FLOOR = 0.045;    // never narrower than this, whatever the rung
+  // How long you get to notice a bite, read off the same value scale the band is.
+  // The window has to be long enough to NOTICE, not merely long enough to react
+  // to: under a second is a reflex test you can only pass by already expecting it,
+  // which is the opposite of watching for a bite. So the tight end stays well
+  // clear of that even before Strike widens it.
+  const STRIKE_WIDE = 2800;    // ms on the cheapest thing in the water
+  const STRIKE_TIGHT = 1400;   // ...and on the most valuable
   // How much the rung itself closes the band, on top of what the catch is worth.
   // This is the dial that decides whether G Rank asks anything of you: the value
   // scale spans all 240 variants, but what you actually catch clusters near the
@@ -1252,10 +1259,18 @@
       // even if the line never reaches either extreme. This is the fish's half of
       // the contest rather than another way for you to be punished.
       escapePerSec: (1000 / (durationMs * 0.6)) * 1.3 * (1 - effectPower(armor, 'escape')),
-      // The window has to be long enough to NOTICE, not just long enough to
-      // react to. Anything under a second is a reflex test you can only pass by
-      // already expecting it, which is the opposite of watching for a bite.
-      strikeWindowMs: Math.max(1600, 2800 - r * 80 - o * 100) * (1 + effectPower(armor, 'strike')),
+      // Inverse to what the fish is WORTH: the dearer the catch, the less time
+      // you get to answer it.
+      //
+      // It was `2800 - rarity * 80 - oreRank * 100`, the same coarse pair the band
+      // gave up for exactly this reason. That was not merely imprecise, it was not
+      // even monotonic — a 437z Purecrystal Sushifish allowed 2520ms while a 15z
+      // Iron Glutton Tuna allowed 2480, because rarity and ore rank can disagree
+      // with price. `vt` is value on a log scale across the whole span, so every
+      // step up in what you are holding visibly shortens the window. Bounded by
+      // construction — vt is 0..1 — so no floor is needed.
+      strikeWindowMs: (STRIKE_WIDE - vt * (STRIKE_WIDE - STRIKE_TIGHT))
+        * (1 + effectPower(armor, 'strike')),
     };
   }
 
@@ -1365,7 +1380,9 @@
                 blurb: 'When gathering, Palicos often find more items' },
     trade:    { name: 'Fair Trade',       per: 0.25,
                 blurb: 'The Trade Cart will obtain more items' },
-    combo:    { name: 'Steady Mixer',     per: 0.08,
+    // Capped at 30% because there are only three Books of Fishing Combos, and a
+    // skill that outruns the whole book ladder makes the books pointless.
+    combo:    { name: 'Steady Mixer',     per: 0.06,
                 blurb: 'Increases your combo success chances' },
     // 0.18 was the three-level value. Over five levels it reached 90% off a
     // hit, which is most of the way to not being attacked at all.
@@ -2344,15 +2361,20 @@
   const ARMORS = (() => {
     const out = [];
     for (const [line, L] of Object.entries(ARMOR_PIECES)) {
-      // No materials, no way to forge it. The sixty exchange lines sit here with
-      // a full assignment and no entries until the Trader gives them a material.
-      if (!MAT_LINES[line]) continue;
+      // Every line gets entries, INCLUDING the sixty with no material yet — the
+      // benches have to be able to try armor the game cannot yet hand out, and
+      // building it here beats a second, divergent list inside a tool.
+      //
+      // `forgeable` is what separates them. A piece with no material can never be
+      // known in the smithy anyway (it filters on holding that material), but the
+      // save-maker and the sim both pick out of this list and must say so.
+      const mats = MAT_LINES[line];
       // A tier needs BOTH a real part name and a monster you can meet at that
       // rank to drop it. Reading only the first is what produced three suits
       // nobody could ever forge.
       const boss = Object.values(BOSS).find(b => b.line === line);
       const ranks = ['Low', 'High', 'G'].filter(r =>
-        L[r] && MAT_LINES[line][r] && (!boss || bossMeetableAt(boss.name, r)));
+        L[r] && (!mats || (mats[r] && (!boss || bossMeetableAt(boss.name, r)))));
       ranks.forEach((rank, i) => {
         for (const slot of PIECE_SLOTS) {
           out.push({
@@ -2363,7 +2385,8 @@
             // level 2 where its chest carries a 1 — which is the whole reason
             // three pieces are worth having.
             effects: (L[rank][slot] || []).map(e => ({ key: e.k, lvl: e.lvl })),
-            mat: bossMat(line, rank),
+            mat: mats ? bossMat(line, rank) : null,
+            forgeable: !!mats,
             matCount: 1,
             cost: rank === 'Low' ? 600 : rank === 'High' ? 3000 : 11400,
             levelCost: n => Math.round((rank === 'Low' ? 235 : rank === 'High' ? 1070 : 3670) * Math.pow(1.45, n)),

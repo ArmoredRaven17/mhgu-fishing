@@ -155,8 +155,11 @@
     // something, which turns the list into a record of what you have met rather
     // than a catalogue of everything in the game. Anything already forged stays
     // listed whatever you have spent since.
-    const knownArmor = G.ARMORS.filter(g =>
-      A.gearOwned(g.id) || (g.mat && (S.mats[g.mat.id] || 0) > 0));
+    // `forgeable` is explicit rather than implied by `g.mat`: the sixty exchange
+    // lines are in ARMORS now so the benches can reach them, and the smithy must
+    // not list armor the game has no way to make.
+    const knownArmor = G.ARMORS.filter(g => g.forgeable
+      && (A.gearOwned(g.id) || (g.mat && (S.mats[g.mat.id] || 0) > 0)));
     // A set at a time. Three tiers of one line side by side is the comparison a
     // player is actually making — "should I climb this line or start another" —
     // and eight lines in one list buried it.

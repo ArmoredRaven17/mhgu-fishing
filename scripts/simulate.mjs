@@ -213,10 +213,10 @@ function rankGear(hr) {
   // chasing particular skills and the sim cannot guess which, but a whole set of
   // whatever is available at the rank is the honest baseline — and it is the
   // case that earns the set bonus, so the sim sees that too.
-  const line = (G.ARMORS.find(a => a.rank === rank) || {}).line;
+  const line = (G.ARMORS.find(a => a.forgeable && a.rank === rank) || {}).line;
   const gear = { rod: rod ? { id: rod.id, lvl: 3 } : null };
   for (const slot of G.PIECE_SLOTS) {
-    const piece = line && G.ARMORS.find(a => a.rank === rank && a.line === line && a.slot === slot);
+    const piece = line && G.ARMORS.find(a => a.forgeable && a.rank === rank && a.line === line && a.slot === slot);
     gear[slot] = piece ? { id: piece.id, lvl: 3 } : null;
   }
   return gear;
