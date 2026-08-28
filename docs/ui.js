@@ -216,9 +216,12 @@
       const skills = armor
         ? g.effects.map(e => `<span class="ent">${G.effectName(e.key, e.lvl)}</span>`).join('')
         : '';
-      let detail = armor
-        ? g.effects.map(e => `<span class="ent">${G.effectBlurb(e.key, e.lvl)}</span>`).join('')
-        : `<span class="ent">${g.desc || ''}</span>`;
+      // No skill descriptions on an armor row. A piece can carry six, and six
+      // sentences beside six names turned a row you scan into a row you read —
+      // when what you came to the smithy to compare is which piece has what and
+      // what it costs. The Equipment panel says what a skill DOES, once, for the
+      // set you are actually wearing.
+      let detail = armor ? '' : `<span class="ent">${g.desc || ''}</span>`;
       // What the suit is actually worth, and what a level buys. Levelling armor
       // does NOT strengthen its skills — those are fixed by the tier — so
       // without this the Upgrade button spends money on nothing you can see.
