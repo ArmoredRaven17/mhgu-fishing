@@ -65,10 +65,6 @@
   // Three pieces that need not agree made "what am I actually carrying" a
   // question the smithy could not answer: every row there shows ONE piece, and
   // the levels stack across all three. This is the only place the total is said.
-  // Built once and written to every target that exists — the smithy panel and
-  // the camp tab show exactly the same thing, and the point of the camp copy is
-  // that it is the SAME answer without walking to the smithy for it. Two builders
-  // would drift, which is the failure this repo keeps repeating.
   function wornHTML() {
     const S = A.state;
     const line = G.wornSetLine(S.gear);
@@ -111,20 +107,17 @@
           : '<p class="hint">Nothing equipped.</p>'}`;
   }
 
-  // Both places, whichever happen to be on the page.
+  // The camp tab, and only the camp tab. It briefly had a panel down the side of
+  // the smithy as well; that cost more width than the answer was worth, and the
+  // smithy's own rows already say what each piece carries. The pane is already a
+  // panel-body, so it takes the content as it is.
   function renderWorn() {
-    const html = wornHTML();
-    const panel = el('wornPanel');
-    if (panel) panel.innerHTML = '<div class="panel-head">Equipment</div>'
-      + '<div class="panel-body">' + html + '</div>';
-    // The camp pane is already a panel-body, so it takes the content as it is.
     const camp = el('paneWorn');
-    if (camp) camp.innerHTML = html;
+    if (camp) camp.innerHTML = wornHTML();
   }
 
   function renderSmithy() {
     const S = A.state;
-    renderWorn();
 
     const matCell = (g) => {
       const parts = A.forgeParts(g.id);

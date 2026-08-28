@@ -1135,21 +1135,11 @@ select{
 
 
 /* ── What you are wearing ─────────────────────────────────────────────────
-   Shown in two places on purpose: a panel beside the smithy, and a camp tab, so
-   checking the set before departing does not mean leaving camp. One builder
-   feeds both. */
-.worn-panel{margin-bottom:12px}
-#smithy{display:grid;gap:12px;grid-template-columns:250px minmax(0,1fr);
-        align-items:start}
-/* The subtabs and every subview sit in the right-hand column; only the worn
-   panel takes the left. */
-#smithy > .subtabs,#smithy > .subview{grid-column:2}
-#smithy > .worn-panel{grid-column:1;grid-row:1 / span 99;position:sticky;top:12px}
-@media (max-width:860px){
-  #smithy{display:block}
-  #smithy > .worn-panel{position:static}
-}
-
+   The Equipment tab in camp, beside Locale, Canteen and Items. It briefly also
+   had a panel down the side of the smithy; that cost more width than the answer
+   was worth, and the smithy's own rows already say what each piece carries.
+   renderWorn still writes to any target that exists, so putting it back is one
+   element. */
 .worn-set,.worn-stat,.worn-skills{list-style:none;margin:0;padding:0}
 .worn-set li{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:6px;
              align-items:baseline;padding:3px 0;font-size:12px}
