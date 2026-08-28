@@ -6,7 +6,7 @@
 <title>MHGU Fishing</title>
 <!-- Whetfish: the first thing almost anyone catches here. -->
 <link rel="icon" type="image/png" href="assets/FishIcons/MH4G-Fish_Icon_Yellow.png">
-<link rel="stylesheet" href="styles.css?v=307">
+<link rel="stylesheet" href="styles.css?v=308">
 </head>
 <body>
 
@@ -57,6 +57,9 @@
             <button id="tabLocale" class="ptab active">Locale</button>
             <button id="tabCanteen" class="ptab">Canteen</button>
             <button id="tabItems" class="ptab">Items</button>
+            <!-- The same answer the smithy gives, put where the decision is made:
+                 checking what you have on should not mean leaving camp. -->
+            <button id="tabWorn" class="ptab">Gear</button>
           </div>
 
           <div id="paneLocale" class="panel-body pane active">
@@ -76,6 +79,8 @@
               </table>
             </div>
           </div>
+
+          <div id="paneWorn" class="panel-body pane"></div>
 
           <div id="paneItems" class="panel-body pane">
             <div class="subtabs">
@@ -286,6 +291,11 @@
          zenny, which is a different transaction from buying bait, so it is a
          different room. -->
     <section id="smithy" class="screen">
+      <!-- What you are wearing, beside what you could forge. Three pieces that
+           need not agree made "what am I actually carrying" a question the smithy
+           could not answer: every row shows one piece, and the levels stack. -->
+      <aside id="wornPanel" class="panel worn-panel"></aside>
+
       <div class="subtabs">
         <button id="subRods" class="subtab active">Rods &amp; Materials</button>
         <button id="subArmor" class="subtab">Armor</button>
@@ -427,22 +437,22 @@
   </div>
 </div>
 
-<script src="data/ores.js?v=307"></script>
-<script src="data/fish.js?v=307"></script>
-<script src="data/locales.js?v=307"></script>
-<script src="data/meals.js?v=307"></script>
-<script src="data/canteen.js?v=307"></script>
-<script src="data/armorlines.js?v=307"></script>
-<script src="data/themes.js?v=307"></script>
-<script src="theme.js?v=307"></script>
-<script src="game.js?v=307"></script>
-<script src="roll.js?v=307"></script>
-<script src="app.js?v=307"></script>
-<script src="guide.js?v=307"></script>
-<script src="prep.js?v=307"></script>
-<script src="fishing.js?v=307"></script>
-<script src="quest.js?v=307"></script>
-<script src="ui.js?v=307"></script>
-<script src="savefile.js?v=307"></script>
+<script src="data/ores.js?v=308"></script>
+<script src="data/fish.js?v=308"></script>
+<script src="data/locales.js?v=308"></script>
+<script src="data/meals.js?v=308"></script>
+<script src="data/canteen.js?v=308"></script>
+<script src="data/armorlines.js?v=308"></script>
+<script src="data/themes.js?v=308"></script>
+<script src="theme.js?v=308"></script>
+<script src="game.js?v=308"></script>
+<script src="roll.js?v=308"></script>
+<script src="app.js?v=308"></script>
+<script src="guide.js?v=308"></script>
+<script src="prep.js?v=308"></script>
+<script src="fishing.js?v=308"></script>
+<script src="quest.js?v=308"></script>
+<script src="ui.js?v=308"></script>
+<script src="savefile.js?v=308"></script>
 </body>
 </html>

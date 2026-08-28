@@ -20,7 +20,7 @@
     if (name === 'combos') window.MF_GUIDE.renderCombos();
     if (name === 'shop') renderShop();
     if (name === 'smithy') { renderSmithy(); showSmithy(smithyView); }
-    if (name === 'camp') window.MF_PREP.renderAll();
+    if (name === 'camp') window.MF_PREP.renderAll(); renderWorn();
   }
 
   function renderHeader() {
@@ -49,7 +49,7 @@
 
   function refresh() {
     renderHeader();
-    if (el('camp').classList.contains('active')) window.MF_PREP.renderAll();
+    if (el('camp').classList.contains('active')) window.MF_PREP.renderAll(); renderWorn();
   }
 
 
@@ -60,8 +60,68 @@
   // column here rather than a line of description: the whole question a player
   // brings to this screen is "which monster do I still have to go and find?", and
   // a column answers that at a glance where a footnote does not.
+  // ── What you are wearing ──────────────────────────────────────────────────
+  //
+  // Three pieces that need not agree made "what am I actually carrying" a
+  // question the smithy could not answer: every row there shows ONE piece, and
+  // the levels stack across all three. This is the only place the total is said.
+  // Built once and written to every target that exists — the smithy panel and
+  // the camp tab show exactly the same thing, and the point of the camp copy is
+  // that it is the SAME answer without walking to the smithy for it. Two builders
+  // would drift, which is the failure this repo keeps repeating.
+  function wornHTML() {
+    const S = A.state;
+    const line = G.wornSetLine(S.gear);
+    const pieces = G.PIECE_SLOTS.map(slot => {
+      const w = S.gear[slot];
+      const a = w && G.armorById.get(w.id);
+      return { slot, a, lvl: w ? (w.lvl || 0) : 0 };
+    });
+
+    // Summed and clamped, exactly as the water sees it — not a list of what each
+    // piece happens to carry. Two pieces at Lv 2 of one skill beat one at Lv 3,
+    // and only the total shows that.
+    const totals = G.armorEffects(S.gear);
+    const skills = Object.entries(totals)
+      .sort((a, b) => b[1] - a[1] || G.effectName(a[0], 1).localeCompare(G.effectName(b[0], 1)));
+
+    const pieceRow = ({ slot, a, lvl }) => `<li class="${a ? '' : 'empty'}">
+        <span class="slot">${G.PIECE_LABEL[slot]}</span>
+        <span class="pn">${a ? a.name : 'nothing'}</span>
+        <span class="lv">${a ? 'Lv ' + lvl : ''}</span>
+      </li>`;
+
+    return `
+      <div class="panel-body">
+        <ul class="worn-set">${pieces.map(pieceRow).join('')}</ul>
+        <ul class="worn-stat">
+          <li><b>${G.armorStat(S.gear, 'hp')}</b> HP</li>
+          <li><b>${G.armorStat(S.gear, 'stamina')}</b> Stamina</li>
+          <li><b>${Math.round(G.armorStat(S.gear, 'guard') * 100)}%</b> DEF</li>
+        </ul>
+        <div class="worn-set-bonus ${line ? 'on' : ''}">${line
+          ? 'Full ' + G.armorLineName(line) + ' set'
+          : 'Mixed set'}</div>
+        ${skills.length
+          ? `<ul class="worn-skills">${skills.map(([k, lvl]) =>
+              `<li><span class="sn">${G.effectName(k, lvl)}</span>
+                 <span class="sd">${G.effectBlurb(k)}</span></li>`).join('')}</ul>`
+          : '<p class="hint">Nothing worn.</p>'}
+      </div>`;
+  }
+
+  // Both places, whichever happen to be on the page.
+  function renderWorn() {
+    const html = wornHTML();
+    const panel = el('wornPanel');
+    if (panel) panel.innerHTML = '<div class="panel-head">Worn</div>' + html;
+    const camp = el('paneWorn');
+    if (camp) camp.innerHTML = html;
+  }
+
   function renderSmithy() {
     const S = A.state;
+    renderWorn();
 
     const matCell = (g) => {
       const parts = A.forgeParts(g.id);
@@ -501,7 +561,8 @@
   function campTab(name) {
     for (const [n, tab, pane] of [['locale', 'tabLocale', 'paneLocale'],
                                   ['canteen', 'tabCanteen', 'paneCanteen'],
-                                  ['items', 'tabItems', 'paneItems']]) {
+                                  ['items', 'tabItems', 'paneItems'],
+                                  ['worn', 'tabWorn', 'paneWorn']]) {
       el(tab).classList.toggle('active', n === name);
       el(pane).classList.toggle('active', n === name);
     }
@@ -509,6 +570,9 @@
   el('tabLocale').onclick = () => campTab('locale');
   el('tabCanteen').onclick = () => campTab('canteen');
   el('tabItems').onclick = () => campTab('items');
+  // Re-rendered on open rather than only on smithy visits, or forging
+  // something and walking back to camp would show the set you had before.
+  el('tabWorn').onclick = () => { renderWorn(); campTab('worn'); };
 
   function itemsTab(name) {
     for (const [n, tab, pane] of [['bait', 'subBait', 'paneBait'],

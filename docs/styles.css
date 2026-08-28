@@ -1132,3 +1132,42 @@ select{
 .mon-table tr.unmet{opacity:.4}
 .mon-table tr.unmet img{filter:grayscale(1)}
 .mon-table tr.unmet .nm{font-weight:400;letter-spacing:1px}
+
+
+/* ── What you are wearing ─────────────────────────────────────────────────
+   Shown in two places on purpose: a panel beside the smithy, and a camp tab, so
+   checking the set before departing does not mean leaving camp. One builder
+   feeds both. */
+.worn-panel{margin-bottom:12px}
+#smithy{display:grid;gap:12px;grid-template-columns:250px minmax(0,1fr);
+        align-items:start}
+/* The subtabs and every subview sit in the right-hand column; only the worn
+   panel takes the left. */
+#smithy > .subtabs,#smithy > .subview{grid-column:2}
+#smithy > .worn-panel{grid-column:1;grid-row:1 / span 99;position:sticky;top:12px}
+@media (max-width:860px){
+  #smithy{display:block}
+  #smithy > .worn-panel{position:static}
+}
+
+.worn-set,.worn-stat,.worn-skills{list-style:none;margin:0;padding:0}
+.worn-set li{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:6px;
+             align-items:baseline;padding:3px 0;font-size:12px}
+.worn-set .slot{opacity:.55;text-transform:uppercase;letter-spacing:.06em;font-size:10px}
+.worn-set .pn{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.worn-set .lv{opacity:.6;font-variant-numeric:tabular-nums;font-size:11px}
+.worn-set li.empty .pn{font-weight:400;opacity:.45;font-style:italic}
+
+.worn-stat{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 0;
+           padding-top:8px;border-top:1px solid var(--line,#ffffff1f)}
+.worn-stat li{font-size:12px;opacity:.8}
+.worn-stat b{font-variant-numeric:tabular-nums}
+
+.worn-set-bonus{margin:8px 0 0;font-size:11px;text-transform:uppercase;
+                letter-spacing:.07em;opacity:.5}
+.worn-set-bonus.on{opacity:1;color:var(--good,#4fbf8b)}
+
+.worn-skills{margin-top:8px;padding-top:8px;border-top:1px solid var(--line,#ffffff1f)}
+.worn-skills li{padding:4px 0}
+.worn-skills .sn{display:block;font-size:12px;font-weight:600}
+.worn-skills .sd{display:block;font-size:11px;opacity:.6;line-height:1.35}
