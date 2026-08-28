@@ -650,13 +650,19 @@ const habitats = q(`SELECT m.name AS monster, l.name AS locale
                     JOIN locations l ON l._id = mh.location_id
                     WHERE m.name IN (${FISHABLE.map(n => "'" + n + "'").join(',')})`);
 // Placements that are NOT habitat fact, and are marked so because everything
-// else in this file is. Lavasioth lives only in the Volcano, which sits on no
-// rung of the ladder, so it was unreachable; Volcanic Hollow is the nearest
-// water and Agnaktor genuinely shares it.
+// else in this file is.
 //
-// This lived only as a hand-edit to the generated file, which is why the last
+// Lavasioth lives only in the Volcano, which sits on no rung of the ladder, so
+// on the real data it is unreachable. Raven's reasoning for moving it: it is not
+// out of the question for a Lavasioth to move into an area once the volcano
+// became more active, given it can reach the place or has some reason to venture
+// out of its own. Volcanic Hollow is where it went, and Agnaktor genuinely
+// shares it.
+//
+// This lived only as a hand-edit to the generated file, which is why the first
 // regeneration dropped it. Anything invented has to be HERE or it does not
-// survive the next run.
+// survive the next run — this list is the sanctioned place for a placement the
+// habitat data does not give us.
 const EXTRA_HABITAT = [
   ['Lavasioth', 'Volcanic Hollow'],
 ];
