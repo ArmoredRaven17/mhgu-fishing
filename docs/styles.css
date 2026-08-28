@@ -1145,25 +1145,26 @@ select{
 /* `.active` matters: `#viewArmor.subview` alone outranks the rule that hides an
    inactive subview, so the armor view — and the panel in it — stayed on screen
    under the Rods and Trade Cart tabs as well. */
+/* Three columns, left to right: what you have on, which set you are looking at,
+   and the pieces of it. Each answers the next one's question. */
 #viewArmor.subview.active{display:grid;gap:12px;
-                          grid-template-columns:250px minmax(0,1fr);
-                          grid-template-rows:auto auto 1fr;align-items:start}
-/* Left column: what you have on, then which set you are looking at. Right: the
-   tier tabs and the pieces themselves. */
-#viewArmor > .worn-panel{grid-column:1;grid-row:1;margin:0}
-#viewArmor > .line-list{grid-column:1;grid-row:2 / span 2;position:sticky;top:12px}
-#viewArmor > .subtabs{grid-column:2;grid-row:1}
-#viewArmor > .panel:not(.worn-panel){grid-column:2;grid-row:2 / span 2}
+                          grid-template-columns:230px 190px minmax(0,1fr);
+                          grid-template-rows:auto 1fr;align-items:start}
+#viewArmor > .worn-panel{grid-column:1;grid-row:1 / span 2;margin:0;
+                         position:sticky;top:12px}
+#viewArmor > .line-list{grid-column:2;grid-row:1 / span 2;position:sticky;top:12px}
+#viewArmor > .subtabs{grid-column:3;grid-row:1}
+#viewArmor > .panel:not(.worn-panel){grid-column:3;grid-row:2}
 
 /* Fifty-six monsters is a list you scroll, not a strip you hunt along. Its own
    scroller so the table beside it keeps its full height. */
 .line-list{display:flex;flex-direction:column;gap:2px;
-           max-height:calc(100vh - 220px);overflow-y:auto;padding-right:4px}
+           max-height:calc(100vh - 150px);overflow-y:auto;padding-right:4px}
 .line-list .subtab{text-align:left;width:100%;border:0;border-radius:6px;
                    padding:6px 10px;font-size:13px;white-space:nowrap;
                    overflow:hidden;text-overflow:ellipsis}
 .line-list .subtab.active{font-weight:600}
-@media (max-width:860px){
+@media (max-width:1000px){
   #viewArmor.subview.active{display:block}
   #viewArmor > .worn-panel{position:static;margin-bottom:12px}
   /* Back to a strip on a narrow screen, where a column costs more than it buys. */
