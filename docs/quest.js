@@ -23,7 +23,8 @@
     // bobber and its last result sitting there — and the next trip opened on the
     // previous one until the first cast happened to rebuild it.
     window.MF_FISHING.cancel();
-    el('castPrompt').textContent = 'The water is still.';
+    // No more "The water is still". There is water, and there are fish in it.
+    el('castPrompt').textContent = '';
     const loc = R.localeById.get(S.localeId);
     const meal = A.meal();
     const questHR = A.questRung();          // the rung decides the quest's rank
@@ -99,6 +100,9 @@
     el('pond')?.style.setProperty('--water', G.waterOf(S.localeId));
     window.MF_UI.show('quest');
     render();
+    // Stock the water. After show(), so the pond has a measured size to place
+    // fish in — its aspect decides what "close enough" means in both directions.
+    openPool();
   }
 
   // ── Rendering ─────────────────────────────────────────────────────────────
@@ -628,17 +632,42 @@
   //
   // They count a FRACTION toward the basket and the cart — see BOMB.countFraction
   // and the reasoning beside it. Without that a bomb is simply a faster rod.
-  function throwBomb(id) {
+  // One fish for the pool. The pond asks; it never learns what decides a catch.
+  function poolRoll() {
+    if (!trip) return null;
+    return R.rollCatch({ localeId: trip.localeId, bait: trip.bait, hr: trip.questHR,
+                         rod: A.state.gear.rod, armor: A.state.gear });
+  }
+  function openPool() {
+    if (!trip) return;
+    window.MF_FISHING.openPool({ roll: poolRoll, armor: A.state.gear });
+  }
+
+  async function throwBomb(id) {
     const S = A.state;
     const bomb = G.effectOf(id);
     trip.sta -= G.STAMINA_COST.cast * G.BOMB.staminaMult;
     S.stats.casts++;
+    // A bomb advances the monster clock exactly as a cast does. It did not, and
+    // that was a hole: bombing is an action on the water that costs MORE stamina
+    // than a cast, so a trip spent bombing would have filled the basket while
+    // never once advancing sinceBoss — large monsters avoided entirely, and the
+    // rod left as the option that gets you hurt.
+    //
+    // The check still falls on a CAST. A blast draws them; you meet what it drew
+    // the next time you put a line in.
+    trip.sinceBoss++;
 
-    const n = G.bombCatch(id, S.gear);
     const mult = G.bombValueMult(S.gear);
-    const school = R.rollSchool({ localeId: trip.localeId, bait: trip.bait,
-                                  hr: trip.questHR, rod: S.gear.rod, armor: S.gear });
-    const took = (school || []).slice(0, n);
+    // Aimed at the REAL pool rather than a freshly rolled school: what it catches
+    // is whatever was actually inside the circle when it went off.
+    trip.busy = true; render();
+    const res = await window.MF_FISHING.throwBomb({
+      radius: G.bombRadius(id, S.gear),
+      icon: (G.pouchItemById.get(id) || {}).icon || 'MH4G-Bomb_Icon_Red.png',
+    });
+    trip.busy = false;
+    const took = res.caught || [];
     if (!took.length) {
       trip.notes.push('The bomb goes off and nothing floats up.');
     } else {
@@ -656,8 +685,9 @@
       // Fractional on purpose. Rounded only where it is read, so three bombs do
       // not quietly lose what each one's remainder was worth.
       trip.landed += took.length * G.BOMB.countFraction;
-      trip.notes.push(`${bomb.label ? '' : ''}The blast brings up `
-        + `${took.length} fish — ${z(gained)}, bruised.`);
+      // Not "bruised" — the value is right there, and saying it is worth less
+      // than it looks is the kind of explaining the player can do for himself.
+      trip.notes.push(`The blast brings up ${took.length} fish — ${z(gained)}.`);
     }
     A.save();
     // Notes are queued, not printed: every other path flushes them and this one
@@ -910,6 +940,10 @@
     if (trip) trip.busy = false;
     castTaps = 0;
     castLockUntil = performance.now() + 450;
+    // A cast owns the pond while it runs and empties it on the way out, so the
+    // pool is opened again every time one lets go. Anything else leaves the
+    // water blank between casts, which is the state this replaced.
+    openPool();
   }
 
   function castKey(e) {

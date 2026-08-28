@@ -556,8 +556,9 @@
     staminaMult: 1.8,     // against one cast, so it is a burst and not a rhythm
   };
   // Blast widens the radius; Bruising is what the fish keeps of its value.
-  const bombCatch = (id, gear) =>
-    Math.max(1, Math.round((ITEM_EFFECT[id] || {}).bomb * (1 + effectPower(gear, 'blast'))));
+  // Capped: a blast that covers the whole pond stops being a placement decision.
+  const bombRadius = (id, gear) =>
+    Math.min(0.45, ((ITEM_EFFECT[id] || {}).bomb || 0.15) * (1 + effectPower(gear, 'blast')));
   const bombValueMult = gear =>
     Math.min(1, BOMB.valueMult * (1 + effectPower(gear, 'bruising')));
 
@@ -611,13 +612,17 @@
     hot_meat:        { group: 'misc', stamina: 50, protects: 'cold', unlock: 13, carry: 5, label: '+50 Stamina and cold resistance' },
     chilled_meat:    { group: 'misc', stamina: 50, protects: 'hot',  unlock: 13, carry: 5, label: '+50 Stamina and heat resistance' },
     // ── Bombs ────────────────────────────────────────────────────────────
-    // Thrown into the water rather than cast into it. `bomb` is how many fish the
-    // radius reaches, and it is the ONLY thing that separates the three — so they
-    // share one line, Raven's, rather than three that hint at the difference.
-    // What the bigger bomb buys is a thing to find out by throwing one.
-    barrel_bomb_s:   { group: 'misc',      bomb: 2,             unlock: 3,  carry: 10, label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
-    barrel_bomb_l:   { group: 'misc',      bomb: 3,             unlock: 6,  carry: 3,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
-    barrel_bomb_lp:  { group: 'misc',      bomb: 5,             unlock: 9,  carry: 2,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
+    // `bomb` is the blast RADIUS as a fraction of the pond, and it is the only
+    // thing separating the three — so they share one line, Raven's, rather than
+    // three that hint at the difference. What the bigger bomb buys is a thing to
+    // find out by throwing one.
+    //
+    // It used to be a count, back when a bomb rolled a school and took the first
+    // N of it. It is aimed at the real pool now, so what it catches is whatever
+    // happens to be inside the circle.
+    barrel_bomb_s:   { group: 'misc',      bomb: 0.15,          unlock: 3,  carry: 10, label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
+    barrel_bomb_l:   { group: 'misc',      bomb: 0.22,          unlock: 6,  carry: 3,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
+    barrel_bomb_lp:  { group: 'misc',      bomb: 0.30,          unlock: 9,  carry: 2,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
     armorskin:       { group: 'misc',      def: 0.15, secs: 1,  unlock: 5,  carry: 5,  label: '+15% DEF for a short time' },
     mega_armorskin:  { group: 'misc',      def: 0.25, secs: 2,  unlock: 9,  carry: 2,  label: '+25% DEF, for twice as long' },
   };
@@ -1181,6 +1186,22 @@
     hookChance: 0.30,       // each nibble's chance of taking it under
     baitShare: 0.5,         // how much of the school a bait can promise you
     reelInPresses: 5,       // taps to pull an unhooked line back in
+  };
+
+  // ── The pool between casts ────────────────────────────────────────────────
+  //
+  // The water used to be a sentence — "The water is still" — and a button. It is
+  // a place now: fish drift in, hang about and drift off again whether or not you
+  // have a line in. That is what makes a bomb a decision rather than a dice roll,
+  // because what you are aiming at is what is actually there.
+  //
+  // Large monsters are deliberately NOT in it. They belong to the cast, and a
+  // monster you could see coming is a monster you could simply not cast at.
+  const POOL = {
+    max: 7,               // fish in the water at once at most
+    spawnEverySec: 1.6,   // ...and how often one drifts in while there is room
+    lifeSec: [9, 20],     // how long one stays before it drifts off again
+    fadeMs: 600,          // the drift in and out
   };
 
   // ── Reel struggle ─────────────────────────────────────────────────────────
@@ -2961,7 +2982,7 @@
     CAST_PRESSES, CAST_PRESS_WINDOW_MS,
     CLIMATE_RATES, CLIMATE_TICK_MS, DRINK_SECONDS,
     DASH_SECONDS, DASH_MULT, ARMOR_SECONDS,
-    BOMB, bombCatch, bombValueMult,
+    POOL, BOMB, bombRadius, bombValueMult,
     BASE_MAX_HP, BASE_MAX_STAMINA, STAMINA_COST,
     MEALS, mealCost, MEAL_SCALE, ITEM_PRICE, priceOf,
     RETIRED_UPGRADES, refundUpgrades,

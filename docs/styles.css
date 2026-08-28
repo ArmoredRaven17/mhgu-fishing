@@ -1186,3 +1186,42 @@ select{
                    border-radius:6px;padding:6px 10px;font:inherit;font-size:13px;
                    min-width:200px;max-width:100%}
 .trade-pick .count{font-size:12px;opacity:.7;font-variant-numeric:tabular-nums}
+
+/* ── The pool between casts ───────────────────────────────────────────────
+   Fish drift in and out of the water whether or not a line is in it, so a bomb
+   is aimed at what is really there rather than at a roll. */
+/* The pond is a sibling of #reel now rather than a child, so it keeps its own
+   size whether or not a cast is running. */
+#pond{position:relative}
+.swimmer.pooled{transition:opacity .6s ease,transform .6s ease}
+.swimmer.pooled.arriving,.swimmer.pooled.leaving{opacity:0;transform:translate(-50%,-50%) scale(.6)}
+
+/* ── A bomb ───────────────────────────────────────────────────────────────
+   Aimed like the bobber, then dropped: it sinks, holds, and goes up. The ring is
+   the real blast radius, stretched by the pond's aspect so a circle in the water
+   is a circle on the screen. */
+.bomb-marker{position:absolute;transform:translate(-50%,-50%);z-index:6;
+             pointer-events:none;transition:left .12s ease,top .12s ease}
+.bomb-marker img{width:28px;height:28px;display:block;position:relative;z-index:2;
+                 /* tinted toward the water it is going into */
+                 filter:drop-shadow(0 2px 3px #0007);
+                 transition:transform .5s cubic-bezier(.4,0,.7,1),opacity .2s}
+.bomb-marker .ring{position:absolute;left:50%;top:50%;width:var(--d);height:var(--d);
+                   transform:translate(-50%,-50%);border-radius:50%;
+                   border:2px dashed color-mix(in srgb,var(--water,#2E7D6B) 60%,#fff);
+                   background:color-mix(in srgb,var(--water,#2E7D6B) 30%,transparent);
+                   opacity:.55;transition:opacity .25s ease,transform .35s ease}
+/* Sinks in and shrinks... */
+.bomb-marker.dropping img{transform:scale(.62)}
+.bomb-marker.dropping .ring{opacity:.35}
+/* ...then goes up. */
+.bomb-marker.blast img{transform:scale(1.9);opacity:0}
+.bomb-marker.blast .ring{opacity:.9;transform:translate(-50%,-50%) scale(1.06);
+                         border-style:solid;
+                         background:color-mix(in srgb,#fff 35%,transparent)}
+.swimmer.blasted{transition:opacity .4s ease,transform .4s ease;
+                 opacity:0;transform:translate(-50%,-50%) scale(1.5) rotate(20deg)}
+@media (prefers-reduced-motion:reduce){
+  .bomb-marker,.bomb-marker img,.bomb-marker .ring,
+  .swimmer.pooled,.swimmer.blasted{transition:none}
+}

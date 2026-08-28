@@ -6,7 +6,7 @@
 <title>MHGU Fishing</title>
 <!-- Whetfish: the first thing almost anyone catches here. -->
 <link rel="icon" type="image/png" href="assets/FishIcons/MH4G-Fish_Icon_Yellow.png">
-<link rel="stylesheet" href="styles.css?v=322">
+<link rel="stylesheet" href="styles.css?v=327">
 </head>
 <body>
 
@@ -181,8 +181,12 @@
             <button id="castBtn" class="btn accent big">Cast</button>
           </div>
 
+          <!-- The pond OUTLIVES the cast. It used to live inside #reel, which is
+               hidden between casts, so a pool that persists would have rendered
+               into a hidden 0x0 box. The reel is the tension gear only now. -->
+          <div id="pond" class="pond"></div>
+
           <div id="reel" class="reel hidden">
-            <div id="pond" class="pond"></div>
             <div id="tensionWrap" class="tension hidden">
               <div id="strikeBar" class="strike-bar"><i id="strikeFill"></i></div>
               <div id="tensionTrack" class="tension-track">
@@ -455,24 +459,24 @@
   </div>
 </div>
 
-<script src="data/ores.js?v=322"></script>
-<script src="data/fish.js?v=322"></script>
-<script src="data/locales.js?v=322"></script>
-<script src="data/meals.js?v=322"></script>
-<script src="data/canteen.js?v=322"></script>
-<script src="data/armorlines.js?v=322"></script>
-<script src="data/monsterparts.js?v=322"></script>
-<script src="data/armorstats.js?v=322"></script>
-<script src="data/themes.js?v=322"></script>
-<script src="theme.js?v=322"></script>
-<script src="game.js?v=322"></script>
-<script src="roll.js?v=322"></script>
-<script src="app.js?v=322"></script>
-<script src="guide.js?v=322"></script>
-<script src="prep.js?v=322"></script>
-<script src="fishing.js?v=322"></script>
-<script src="quest.js?v=322"></script>
-<script src="ui.js?v=322"></script>
-<script src="savefile.js?v=322"></script>
+<script src="data/ores.js?v=327"></script>
+<script src="data/fish.js?v=327"></script>
+<script src="data/locales.js?v=327"></script>
+<script src="data/meals.js?v=327"></script>
+<script src="data/canteen.js?v=327"></script>
+<script src="data/armorlines.js?v=327"></script>
+<script src="data/monsterparts.js?v=327"></script>
+<script src="data/armorstats.js?v=327"></script>
+<script src="data/themes.js?v=327"></script>
+<script src="theme.js?v=327"></script>
+<script src="game.js?v=327"></script>
+<script src="roll.js?v=327"></script>
+<script src="app.js?v=327"></script>
+<script src="guide.js?v=327"></script>
+<script src="prep.js?v=327"></script>
+<script src="fishing.js?v=327"></script>
+<script src="quest.js?v=327"></script>
+<script src="ui.js?v=327"></script>
+<script src="savefile.js?v=327"></script>
 </body>
 </html>

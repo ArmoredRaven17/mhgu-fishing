@@ -32,6 +32,7 @@
   // the promise cast() is sitting on. Otherwise the trip ends but the await
   // never returns and the cast is left half-resolved.
   function cleanup() {
+    stopPool();
     const pending = state && !state.settled ? state : null;
     if (raf) cancelAnimationFrame(raf);
     raf = null;
@@ -59,6 +60,8 @@
       // The pond as your armor leaves it. fishing.js never learns what a skill
       // is — it reads the same plain fields it always did.
       const P = G().pondFor(spec.armor || null);
+      // The pool and a cast cannot both own the pond, and the cast empties it.
+      stopPool();
       const MARGIN = spec.monster ? { x: 0.10, y: 0.16 } : { x: 0.04, y: 0.06 };
       el('castArea').classList.add('hidden');
       el('reel').classList.remove('hidden');
@@ -497,5 +500,220 @@
     });
   }
 
-  window.MF_FISHING = { start, cancel: cleanup };
+  // ── The pool between casts ────────────────────────────────────────────────
+  //
+  // The water is a place now rather than a sentence and a button. Fish drift in,
+  // hang about for a while and drift off again whether or not you have a line in,
+  // so a bomb is aimed at what is really there.
+  //
+  // It runs in its OWN loop, separate from a cast's. Entangling them would mean
+  // the cast loop had to know about spawning and the pool had to know about
+  // hooking, and the cast loop is the one thing here that has to stay simple
+  // enough to reason about.
+  //
+  // Large monsters are never in it, deliberately: they belong to the cast, and a
+  // monster you could see coming is a monster you could simply not cast at.
+  let poolRaf = null;
+  let pool = null;
+
+  function stopPool() {
+    if (poolRaf) cancelAnimationFrame(poolRaf);
+    poolRaf = null;
+    pool = null;
+  }
+
+  const pondAspect = () => {
+    const p = el('pond');
+    const b = p ? p.getBoundingClientRect() : { width: 0, height: 0 };
+    return b.width > 0 ? b.width / Math.max(1, b.height) : 1.6;
+  };
+
+  // Decoration, lifted out of start() so the pool and a cast can both have it.
+  function makeBubbles() {
+    const bubbles = document.createElement('div');
+    bubbles.className = 'bubbles';
+    for (let i = 0; i < 14; i++) {
+      const b = document.createElement('i');
+      const size = 3 + Math.random() * 7;
+      b.style.cssText =
+        'left:' + (Math.random() * 100) + '%;top:' + (Math.random() * 100) + '%;' +
+        'width:' + size + 'px;height:' + size + 'px;' +
+        'animation-duration:' + (7 + Math.random() * 9) + 's;' +
+        'animation-delay:' + (-Math.random() * 12) + 's';
+      bubbles.appendChild(b);
+    }
+    return bubbles;
+  }
+
+  // spec: { roll() -> catch|null, armor }
+  // `roll` is handed in so the pond never learns what decides a catch — the same
+  // reason it is handed a school today rather than a locale.
+  function openPool(spec) {
+    stopPool();
+    const pondEl = el('pond');
+    if (!pondEl) return;
+    pondEl.innerHTML = '';
+    pondEl.appendChild(makeBubbles());
+    el('castArea') && el('castArea').classList.remove('hidden');
+    el('reel') && el('reel').classList.add('hidden');
+
+    pool = {
+      fish: [], roll: spec.roll, armor: spec.armor || null,
+      last: performance.now(), spawnIn: 0, bomb: null,
+      aspect: pondAspect(),
+    };
+    // Open with a few already in the water rather than an empty pond that fills
+    // itself over the first ten seconds.
+    for (let i = 0; i < 3; i++) spawnOne(true);
+    poolRaf = requestAnimationFrame(poolFrame);
+  }
+
+  function spawnOne(quiet) {
+    if (!pool || pool.fish.length >= G().POOL.max) return;
+    const c = pool.roll ? pool.roll() : null;
+    if (!c) return;
+    const node = document.createElement('div');
+    node.className = 'swimmer pooled' + (quiet ? '' : ' arriving');
+    node.innerHTML = window.MF_GUIDE.fishImg(c.ore, 30, c.name);
+    el('pond').appendChild(node);
+    if (!quiet) setTimeout(function () { node.classList.remove('arriving'); }, 20);
+    const a = Math.random() * Math.PI * 2;
+    const life = G().POOL.lifeSec;
+    pool.fish.push({
+      c: c, node: node,
+      x: 0.06 + Math.random() * 0.88,
+      y: 0.08 + Math.random() * 0.84,
+      vx: Math.cos(a), vy: Math.sin(a),
+      turnIn: Math.random() * G().POND.turnEvery,
+      life: life[0] + Math.random() * (life[1] - life[0]),
+    });
+  }
+
+  function poolFrame(now) {
+    if (!pool) return;
+    const dt = Math.min(0.05, (now - pool.last) / 1000);
+    pool.last = now;
+    const P = G().POND, POOL = G().POOL;
+
+    pool.spawnIn -= dt;
+    if (pool.spawnIn <= 0) { spawnOne(false); pool.spawnIn = POOL.spawnEverySec; }
+
+    for (let i = pool.fish.length - 1; i >= 0; i--) {
+      const f = pool.fish[i];
+      f.life -= dt;
+      if (f.life <= 0) {
+        f.node.classList.add('leaving');
+        const node = f.node;
+        setTimeout(function () { node.remove(); }, POOL.fadeMs);
+        pool.fish.splice(i, 1);
+        continue;
+      }
+      f.turnIn -= dt;
+      if (f.turnIn <= 0) {
+        const a = Math.random() * Math.PI * 2;
+        f.vx = Math.cos(a); f.vy = Math.sin(a);
+        f.turnIn = P.turnEvery * (0.6 + Math.random() * 0.8);
+      }
+      f.x += f.vx * P.fishSpeed * dt;
+      f.y += f.vy * P.fishSpeed * dt;
+      // Turn at the edges rather than stopping dead against them.
+      if (f.x < 0.04 || f.x > 0.96) { f.vx *= -1; f.x = Math.max(0.04, Math.min(0.96, f.x)); }
+      if (f.y < 0.06 || f.y > 0.94) { f.vy *= -1; f.y = Math.max(0.06, Math.min(0.94, f.y)); }
+      f.node.style.left = (f.x * 100) + '%';
+      f.node.style.top = (f.y * 100) + '%';
+      f.node.classList.toggle('flip', f.vx < 0);
+    }
+    poolRaf = requestAnimationFrame(poolFrame);
+  }
+
+  // ── Throwing a bomb ───────────────────────────────────────────────────────
+  //
+  // Aimed the way the bobber is moved, then dropped. Resolves with the fish that
+  // were inside the blast; the pool loses them, because they were caught.
+  //
+  // Distance is corrected for the pond's aspect, exactly as nibbling is, so the
+  // circle you are shown is the circle that catches.
+  function throwBomb(spec) {
+    return new Promise(function (resolve) {
+      if (!pool) { resolve({ caught: [], cancelled: true }); return; }
+      const radius = spec.radius;
+      const aspect = pool.aspect;
+      const marker = document.createElement('div');
+      marker.className = 'bomb-marker';
+      marker.innerHTML = '<span class="ring"></span>'
+        + '<img src="assets/ItemIcons/' + spec.icon + '" alt="">';
+      // In PIXELS, not percentages: the ring's percentage resolved against the
+      // marker's own box — a 28px icon — so a blast covering a fifth of the pond
+      // was drawn twelve pixels wide.
+      //
+      // The catch test corrects x by the aspect and compares against `radius`,
+      // which makes the blast a circle of `radius x pond HEIGHT` pixels. Working
+      // that back out is what makes the ring you are shown the ring that catches.
+      const box = el('pond').getBoundingClientRect();
+      const diameter = 2 * radius * box.height;
+      marker.style.setProperty('--d', diameter + 'px');
+      el('pond').appendChild(marker);
+
+      const B = { x: 0.5, y: 0.5 };
+      const place = function () {
+        marker.style.left = (B.x * 100) + '%';
+        marker.style.top = (B.y * 100) + '%';
+      };
+      place();
+      const prompt = el('castPrompt');
+      const wasPrompt = prompt ? prompt.textContent : '';
+      if (prompt) prompt.textContent = 'Arrows or WASD to aim. Space to drop it.';
+
+      const step = 0.06;
+      const prevDown = window.onkeydown, prevUp = window.onkeyup;
+      const finish = function (caught) {
+        window.onkeydown = prevDown; window.onkeyup = prevUp;
+        if (pool) pool.bomb = null;
+        if (prompt) prompt.textContent = wasPrompt;
+        resolve({ caught: caught });
+      };
+
+      window.onkeyup = null;
+      window.onkeydown = function (e) {
+        const k = (e.key || '').toLowerCase();
+        if (k === 'arrowleft' || k === 'a') { B.x = Math.max(0.05, B.x - step); place(); e.preventDefault(); }
+        else if (k === 'arrowright' || k === 'd') { B.x = Math.min(0.95, B.x + step); place(); e.preventDefault(); }
+        else if (k === 'arrowup' || k === 'w') { B.y = Math.max(0.07, B.y - step); place(); e.preventDefault(); }
+        else if (k === 'arrowdown' || k === 's') { B.y = Math.min(0.93, B.y + step); place(); e.preventDefault(); }
+        else if (k === 'escape') { marker.remove(); finish([]); }
+        else if (k === ' ' || k === 'spacebar') { e.preventDefault(); window.onkeydown = null; drop(); }
+      };
+      if (pool) pool.bomb = B;
+
+      function drop() {
+        marker.classList.add('dropping');
+        if (prompt) prompt.textContent = '';
+        // It sinks, holds, then goes up. The catch is taken on the frame the
+        // blast is widest rather than the frame it was dropped.
+        setTimeout(function () {
+          marker.classList.add('blast');
+          const caught = [];
+          if (pool) {
+            for (let i = pool.fish.length - 1; i >= 0; i--) {
+              const f = pool.fish[i];
+              const dx = (f.x - B.x) * aspect;
+              const dy = f.y - B.y;
+              if (Math.sqrt(dx * dx + dy * dy) <= radius) {
+                caught.push(f.c);
+                f.node.classList.add('blasted');
+                const node = f.node;
+                setTimeout(function () { node.remove(); }, 400);
+                pool.fish.splice(i, 1);
+              }
+            }
+          }
+          setTimeout(function () { marker.remove(); finish(caught); }, 430);
+        }, 520);
+      }
+    });
+  }
+
+  window.MF_FISHING = { start: start, cancel: cleanup, openPool: openPool,
+                        stopPool: stopPool, throwBomb: throwBomb };
+
 })();
