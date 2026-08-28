@@ -611,12 +611,13 @@
     hot_meat:        { group: 'misc', stamina: 50, protects: 'cold', unlock: 13, carry: 5, label: '+50 Stamina and cold resistance' },
     chilled_meat:    { group: 'misc', stamina: 50, protects: 'hot',  unlock: 13, carry: 5, label: '+50 Stamina and heat resistance' },
     // ── Bombs ────────────────────────────────────────────────────────────
-    // Thrown into the water rather than cast into it: everything inside the
-    // blast comes up at once, bruised and worth less for it. `bomb` is how many
-    // fish the radius reaches.
-    barrel_bomb_s:   { group: 'misc',      bomb: 2,             unlock: 3,  carry: 10, label: 'Takes a few fish at once, worth less for it' },
-    barrel_bomb_l:   { group: 'misc',      bomb: 3,             unlock: 6,  carry: 3,  label: 'Takes several fish at once, worth less for it' },
-    barrel_bomb_lp:  { group: 'misc',      bomb: 5,             unlock: 9,  carry: 2,  label: 'Takes a haul of fish at once, worth less for it' },
+    // Thrown into the water rather than cast into it. `bomb` is how many fish the
+    // radius reaches, and it is the ONLY thing that separates the three — so they
+    // share one line, Raven's, rather than three that hint at the difference.
+    // What the bigger bomb buys is a thing to find out by throwing one.
+    barrel_bomb_s:   { group: 'misc',      bomb: 2,             unlock: 3,  carry: 10, label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
+    barrel_bomb_l:   { group: 'misc',      bomb: 3,             unlock: 6,  carry: 3,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
+    barrel_bomb_lp:  { group: 'misc',      bomb: 5,             unlock: 9,  carry: 2,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
     armorskin:       { group: 'misc',      def: 0.15, secs: 1,  unlock: 5,  carry: 5,  label: '+15% DEF for a short time' },
     mega_armorskin:  { group: 'misc',      def: 0.25, secs: 2,  unlock: 9,  carry: 2,  label: '+25% DEF, for twice as long' },
   };
