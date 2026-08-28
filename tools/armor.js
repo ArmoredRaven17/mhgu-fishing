@@ -135,7 +135,7 @@
     ['Blangonga', 'Low'], ['Brachydios', 'Low'], ['Bulldrome', 'Low'],
     ['Chameleos', 'Low'], 
     ['Congalala', 'High'], ['Crimson Fatalis', 'G'],
-    ['Daimyo Hermitaur', 'Low'], ['Deviljho', 'High'],
+['Deviljho', 'High'],
     ['Diablos', 'High'], ['Duramboros', 'High'], ['Fatalis', 'G'],
      ['Gammoth', 'Low'], ['Gendrome', 'Low'],
     ['Giadrome', 'High'], ['Glavenus', 'Low'], ['Gold Rathian', 'High'],
@@ -143,13 +143,12 @@
     ['Gypceros', 'Low'], ['Iodrome', 'Low'], ['Kecha Wacha', 'High'],
     ['Khezu', 'Low'], ['Kirin', 'Low'], ['Kushala Daora', 'Low'],
     ['Lagombi', 'Low'], ['Lao-Shan Lung', 'G'], ['Malfestio', 'Low'],
-    ['Mizutsune', 'Low'], ['Najarala', 'Low'], ['Nakarkos', 'Low'],
+    ['Najarala', 'Low'], ['Nakarkos', 'Low'],
     ['Nargacuga', 'Low'], ['Nerscylla', 'High'], ['Old Fatalis', 'G'],
      ['Rajang', 'High'], ['Rathalos', 'Low'],
     ['Rathian', 'Low'],  ['Seltas', 'High'],
     ['Seltas Queen', 'High'], ['Seregios', 'Low'],
-    ['Shagaru Magala', 'Low'], ['Shogun Ceanataur', 'Low'],
-    ['Silver Rathalos', 'High'], ['Teostra', 'Low'],
+    ['Shagaru Magala', 'Low'],     ['Silver Rathalos', 'High'], ['Teostra', 'Low'],
     ['Tetsucabra', 'Low'], ['Tigrex', 'Low'], ['Ukanlos', 'High'],
     ['Uragaan', 'Low'], ['Valstrax', 'High'], ['Velocidrome', 'Low'],
     ['Volvidon', 'Low'], ['Yian Garuga', 'Low'], ['Yian Kut-Ku', 'Low'],
@@ -157,14 +156,18 @@
   ];
   const keyOf = n => n.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
-  const FISHED = Object.keys(G.ARMOR_LINES);
+  // Fishable is decided by having a BOSS entry, not by ARMOR_LINES — a monster
+  // can be in the water before anyone has assigned its armor any skills, which
+  // is exactly the state the crabs and Mizutsune are in.
+  const FISHED = Object.values(G.BOSS).map(b => b.line);
   const NAME = {}, FLOOR = {};
-  for (const id of FISHED) {
-    NAME[id] = G.ARMOR_LINES[id].name;
-    // The eight in the water keep the floor the GAME already gives them, which
-    // is Raven's decision and not the DB's — Zamtrios is Low here on purpose.
-    const boss = Object.values(G.BOSS).find(b => b.line === id);
-    FLOOR[id] = boss ? boss.floor : 'Low';
+  for (const b of Object.values(G.BOSS)) {
+    // The line's display name comes from its material line, which is where the
+    // set's real name lives (Daimyo Hermitaur's armor is just "Hermitaur").
+    NAME[b.line] = (G.MAT_LINES[b.line] || {}).name || b.name;
+    // Those in the water keep the floor the GAME gives them, which is Raven's
+    // decision and not the DB's — Zamtrios is Low here on purpose.
+    FLOOR[b.line] = b.floor;
   }
   for (const [n, f] of EXCHANGE) { NAME[keyOf(n)] = n; FLOOR[keyOf(n)] = f; }
   const lineIds = [...FISHED, ...EXCHANGE.map(e => keyOf(e[0]))];

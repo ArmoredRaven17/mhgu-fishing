@@ -150,10 +150,15 @@
   </div>
 </div>
 
-<script src="data/ores.js"></script>
-<script src="data/fish.js"></script>
-<script src="data/locales.js"></script>
-<script src="data/meals.js"></script>
-<script src="data/canteen.js"></script>
-<script src="game.js"></script>
-<script src="../tools/armor.js"></script>
+<!-- Loaded with a fresh query every time. A dev tool that reads the game's data
+     while that data is being edited must never serve a cached copy: an hour was
+     lost to a bench showing eight monsters while game.js had eleven. -->
+<script>
+  (function () {
+    var t = '?t=' + Date.now();
+    var files = ['data/ores.js', 'data/fish.js', 'data/locales.js', 'data/meals.js',
+                 'data/canteen.js', 'game.js', '../tools/armor.js'];
+    for (var i = 0; i < files.length; i++)
+      document.write('<script src="' + files[i] + t + '"><\/script>');
+  })();
+</script>

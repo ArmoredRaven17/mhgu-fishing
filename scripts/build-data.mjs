@@ -633,13 +633,36 @@ const gatherCount = new Map(
 const parsedByName = new Map(parsed.map(p => [p.name, p]));
 
 // Real monster_habitat data decides where the boss encounters live.
+//
+// This list had drifted badly: it named only Plesioth and Lavasioth while the
+// committed locales.js carried eight, so re-running this script would have
+// quietly stripped six monsters' habitats. Every monster the game can fish up
+// belongs here, and adding one to game.js means adding it here too.
+const FISHABLE = [
+  'Cephadrome', 'Royal Ludroth', 'Nibelsnarf', 'Plesioth', 'Zamtrios',
+  'Agnaktor', 'Lagiacrus', 'Lavasioth',
+  // The crabs and Mizutsune: aquatic enough to be fished rather than traded for.
+  'Daimyo Hermitaur', 'Shogun Ceanataur', 'Mizutsune',
+];
 const habitats = q(`SELECT m.name AS monster, l.name AS locale
                     FROM monster_habitat mh
                     JOIN monsters m ON m._id = mh.monster_id
                     JOIN locations l ON l._id = mh.location_id
-                    WHERE m.name IN ('Plesioth','Lavasioth')`);
+                    WHERE m.name IN (${FISHABLE.map(n => "'" + n + "'").join(',')})`);
+// Placements that are NOT habitat fact, and are marked so because everything
+// else in this file is. Lavasioth lives only in the Volcano, which sits on no
+// rung of the ladder, so it was unreachable; Volcanic Hollow is the nearest
+// water and Agnaktor genuinely shares it.
+//
+// This lived only as a hand-edit to the generated file, which is why the last
+// regeneration dropped it. Anything invented has to be HERE or it does not
+// survive the next run.
+const EXTRA_HABITAT = [
+  ['Lavasioth', 'Volcanic Hollow'],
+];
+
 const bossAt = new Map();
-for (const h of habitats) {
+for (const h of [...habitats, ...EXTRA_HABITAT.map(([monster, locale]) => ({ monster, locale }))]) {
   if (!bossAt.has(h.locale)) bossAt.set(h.locale, []);
   if (!bossAt.get(h.locale).includes(h.monster)) bossAt.get(h.locale).push(h.monster);
 }

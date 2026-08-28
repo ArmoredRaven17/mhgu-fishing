@@ -1294,6 +1294,11 @@
     agnaktor:   { name: 'Agnaktor',      Low: 'Agnaktor Scale',  High: 'Agnaktor Hide+',   G: 'Agnaktor Piel',    icon: 'MH4G-Hide_Icon_Red.png' },
     lagiacrus:  { name: 'Lagiacrus',     Low: 'Lagiacrus Scale', High: 'Lagiacrus Scale+', G: 'Lagiacrus Shard',  icon: 'MH4G-Scale_Icon_Light_Blue.png' },
     lavasioth:  { name: 'Lavasioth',     Low: null,              High: 'Lavasioth Scale+', G: 'Lavasioth Shard',  icon: 'MH4G-Scale_Icon_Grey.png' },
+    // The crabs share the shell ladder the game gives every carapace monster;
+    // Mizutsune runs the same Scale / Scale+ / Shard as the other leviathans.
+    hermitaur:  { name: 'Hermitaur',     Low: 'Hermitaur Shell', High: 'Hermitaur Carapace', G: 'Hermitaur Cortex', icon: 'MH4G-Shell_Icon_Red.png' },
+    ceanataur:  { name: 'Ceanataur',     Low: 'Ceanataur Shell', High: 'Ceanataur Carapace', G: 'Ceanataur Cortex', icon: 'MH4G-Shell_Icon_Blue.png' },
+    mizutsune:  { name: 'Mizutsune',     Low: 'Mizutsune Scale', High: 'Mizutsune Scale+',   G: 'Mizutsune Shard',  icon: 'MH4G-Scale_Icon_White.png' },
   };
   const matId = (line, rank) => `${line}_${rank.toLowerCase()}`;
   const bossMat = (line, rank) => {
@@ -1762,6 +1767,27 @@
       note: 'It swims around in lava, sucking in molten rock to spew at its prey. '
           + 'Its peculiar biology makes it a popular research subject.',
     },
+    // Aquatic enough to fish for rather than trade for. Floors are the rank each
+    // first appears at in MHGU, which is Low for all three.
+    //
+    // `desc` and `note` are RAVEN'S to write. The eight above carry his wording
+    // and the Monster Hunter's Notes verbatim, so these are left empty on
+    // purpose rather than filled with mine.
+    'Daimyo Hermitaur': {
+      name: 'Daimyo Hermitaur', icon: 'MHGU-Hermitaur_Icon.webp', bait: null,
+      floor: 'Low', tier: 0.15, line: 'hermitaur',
+      desc: '', note: '',
+    },
+    'Shogun Ceanataur': {
+      name: 'Shogun Ceanataur', icon: 'MHGU-Shogun_Ceanataur_Icon.webp', bait: null,
+      floor: 'Low', tier: 0.35, line: 'ceanataur',
+      desc: '', note: '',
+    },
+    Mizutsune: {
+      name: 'Mizutsune', icon: 'MHGU-Mizutsune_Icon.webp', bait: null,
+      floor: 'Low', tier: 0.7, line: 'mizutsune',
+      desc: '', note: '',
+    },
   };
 
   // Below its floor rank a monster is simply not in the water yet.
@@ -1999,6 +2025,9 @@
     Cephadrome: 0.012, 'Royal Ludroth': 0.012, Nibelsnarf: 0.010,
     Plesioth: 0.007, Zamtrios: 0.010, Agnaktor: 0.012,
     Lagiacrus: 0.008, Lavasioth: 0.022,
+    // The crabs are in a lot of locales and need no help being met; Mizutsune is
+    // scarcer, being the late one of the three.
+    'Daimyo Hermitaur': 0.010, 'Shogun Ceanataur': 0.012, Mizutsune: 0.008,
   };
 
   // ── When a monster checks in ──────────────────────────────────────────────
