@@ -82,6 +82,69 @@
   const GROUPS = ['The reel', 'Before the hook', 'The water', 'The Palicos',
                   'The trip', 'The ledger', 'Bombs and traps', 'Own name'];
 
+  // ── What a level actually DOES ────────────────────────────────────────
+  //
+  // Computed from the live game rather than described, so this sheet cannot say
+  // one thing while the game does another. Each probe is handed a synthetic set
+  // granting exactly that level and reports the number the game would use.
+  //
+  // A skill with no probe here is not wired: nothing in the game reads it yet.
+  const n1 = x => Math.round(x * 10) / 10;
+  const pct = x => Math.round(x * 100) + '%';
+  const PROBES = {
+    band:       (G, g) => 'sweet spot +' + pct(G.effectPower(g, 'band')),
+    progress:   (G, g) => 'capture +' + pct(G.effectPower(g, 'progress')),
+    escape:     (G, g) => 'escape -' + pct(G.effectPower(g, 'escape')),
+    control:    (G, g) => 'lift per press +' + pct(G.effectPower(g, 'control')),
+    strike:     (G, g) => 'strike window +' + pct(G.effectPower(g, 'strike')),
+    bites:      (G, g) => 'bite rate +' + pct(G.effectPower(g, 'bites')),
+    hook:       (G, g) => 'hook ' + pct(G.pondFor(g).hookChance) + ' (from ' + pct(G.POND.hookChance) + ')',
+    reach:      (G, g) => 'draws from ' + n1(G.pondFor(g).attractRange * 100) + '% of the pond'
+                        + ' (from ' + n1(G.POND.attractRange * 100) + '%)',
+    bobber:     (G, g) => 'nudge every ' + Math.round(G.pondFor(g).stepCooldownMs) + 'ms'
+                        + ' (from ' + G.POND.stepCooldownMs + 'ms)',
+    carry:      (G, g) => G.pouchSlots(g) + ' pouch, ' + G.tackleSlots(g) + ' bait kinds, '
+                        + G.baitCarry(g) + ' of each',
+    duration:   (G, g) => 'drinks last ' + Math.round(G.drinkSeconds(g)) + 's (from ' + G.DRINK_SECONDS + 's)',
+    vigor:      (G, g) => 'HP and Stamina +' + pct(G.effectPower(g, 'vigor')),
+    defense:    (G, g) => 'damage -' + pct(G.effectPower(g, 'defense')),
+    brace:      (G, g) => 'brace by ' + G.braceHoldMs(g) + 'ms (from ' + G.BOSS_ATTACK.holdMs + 'ms)',
+    stamina:    (G, g) => 'casts cost -' + pct(G.effectPower(g, 'stamina')),
+    fresh:      (G, g) => G.freshMax(g) + ' fresh ingredients (from ' + G.FRESH_MAX + ')',
+    hire:       (G, g) => 'the watch turns away ' + pct(G.hireCut(g)) + ' (from ' + pct(G.PEST.hireCut) + ')',
+    repel:      (G, g) => 'pests -' + pct(G.effectPower(g, 'repel')),
+    zenny:      (G, g) => 'every catch +' + pct(G.effectPower(g, 'zenny')),
+    bounty:     (G, g) => 'monster pay +' + pct(G.effectPower(g, 'bounty')),
+    trade:      (G, g) => 'the cart brings +' + pct(G.effectPower(g, 'trade')),
+    haggle:     (G, g) => '1000z of hire costs ' + G.haggle(g, 1000) + 'z',
+    saver:      (G, g) => pct(G.effectPower(g, 'saver')) + ' chance an item is not used',
+    effectup:   (G, g) => 'items do +' + pct(G.effectPower(g, 'effectup')),
+    combo:      (G, g) => 'combining +' + pct(G.effectPower(g, 'combo')),
+    lesson:     (G, g) => 'XP +' + pct(G.effectPower(g, 'lesson')),
+    basket:     (G, g) => G.basketTarget(g) + ' fish for a full basket (from ' + G.BASKET.target + ')',
+    gather:     (G, g) => pct(G.effectPower(g, 'gather')) + ' chance of a second find',
+    siteGather: (G, g) => pct(G.siteChance(g).Gather) + ' chance of a second of what was gathered',
+    siteBug:    (G, g) => pct(G.siteChance(g).Bug) + ' chance of a second bug',
+    siteMine:   (G, g) => pct(G.siteChance(g).Mine) + ' chance of a second of what was mined',
+    parts:      (G, g) => pct(G.partsChance(g)) + ' chance of a second monster part',
+    lure:       (G, g) => 'Royal Ludroth checks in every '
+                        + G.encounterEveryFor('Royal Ludroth', g) + ' casts (from '
+                        + G.encounterCheckEvery('Royal Ludroth') + ')',
+    heat:       (G, g) => G.climateFor(g, 'hot').immune ? 'heat cannot touch you'
+                        : 'Cool Drinks last ' + n1(G.climateFor(g, 'hot').drinkMult) + 'x',
+    cold:       (G, g) => G.climateFor(g, 'cold').immune ? 'cold cannot touch you'
+                        : 'Hot Drinks last ' + n1(G.climateFor(g, 'cold').drinkMult) + 'x',
+    // Reports the CONTRIBUTION and says so, because fightFor clamps the finished
+    // sweet spot to 0.34 however much is poured into it. Without that note this
+    // sheet would advertise +180% of something the game never grants.
+    hotblood:   (G, g) => 'sweet spot +' + pct(G.heatBand(g, { climate: 'hot', hotDrink: true }))
+                        + ' somewhere hot with a Hot Drink, before the sweet spot’s own ceiling',
+    guts:       () => 'a fatal blow leaves you on 1 HP, once a trip',
+    cull:       (G, g) => 'repels up to the lower varieties of '
+                        + ['Low', 'High', 'G'][Math.min(2, G.EFFECTS.cull.band[
+                            Math.min(G.EFFECTS.cull.band.length - 1, G.effectLevel(g, 'cull') - 1)])] + ' Rank',
+  };
+
   window.MF_SKILLS = {
     list: SKILLS,
     groups: GROUPS,
@@ -91,7 +154,18 @@
     // game has not declared yet, so the two cannot drift.
     nameOf: k => (window.MF_GAME && window.MF_GAME.EFFECTS[k] || {}).name
               || (window.MF_SKILLS.byKey[k] || {}).name || k,
-    // Shipped means the game already reads it. Everything else is a proposal.
+    // Declared means game.js has an entry for it. WIRED means something actually
+    // reads it — the distinction that matters, because a skill can be declared,
+    // named, assignable and still do nothing at all.
     isShipped: k => !!(window.MF_GAME && window.MF_GAME.EFFECTS[k]),
+    isWired: k => !!PROBES[k],
+    // What level `lvl` of skill `k` does, as the game would compute it. Null if
+    // nothing reads the skill.
+    effectAt: (k, lvl) => {
+      const G = window.MF_GAME;
+      if (!G || !PROBES[k]) return null;
+      try { return PROBES[k](G, G.gearWith({ [k]: lvl })); }
+      catch (e) { return 'probe failed: ' + e.message; }
+    },
   };
 })();

@@ -152,7 +152,7 @@
       name: G.variantName(fish, ore),
       icon: G.variantIcon(ore),
       value: G.variantValue(fish, ore),
-      xp: G.xpFor(fish, ore),
+      xp: G.xpGain(fish, ore, armor),
     };
   }
 
@@ -235,7 +235,7 @@
 
     // Every monster checks in on its own cadence; on any other cast this is
     // simply 0 and nothing gets rolled.
-    let chance = G.encounterChance(name, hr, castsSince);
+    let chance = G.encounterChance(name, hr, castsSince, armor);
     if (G.BOSS[name]?.bait && bait.id === G.BOSS[name].bait) chance *= 4;
     if (rng() >= chance) return null;
     return G.bossAt(name, hr, rod, armor, ctx);
@@ -260,7 +260,15 @@
     const raw = G.HIRE.base[bestRank(localeId, hr)]
       * (G.HIRE.climate[G.climateOf(localeId)] ?? 1)
       * (loc.boss.length ? G.HIRE.danger : 1);
-    return Math.round(raw / G.HIRE.round) * G.HIRE.round;
+    // Costs is applied HERE rather than threaded through the eight places these
+    // three prices are read. roll.js already reaches for MF_APP this way in
+    // rollPest, and the alternative is a gear argument on every caller of a
+    // function whose answer never depended on gear before.
+    //
+    // The Palicos and the cart both price off this one, so haggling it once is
+    // what makes the skill cover all three without counting it twice.
+    const worn = (window.MF_APP && window.MF_APP.state && window.MF_APP.state.gear) || null;
+    return G.haggle(worn, Math.round(raw / G.HIRE.round) * G.HIRE.round);
   }
 
   // A Palico costs a little under the hunter, off the same locale — they are not
@@ -373,36 +381,44 @@
   // One roll per Palico per cast. Everything they pick up is held until the trip
   // ends — see quest.js — so a gather can never change what you were able to
   // combine while you were still out there.
-  function rollGather(localeId, hr, cats, rng = Math.random, bonus = 0) {
+  // `bonus` is Beachcomber, which does not care WHAT was found. `site` is the
+  // three site skills, keyed by the Gather / Bug / Mine tag the material really
+  // carries in the data, so Mining only ever pays out on something mined.
+  function rollGather(localeId, hr, cats, rng = Math.random, bonus = 0, site = null) {
     const out = [];
     if (!cats) return out;
     const pool = gatherPool(localeId, hr);
     if (!pool.length) return out;
     for (let i = 0; i < cats; i++) {
       if (rng() >= G.PALICO.chancePerCast) continue;
-      out.push(pick(pool, rng).mat);
+      const got = pick(pool, rng).mat;
+      out.push(got);
       // Beachcomber: a chance the same cat comes back with a second thing. Rolled
       // separately rather than folded into the first chance, so the effect reads
       // as "they found more" rather than "they went out more often".
       if (bonus > 0 && rng() < bonus) out.push(pick(pool, rng).mat);
+      // ...and again for the site it came from, this time MORE OF THE SAME thing,
+      // which is what makes Mining read as mining rather than as more luck.
+      const sb = (site && got.site && site[got.site]) || 0;
+      if (sb > 0 && rng() < sb) out.push(got);
     }
     return out;
   }
 
   // A hire turns most of them away; Fisherman's Talisman keeps them off you without
   // one. They stack, because a watchman and a reputation are different things.
-  function pestChance(hired, repel = 0) {
-    return G.PEST.chancePerCast * (hired ? 1 - G.PEST.hireCut : 1) * (1 - repel);
+  function pestChance(hired, repel = 0, hireCut = G.PEST.hireCut) {
+    return G.PEST.chancePerCast * (hired ? 1 - hireCut : 1) * (1 - repel);
   }
 
-  function rollPest(localeId, hr, hired, rng = Math.random, repel = 0) {
+  function rollPest(localeId, hr, hired, rng = Math.random, repel = 0, hireCut = G.PEST.hireCut) {
     const loc = localeById.get(localeId);
     if (!loc || !loc.pests || !loc.pests.length) return null;
     // Small monsters are sighted or they are not, same as the large ones — which
     // is what finally makes "No Small Monsters sighted" a line that can appear.
     const A = window.MF_APP;
     if (A && A.sightingAt && !A.sightingAt(localeId, hr).pests) return null;
-    if (rng() >= pestChance(hired, repel)) return null;
+    if (rng() >= pestChance(hired, repel, hireCut)) return null;
     const total = loc.pests.reduce((a, p) => a + p.w, 0);
     let x = rng() * total, hit = loc.pests[loc.pests.length - 1];
     for (const p of loc.pests) { x -= p.w; if (x <= 0) { hit = p; break; } }

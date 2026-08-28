@@ -874,8 +874,10 @@
     target: 40,
     bonus: { Low: 800, High: 1500, G: 2500 },   // ~10% of a fished-out trip's net
   };
-  const basketBonus = (landed, hr) =>
-    landed >= BASKET.target ? (BASKET.bonus[curveRank(hr)] || 0) : 0;
+  // `gear` is optional so anything still asking the plain question gets the plain
+  // answer; Basket lowers the bar for anyone wearing it.
+  const basketBonus = (landed, hr, gear = null) =>
+    landed >= basketTarget(gear) ? (BASKET.bonus[curveRank(hr)] || 0) : 0;
 
   const BASE_MAX_HP = 100;
   const BASE_MAX_STAMINA = 110;
@@ -986,11 +988,13 @@
   // cooking, and there is no meal to cook while you are stood in the water.
   // Rerolled every time you come home, so the pair rotates rather than being
   // something you happened to fish up once and keep forever.
-  function freshPick(pantry, rng = Math.random) {
+  function freshPick(pantry, rng = Math.random, gear = null) {
     const held = Object.keys(pantry);
     const out = [];
     const bag = held.slice();
-    while (out.length < FRESH_MAX && bag.length)
+    // Fresh widens this: whole ingredients, so it steps rather than scales.
+    const want = gear ? freshMax(gear) : FRESH_MAX;
+    while (out.length < want && bag.length)
       out.push(bag.splice(Math.floor(rng() * bag.length), 1)[0]);
     return out;
   }
@@ -1217,7 +1221,10 @@
       sinkPerSec: Math.max(0.16, rate * lift * (1 - rodSink(rod))),
       // What one press buys. Nearly flat, so the rhythm stays the skill; the rod
       // adds a little, which is the only reason a press is ever worth more.
-      liftPerPress: lift,
+      // Control lifts the LINE, not the sink: `lift` also sets sinkPerSec
+      // above, so scaling it there would hand back with one hand what it gave
+      // with the other.
+      liftPerPress: lift * (1 + effectPower(armor, 'control')),
       // Half-width of the good stretch either side of centre, set by what the
       // fish is WORTH. Rarity and ore rank were far too coarse for this: a 47z
       // Iron Whetfish and a 52z Iron Pin Tuna came out identical, and the most
@@ -1248,7 +1255,7 @@
       // The window has to be long enough to NOTICE, not just long enough to
       // react to. Anything under a second is a reflex test you can only pass by
       // already expecting it, which is the opposite of watching for a bite.
-      strikeWindowMs: Math.max(1600, 2800 - r * 80 - o * 100),
+      strikeWindowMs: Math.max(1600, 2800 - r * 80 - o * 100) * (1 + effectPower(armor, 'strike')),
     };
   }
 
@@ -1390,13 +1397,19 @@
     reach:      { name: 'Reach',      per: 0.15, blurb: '' },  // POND.attract / attractRange
     bobber:     { name: 'Bobber',     per: 0.12, blurb: '' },  // POND.bobberStep / glideRate
     lure:       { name: 'Lure',       per: 0.15, blurb: '' },  // how soon a monster checks in
-    parts:      { name: 'Parts',      per: 0.20, blurb: '' },  // what a monster leaves behind
-    siteGather: { name: 'Gathering',  per: 0.20, blurb: '' },  // Gather sites
-    siteBug:    { name: 'Bugs',       per: 0.20, blurb: '' },  // Bug sites
-    siteMine:   { name: 'Mining',     per: 0.20, blurb: '' },  // Mine sites
+    // Same reasoning as the site skills: at 0.20 a full commitment made the
+    // second part certain, which stops it reading as luck at all.
+    parts:      { name: 'Parts',      per: 0.16, blurb: '' },  // what a monster leaves behind
+    // 0.20 meant a CERTAIN second find at the cap. 0.14 leaves it a roll.
+    siteGather: { name: 'Gathering',  per: 0.14, blurb: '' },  // Gather sites
+    siteBug:    { name: 'Bugs',       per: 0.14, blurb: '' },  // Bug sites
+    siteMine:   { name: 'Mining',     per: 0.14, blurb: '' },  // Mine sites
     vigor:      { name: 'Vitality',   per: 0.10, blurb: '' },  // HP and Stamina carried
-    brace:      { name: 'Brace',      per: 0.20, blurb: '' },  // BOSS_ATTACK.holdMs
-    carry:      { name: 'Carrying',   per: 0.20, blurb: '' },  // POUCH_SLOTS / TACKLE_SLOTS / BAIT_CARRY
+    // 0.20 took holdMs to ZERO at the cap, deleting the mechanic rather than
+    // easing it. 0.12 leaves 100ms, which still has to be a deliberate hold.
+    brace:      { name: 'Brace',      per: 0.12, blurb: '' },  // BOSS_ATTACK.holdMs
+    // 0.20 doubled the pouch at the cap. 0.10 takes 10 slots to 15.
+    carry:      { name: 'Carrying',   per: 0.10, blurb: '' },  // POUCH_SLOTS / TACKLE_SLOTS / BAIT_CARRY
     duration:   { name: 'Duration',   per: 0.20, blurb: '' },  // DRINK_SECONDS / DASH_SECONDS / ARMOR_SECONDS
     hire:       { name: 'Hire',       per: 0.20, blurb: '' },  // PEST.hireCut
     fresh:      { name: 'Fresh',      per: 0.15, blurb: '' },  // FRESH_CHANCE / FRESH_MAX
@@ -1998,6 +2011,17 @@
   };
 
   function armorEffects(gear) {
+    // A synthetic set: `{ __levels: { band: 3 } }` behaves as armor granting
+    // exactly those levels. The benches and the skill sheet need to ask "what
+    // does Lv 3 of this do" without hunting for a piece that happens to carry
+    // it, and EVERY consumer reaches skills through this one function — so one
+    // branch here reaches all of them and none of them needs a test mode.
+    if (gear && gear.__levels) {
+      const fake = {};
+      for (const [k, v] of Object.entries(gear.__levels))
+        fake[k] = Math.min(EFFECT_MAX, Math.max(0, v));
+      return fake;
+    }
     const out = {};
     for (const p of wornPieces(gear))
       for (const e of p.effects) out[e.key] = (out[e.key] || 0) + e.lvl;
@@ -2080,6 +2104,11 @@
       const a = w && armorById.get(w.id);
       if (a) n += a[key] + (ARMOR_PER_LEVEL[key] || 0) * (w.lvl || 0);
     }
+    // Vitality is the one skill that moves a STAT rather than a mechanic, so it
+    // belongs here rather than at a consumer — every reader of hp and stamina then
+    // gets it for free. Guard is left alone: taking less damage is Defense Up's
+    // job, and stacking both onto one number would count it twice.
+    if (key === 'hp' || key === 'stamina') n *= 1 + effectPower(gear, 'vigor');
     return key === 'guard' ? n : Math.round(n);
   };
 
@@ -2350,19 +2379,21 @@
       ...b,
       rank,
       durationMs: Math.round(secs * 1000),
-      reward: Math.round(RANK_PEAK[rank] * BOSS_REWARD_MULT * (0.75 + t * 0.5) / 50) * 50,
+      // Bounty is monster pay ONLY, which is what separates it from Fair Price.
+      reward: Math.round(RANK_PEAK[rank] * BOSS_REWARD_MULT * (1 + effectPower(armor, 'bounty'))
+        * (0.75 + t * 0.5) / 50) * 50,
       xp: Math.round((60 + RANK_HR[rank] * 22) * (0.8 + t * 0.6)),
       mat: bossMat(b.line, rank),
       fight: {
         sinkPerSec: rate * lift * (1 - rodSink(rod)),
-        liftPerPress: lift,
+        liftPerPress: lift * (1 + effectPower(armor, 'control')),
         band: Math.max(BOSS_BAND_FLOOR,
           (0.115 - t * 0.05) * (1 + rodBand(rod) + effectPower(armor, 'band') + heatBand(armor, ctx))),
         progressPerSec,
         // The second bar, which bosses never ran at all until now — the reason
         // they were the easiest thing in the water while paying the most.
         escapePerSec: progressPerSec * BOSS_ESCAPE_MULT[rank] * (1 - effectPower(armor, 'escape')),
-        strikeWindowMs: Math.max(1200, 1800 - t * 400),
+        strikeWindowMs: Math.max(1200, 1800 - t * 400) * (1 + effectPower(armor, 'strike')),
       },
     };
   }
@@ -2524,13 +2555,19 @@
   //
   // Returns 0 on a cast where no check is due, so the caller stays a single
   // `rng() < chance` and does not have to know about the cadence.
-  const encounterChance = (name, hr, castsSince = 0) => {
+  const encounterChance = (name, hr, castsSince = 0, gear = null) => {
     if (!ENCOUNTER_CHANCE[name]) return 0;
-    const every = encounterCheckEvery(name);
+    // Lure shortens the CADENCE rather than fattening the odds: checks come round
+    // sooner, so it reads as "they show up more often" instead of "when one was
+    // due it was likelier", which is the same number and the wrong feeling.
+    const every = Math.max(2, Math.round(encounterCheckEvery(name) * (1 - effectPower(gear, 'lure'))));
     if (castsSince <= 0 || castsSince % every !== 0) return 0;
     const rung = Math.min(1, Math.max(0, ((hr || 1) - 1) / 11));
     return Math.min(0.9, ENCOUNTER_ODDS * (1 + rung * ENCOUNTER_RANK_SCALE));
   };
+  // What the cadence actually becomes, for the benches and the skill sheet.
+  const encounterEveryFor = (name, gear) =>
+    Math.max(2, Math.round(encounterCheckEvery(name) * (1 - effectPower(gear, 'lure'))));
 
   // Losing a boss fight COSTS YOU HP rather than ending the trip outright. What
   // it costs is set by the rung the locale sits on, so a Plesioth in G-rank water
@@ -2565,6 +2602,71 @@
   const bossAttackDamage = localeHR =>
     Math.max(1, Math.round(bossLossDamage(localeHR) * BOSS_ATTACK.damageShare));
 
+  // ── What the armor moves ──────────────────────────────────────────────────
+  //
+  // One accessor per tunable an armor skill touches. Consumers call these instead
+  // of reading the constant, so a skill is wired in exactly ONE place and the
+  // constant underneath stays the plain readable number it always was.
+  //
+  // Down here on purpose: these close over PEST, BOSS_ATTACK, POND and the rest,
+  // and every one of those is declared further up.
+  // The tools' way in: gearWith({ band: 3 }) is a set that grants Sure Grip 3.
+  const gearWith = levels => ({ __levels: levels });
+  const up = (gear, key, base) => base * (1 + effectPower(gear, key));
+  const down = (gear, key, base) => base * (1 - effectPower(gear, key));
+
+  const pouchSlots = gear => Math.round(up(gear, 'carry', POUCH_SLOTS));
+  const tackleSlots = gear => Math.round(up(gear, 'carry', TACKLE_SLOTS));
+  const baitCarry = gear => Math.round(up(gear, 'carry', BAIT_CARRY));
+
+  const drinkSeconds = gear => up(gear, 'duration', DRINK_SECONDS);
+  const dashSeconds = gear => up(gear, 'duration', DASH_SECONDS);
+  const armorSeconds = gear => up(gear, 'duration', ARMOR_SECONDS);
+
+  const freshChance = gear => Math.min(1, up(gear, 'fresh', FRESH_CHANCE));
+  // Whole ingredients, so it steps rather than scales: one more every third level.
+  const freshMax = gear => FRESH_MAX + Math.floor(effectLevel(gear, 'fresh') / 3);
+
+  // Closes the GAP to certainty rather than scaling the cut. Scaling it made
+  // level 1 alone turn every pest away, because 0.85 x 1.2 is already past 1.
+  const hireCut = gear => 1 - (1 - PEST.hireCut) * (1 - effectPower(gear, 'hire'));
+  // What the hire, the Palicos and the cart charge.
+  const haggle = (gear, cost) => Math.round(down(gear, 'haggle', cost));
+
+  // Fewer fish needed for the full basket. Floored so it can never become
+  // something a single good cast satisfies.
+  const basketTarget = gear => Math.max(10, Math.round(down(gear, 'basket', BASKET.target)));
+
+  // LOWER is more forgiving: holdMs is how long Space must ALREADY have been down
+  // when the blow lands.
+  const braceHoldMs = gear => Math.round(down(gear, 'brace', BOSS_ATTACK.holdMs));
+
+  // A second part off the same monster.
+  const partsChance = gear => effectPower(gear, 'parts');
+  // Keyed by the `site` a material really carries in the data — Gather, Bug, Mine.
+  const siteChance = gear => ({
+    Gather: effectPower(gear, 'siteGather'),
+    Bug: effectPower(gear, 'siteBug'),
+    Mine: effectPower(gear, 'siteMine'),
+  });
+
+  // XP is worked out from the catch alone at the top of this file, long before
+  // there is any notion of what you are wearing, so Experience wraps it here.
+  const xpGain = (fish, ore, gear) =>
+    Math.round(xpFor(fish, ore) * (1 + effectPower(gear, 'lesson')));
+
+  // The whole pond, tuned to what you have on. Handed to the minigame as one
+  // object so fishing.js keeps reading plain fields and knows nothing about armor.
+  const pondFor = gear => ({
+    ...POND,
+    bobberStep: up(gear, 'bobber', POND.bobberStep),
+    glideRate: up(gear, 'bobber', POND.glideRate),
+    stepCooldownMs: down(gear, 'bobber', POND.stepCooldownMs),
+    attract: up(gear, 'reach', POND.attract),
+    attractRange: Math.min(1, up(gear, 'reach', POND.attractRange)),
+    hookChance: Math.min(0.95, up(gear, 'hook', POND.hookChance)),
+  });
+
   window.MF_GAME = {
     RANKS, rankById, rankAt, hrForRank, tableRanksAt, xpFor, hrThreshold,
     RANK_HR, ORE_RANK_HR, curveRank, fishUnlockHR, oreUnlockHR, itemUnlockHR, baitUnlockHR, unlockLabel,
@@ -2578,6 +2680,9 @@
     TRADE_CART, TRADE_CART_MAX, TRADE_CART_UNLOCK_HR, cartAt, cartTierOpen,
     MATERIALS, materialById, isBuyableMat, isQuestRewardMat, MAT_BUYABLE, pouchItems, pouchItemById,
     POUCH_SLOTS, TACKLE_SLOTS, BAIT_CARRY, carryLimit, ownCap, SUPPLY_RANK, SUPPLY_EACH,
+    pouchSlots, tackleSlots, baitCarry, drinkSeconds, dashSeconds, armorSeconds,
+    freshChance, freshMax, hireCut, haggle, basketTarget, braceHoldMs,
+    partsChance, siteChance, xpGain, pondFor,
     DESIGNED_POOLS, ARENA_POOL, RANK_ORDER, rankIndex, SHOW_DESIGNED_LOCALES,
     LADDER, localesAtHR, localesOpenAt, bandOf, openedAtHR, rungsOpenAt, nextHR, MAX_LADDER_HR,
     GOAL_CASTS, GOAL_CASTS_BY_RANK, GOAL_CASTS_BY_HR, goalCasts, GOAL_ROUND,
@@ -2592,6 +2697,7 @@
     EFFECTS, EFFECT_MAX, effectName, effectBlurb, isFlagEffect, effectPower, armorEffects,
     effectLevel, climateFor, heatBand, culledOres,
     ARMOR_PIECES, armorLineName, PIECE_SLOTS, PIECE_LABEL, wornSetLine,
+    gearWith,
     ARMORS, armorById, armorStat, ARMOR_LEVELS, ARMOR_PER_LEVEL, armorSuffix,
     RODS, rodById, ROD_LEVELS, ROD_PER_LEVEL,
     rodSink, rodBand, rodLift, rodBites, rodSchool, rodStat,
@@ -2605,7 +2711,7 @@
     freshPick,
     POND, REEL_START, RUNG_TIGHTEN, fightFor, BOSS, BOSS_BAND_FLOOR, PEST, HIRE, ENCOUNTER_CHANCE,
     ENCOUNTER_RANK_SCALE, ENCOUNTER_ODDS, encounterCheckEvery,
-    encounterChance, STOCK_CAP,
+    encounterChance, encounterEveryFor, STOCK_CAP,
     BOSS_LOSS, bossLossDamage, BOSS_ATTACK, bossAttackDamage,
   };
 })();

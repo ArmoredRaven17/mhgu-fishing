@@ -368,8 +368,13 @@
       A.addXP(boss.xp);
       // The part it gives up, which is what the forge runs on.
       if (boss.mat) {
-        trip.gathered.push(boss.mat);
-        trip.notes.push(`${bossSVG(boss, 18)}${boss.name} left behind a ${boss.mat.name}.`);
+        // Parts: a chance it gives up a second of the same. Said as one line
+        // whatever the count, because two notes for one monster reads as two
+        // monsters.
+        const extra = Math.random() < G.partsChance(A.state.gear) ? 1 : 0;
+        for (let i = 0; i <= extra; i++) trip.gathered.push(boss.mat);
+        trip.notes.push(`${bossSVG(boss, 18)}${boss.name} left behind `
+          + `${extra ? '2 ' + boss.mat.name + 's' : 'a ' + boss.mat.name}.`);
       }
       el('castPrompt').textContent = `${boss.name} caught. Worth ${z(bossPaid)}.`;
       flushNotes();
@@ -394,12 +399,13 @@
     // end is what stops a lucky pickup from changing which bait you could
     // combine while you were still standing there.
     for (const m of R.rollGather(trip.localeId, trip.questHR, trip.cats, Math.random,
-                                 G.effectPower(armor, 'gather'))) trip.gathered.push(m);
+                                 G.effectPower(armor, 'gather'), G.siteChance(armor)))
+      trip.gathered.push(m);
 
     // Something small has a go at you while your hands are full. This is what
     // makes HP worth carrying potions for away from the two hot locales.
     const pest = R.rollPest(trip.localeId, trip.questHR, trip.hired, Math.random,
-                            G.effectPower(S.gear, 'repel'));
+                            G.effectPower(S.gear, 'repel'), G.hireCut(S.gear));
     if (pest) {
       pest.damage = Math.max(1, Math.round(pest.damage * (1 - guardNow())));
       trip.hp -= pest.damage;
@@ -571,11 +577,11 @@
     if (e.stamina) trip.sta = Math.min(trip.maxSta, trip.sta + e.stamina * more);
     // A Hot Drink is the wrong drink for hot water, but Tropic Hunter wants it
     // there, so track it whether or not it is guarding you against anything.
-    if (e.protects === 'cold') trip.hotDrinkLeft = G.DRINK_SECONDS * more;
+    if (e.protects === 'cold') trip.hotDrinkLeft = G.drinkSeconds(A.state.gear) * more;
     if (e.protects === trip.climate)
-      trip.drinkLeft = G.DRINK_SECONDS * G.climateFor(A.state.gear, trip.climate).drinkMult * more;
-    if (e.dash) trip.dashLeft = G.DASH_SECONDS * e.dash;
-    if (e.def) { trip.defLeft = G.ARMOR_SECONDS * e.secs; trip.defAmount = e.def; }
+      trip.drinkLeft = G.drinkSeconds(A.state.gear) * G.climateFor(A.state.gear, trip.climate).drinkMult * more;
+    if (e.dash) trip.dashLeft = G.dashSeconds(A.state.gear) * e.dash;
+    if (e.def) { trip.defLeft = G.armorSeconds(A.state.gear) * e.secs; trip.defAmount = e.def; }
     A.save();
     render();
   }
@@ -675,7 +681,7 @@
     const gained = trip.value;
     // Counted, not valued: a basket full of cheap fish earns it exactly as a
     // basket full of dear ones does. Only reachable here, so carting loses it.
-    const basket = G.basketBonus(trip.landed, questHR);
+    const basket = G.basketBonus(trip.landed, questHR, A.state.gear);
     A.earn(gained + basket);
     // Only what you actually SPENT leaves your stock; the rest never left it.
     // Supply items are not yours to keep, so they are simply not counted.
@@ -703,7 +709,7 @@
       extra.push(`${z(short)} short of the ${z(goal)} needed to clear ${localeName}.`);
     if (promoted) extra.push(`Every locale fished. You are now HR ${promoted}, ${G.rankAt(promoted).name}.`);
     if (basket) {
-      extra.push(`A full basket — ${G.BASKET.target} fish caught, ${z(basket)} bonus.`);
+      extra.push(`A full basket — ${G.basketTarget(A.state.gear)} fish caught, ${z(basket)} bonus.`);
       items.push(['Full basket', z(basket)]);
     }
     if (cart) {

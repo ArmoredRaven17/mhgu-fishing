@@ -95,17 +95,17 @@
       && S.hr >= G.baitUnlockHR(b));
     const kinds = A.tackleKinds().length;
 
-    el('tackleCount').textContent = `${kinds} / ${G.TACKLE_SLOTS}`;
+    el('tackleCount').textContent = `${kinds} / ${G.tackleSlots(S.gear)}`;
     el('tackleList').innerHTML = owned.length ? owned.map(b => {
       // What you ASKED for against what you can actually take right now. Short of
       // stock reads as 3 / 10, and refills itself the moment you restock.
       const want = A.wantedBait(b.id), take = A.tackled(b.id);
-      const full = kinds >= G.TACKLE_SLOTS && !want;
+      const full = kinds >= G.tackleSlots(S.gear) && !want;
       const owned = A.baitStock(b.id);
       return `<li data-id="${b.id}" class="${want ? 'packed' : ''} ${full ? 'nofit' : ''} ${want && !take ? 'dry' : ''}">
         <img src="${b.icon}" alt="">
         <div><b>${b.name}</b><span class="role">${b.family === 'ore' ? 'variety' : 'species'}</span></div>
-        <span class="qty">${take}${want ? ` / ${want}` : ` / ${Math.min(owned, G.BAIT_CARRY)}`}</span>
+        <span class="qty">${take}${want ? ` / ${want}` : ` / ${Math.min(owned, G.baitCarry(S.gear))}`}</span>
         <button class="btn tiny" data-toggle="${b.id}" ${!want && (full || !owned) ? 'disabled' : ''}>
           ${want ? 'Remove' : 'Add'}</button>
       </li>`;
@@ -273,7 +273,7 @@
       && S.hr >= G.itemUnlockHR(p));
     const used = A.slotsUsed();
 
-    el('pouchCount').textContent = `${used} / ${G.POUCH_SLOTS}`;
+    el('pouchCount').textContent = `${used} / ${G.pouchSlots(S.gear)}`;
     if (!items.length) {
       el('pouchList').innerHTML = '<li class="empty">Nothing to pack. The shop sells provisions.</li>';
       return;
@@ -281,7 +281,7 @@
     el('pouchList').innerHTML = items.map(p => {
       const want = A.wanted(p.id), take = A.planned(p.id);
       const owned = A.itemStock(p.id);
-      const noSlot = used >= G.POUCH_SLOTS && !want;
+      const noSlot = used >= G.pouchSlots(S.gear) && !want;
       return `<li data-id="${p.id}" class="${want ? 'packed' : ''} ${noSlot ? 'nofit' : ''} ${want && !take ? 'dry' : ''}">
         <img src="assets/ItemIcons/${p.icon}" alt="">
         <div><b>${p.name}</b><span class="role">${

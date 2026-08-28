@@ -56,7 +56,9 @@
   // Resolves { landed, catch, missed } once the attempt is decided either way.
   function start(spec) {
     return new Promise(resolve => {
-      const P = G().POND;
+      // The pond as your armor leaves it. fishing.js never learns what a skill
+      // is — it reads the same plain fields it always did.
+      const P = G().pondFor(spec.armor || null);
       const MARGIN = spec.monster ? { x: 0.10, y: 0.16 } : { x: 0.04, y: 0.06 };
       el('castArea').classList.add('hidden');
       el('reel').classList.remove('hidden');
@@ -404,7 +406,9 @@
             if (!b.struck && b.t >= b.windup) {
               b.struck = true;
               const heldFor = S.spaceSince ? performance.now() - S.spaceSince : 0;
-              if (heldFor >= A.holdMs) {
+              // Brace buys leeway: holdMs is how long Space must ALREADY have
+              // been down when the blow lands, so lower is kinder.
+              if (heldFor >= G().braceHoldMs(spec.armor || null)) {
                 el('tensionWrap').classList.add('braced');
                 el('reelHint').textContent = 'Braced.';
               } else {

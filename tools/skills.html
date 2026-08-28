@@ -41,8 +41,17 @@
              background:#ffffff0d;padding:1px 4px;border-radius:3px}
   .pill{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.07em;
         padding:2px 7px;border-radius:10px;border:1px solid var(--line);color:var(--dim)}
-  .pill.live{border-color:var(--good);color:var(--good)}
+  .pill.wired{border-color:var(--good);color:var(--good)}
+  .pill.declared{border-color:var(--accent);color:var(--accent)}
   .pill.idea{border-color:var(--warn);color:var(--warn)}
+  /* One row per level, so what a level buys is read down the column rather than
+     inferred from a multiplier. */
+  ol.lv{margin:4px 0 0;padding:0 0 0 2px;list-style:none;
+        display:grid;gap:1px;font-size:12px}
+  ol.lv li{display:grid;grid-template-columns:34px 1fr;gap:6px;align-items:baseline}
+  ol.lv b{font-variant-numeric:tabular-nums;color:var(--dim);font-weight:600;font-size:10.5px;
+          text-transform:uppercase;letter-spacing:.06em}
+  .nowire{color:var(--dim);font-style:italic;font-size:12.5px}
   .key{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#ffffff5c;
        display:block;font-weight:400}
   .blurb{color:var(--dim);font-size:12.5px;font-style:italic;display:block;margin-top:2px}
@@ -52,16 +61,18 @@
 <div class="wrap">
   <h1>Skill list</h1>
   <p class="lede">
-    Working names &mdash; one word for the thing each skill affects. Three keep their
-    own names because their effects are not a simple dial. <b>Live</b> means the game
-    already reads it; <b>idea</b> means nothing does yet. Assign them in the
-    <a href="../tools/armor.html">armor bench</a>.
+    <b>Wired</b> means something in the game actually reads it, and the levels
+    below are computed from the live game rather than described &mdash; this sheet
+    cannot say one thing while the game does another. <b>Declared</b> means game.js
+    names it and nothing reads it. <b>Idea</b> means it does not exist at all.
+    Assign them in the <a href="../tools/armor.html">armor bench</a>.
   </p>
 
   <div class="bar">
     <div class="segs" role="group" id="showSegs">
       <button data-show="all" aria-pressed="true">All</button>
-      <button data-show="live" aria-pressed="false">Live</button>
+      <button data-show="wired" aria-pressed="false">Wired</button>
+      <button data-show="declared" aria-pressed="false">Declared only</button>
       <button data-show="idea" aria-pressed="false">Ideas</button>
     </div>
     <input type="search" id="q" placeholder="find a skill&hellip;" autocomplete="off">
@@ -89,19 +100,14 @@
 
     // A shipped skill already carries a description in the game; showing it here
     // saves reading two files to learn what one does.
-    const blurbOf = k => {
-      const e = G.EFFECTS[k];
-      if (!e || !e.blurbs || !e.blurbs.length) return '';
-      return e.blurbs[e.blurbs.length - 1];
-    };
+    const blurbOf = k => (G.EFFECTS[k] || {}).blurb || '';
+    const stateOf = k => S.isWired(k) ? 'wired' : (S.isShipped(k) ? 'declared' : 'idea');
 
     function render() {
       const term = q.trim().toLowerCase();
       const rows = S.list.filter(s => {
-        const live = S.isShipped(s.k);
-        if (show === 'live' && !live) return false;
-        if (show === 'idea' && live) return false;
-        return !term || s.name.toLowerCase().includes(term)
+        if (show !== 'all' && stateOf(s.k) !== show) return false;
+        return !term || S.nameOf(s.k).toLowerCase().includes(term)
           || s.k.toLowerCase().includes(term) || s.at.toLowerCase().includes(term);
       });
 
@@ -109,21 +115,30 @@
         const inGroup = rows.filter(s => s.group === g);
         if (!inGroup.length) return '';
         return `<h2>${g}<span>${inGroup.length}</span></h2><table>` + inGroup.map(s => {
-          const live = S.isShipped(s.k);
-          const blurb = live ? blurbOf(s.k) : '';
+          const state = stateOf(s.k);
+          const blurb = blurbOf(s.k);
+          // Every level, straight out of the game. A skill nothing reads says so
+          // rather than showing a ladder that would be a guess.
+          const levels = state === 'wired'
+            ? `<ol class="lv">` + [1, 2, 3, 4, 5].map(l =>
+                `<li><b>Lv ${l}</b><span>${S.effectAt(s.k, l)}</span></li>`).join('') + `</ol>`
+            : `<div class="nowire">${state === 'declared'
+                ? 'Named in game.js; nothing reads it yet.'
+                : 'Proposal only — the game has no such skill.'}</div>`;
           return `<tr>`
-            + `<td class="nm">${s.name}<span class="key">${s.k}</span></td>`
-            + `<td class="st"><span class="pill ${live ? 'live' : 'idea'}">`
-            + `${live ? 'live' : 'idea'}</span></td>`
+            + `<td class="nm">${S.nameOf(s.k)}<span class="key">${s.k}</span></td>`
+            + `<td class="st"><span class="pill ${state}">${state}</span></td>`
             + `<td class="at">${s.at.replace(/([A-Z_]+\.[A-Za-z]+|[A-Z_]{4,})/g, '<code>$1</code>')}`
             + (blurb ? `<span class="blurb">&ldquo;${blurb}&rdquo;</span>` : '')
+            + levels
             + `</td></tr>`;
         }).join('') + `</table>`;
       }).join('') : `<div class="none">Nothing matches that.</div>`;
 
-      const live = S.list.filter(s => S.isShipped(s.k)).length;
+      const wired = S.list.filter(s => stateOf(s.k) === 'wired').length;
+      const declared = S.list.filter(s => stateOf(s.k) === 'declared').length;
       el('tally').textContent = `${rows.length} shown · ${S.list.length} total · `
-        + `${live} live, ${S.list.length - live} ideas`;
+        + `${wired} wired, ${declared} declared, ${S.list.length - wired - declared} ideas`;
     }
 
     el('showSegs').addEventListener('click', e => {

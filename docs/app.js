@@ -264,7 +264,7 @@
   // to fish up once.
   function rerollFresh() {
     for (const id of Object.keys(S.pantry)) S.pantry[id] = true;
-    S.freshOrder = G.freshPick(S.pantry);
+    S.freshOrder = G.freshPick(S.pantry, Math.random, S.gear);
     for (const id of S.freshOrder) S.pantry[id] = 'fresh';
   }
 
@@ -274,7 +274,7 @@
     const fresh = Object.keys(S.pantry).filter(id => S.pantry[id] === 'fresh');
     const order = (S.freshOrder || []).filter(id => fresh.includes(id));
     for (const id of fresh) if (!order.includes(id)) order.push(id);
-    while (order.length > G.FRESH_MAX) S.pantry[order.shift()] = true;
+    while (order.length > G.freshMax(S.gear)) S.pantry[order.shift()] = true;
     S.freshOrder = order;
   }
   const pantryCount = () => Object.keys(S.pantry).length;
@@ -461,7 +461,7 @@
   // low never rewrites the plan: restock and you are back to bringing ten.
   const wanted = id => Math.min(S.plan[id] || 0, G.carryLimit(id));
   const planned = id => Math.min(wanted(id), itemStock(id));
-  const wantedBait = id => Math.min(S.tackle[id] || 0, G.BAIT_CARRY);
+  const wantedBait = id => Math.min(S.tackle[id] || 0, G.baitCarry(S.gear));
 
   // A slot is held by INTENT, not by stock. An item you have run out of keeps its
   // place until you take it out yourself — which is also what stops a slot being
@@ -469,8 +469,8 @@
   function prunePlans() {
     for (const id of Object.keys(S.tackle)) if (wantedBait(id) <= 0) delete S.tackle[id];
     for (const id of Object.keys(S.plan)) if (wanted(id) <= 0) delete S.plan[id];
-    for (const id of Object.keys(S.tackle).slice(G.TACKLE_SLOTS)) delete S.tackle[id];
-    for (const id of Object.keys(S.plan).slice(G.POUCH_SLOTS)) delete S.plan[id];
+    for (const id of Object.keys(S.tackle).slice(G.tackleSlots(S.gear))) delete S.tackle[id];
+    for (const id of Object.keys(S.plan).slice(G.pouchSlots(S.gear))) delete S.plan[id];
   }
 
   // Coming home is where the pouch reconciles with the cupboard. WHILE YOU ARE
@@ -496,7 +496,7 @@
   function setPlan(id, n) {
     const want = Math.max(0, Math.min(n, G.carryLimit(id)));
     // Claiming a new slot is refused once the pouch is full; emptying one is fine.
-    if (want > 0 && !wanted(id) && slotsUsed() >= G.POUCH_SLOTS) return false;
+    if (want > 0 && !wanted(id) && slotsUsed() >= G.pouchSlots(S.gear)) return false;
     S.plan[id] = want;
     return true;
   }
@@ -506,8 +506,8 @@
   const tackleKinds = () => { prunePlans(); return Object.keys(S.tackle); };
 
   function setTackle(id, n) {
-    const want = Math.max(0, Math.min(n, G.BAIT_CARRY));
-    if (want > 0 && !wantedBait(id) && tackleKinds().length >= G.TACKLE_SLOTS) return false;
+    const want = Math.max(0, Math.min(n, G.baitCarry(S.gear)));
+    if (want > 0 && !wantedBait(id) && tackleKinds().length >= G.tackleSlots(S.gear)) return false;
     S.tackle[id] = want;
     return true;
   }

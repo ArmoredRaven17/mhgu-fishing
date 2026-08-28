@@ -30,7 +30,9 @@
   fill('monster', Object.values(G.BOSS).map(b => ({
     id: b.name, name: b.name + '  [' + [...G.bossRanks[b.name]].join('/') + ']' })), 'none');
   fill('rod', G.RODS.map(r => ({ id: r.id, name: r.name + ' (' + r.rank + ')' })), 'bare hands');
-  fill('armor', G.ARMORS.map(a => ({ id: a.id, name: a.name })), 'none');
+  for (const slot of G.PIECE_SLOTS)
+    fill('armor' + slot[0].toUpperCase() + slot.slice(1),
+         G.ARMORS.filter(a => a.slot === slot).map(a => ({ id: a.id, name: a.name })), 'none');
   // A real locale rather than a bare climate, so the climate comes off the game's
   // own map — what the bench tests is somewhere you can actually stand.
   fill('locale', (window.MF_LOCALES || []).filter(l => l.hasFishing)
@@ -47,7 +49,16 @@
     ore: O.list.find(o => o.id === el('ore').value),
     bossName: el('monster').value || null,
     rod: el('rod').value ? { id: el('rod').value, lvl: num('rodLvl') } : null,
-    armor: el('armor').value ? { id: el('armor').value, lvl: num('armorLvl') } : null,
+    // The worn SET. Every game function takes this shape now, so the bench hands
+    // over exactly what the game would and nothing here has to model armor.
+    armor: (() => {
+      const lvl = num('armorLvl'); const worn = {}; let any = false;
+      for (const slot of G.PIECE_SLOTS) {
+        const id = el('armor' + slot[0].toUpperCase() + slot.slice(1)).value;
+        if (id) { worn[slot] = { id, lvl }; any = true; }
+      }
+      return any ? worn : null;
+    })(),
     // Where you are standing and what you drank. Heat Hunter widens the line in
     // hot water, and doubles that with a Hot Drink in hand, so without this the
     // whole second half of Tropic Hunter cannot be seen here.
@@ -92,14 +103,21 @@
       row('strike', Math.round(f.strikeWindowMs) + 'ms');
   }
   function worn() {
-    const a = G.armorById.get(el('armor').value);
-    if (!a) { el('worn').innerHTML = ''; return; }
+    const worn = picked().armor;
+    if (!worn) { el('worn').innerHTML = ''; return; }
     const lvl = num('armorLvl');
     const row = (k, v) => '<span>' + k + '</span><span>' + v + '</span>';
+    const pieces = G.PIECE_SLOTS.map(sl => worn[sl] && G.armorById.get(worn[sl].id)).filter(Boolean);
+    const line = G.wornSetLine(worn);
+    // The TOTAL, which is the number that matters now: two pieces at Lv 2 of one
+    // skill beat one at Lv 3, and no single piece shows you that.
+    const totals = G.armorEffects(worn);
     el('worn').innerHTML =
-      '<b>' + a.name + ' (' + a.rank + ')</b>'
-      + a.effects.map(e => {
-          const def = G.EFFECTS[e.key];
+      '<b>' + pieces.map(p => p.name).join(' + ') + '</b>'
+      + row('full set', line ? G.armorLineName(line) + ' — set bonus applies' : 'mixed — no set bonus')
+      + Object.entries(totals).map(([key, lvl2]) => {
+          const e = { key, lvl: lvl2 };
+          const def = G.EFFECTS[key];
           // Climate effects have no `per` to multiply — they are a ladder of
           // states, not a percentage, and reading one as a number gives NaN.
           // Not every effect is a percentage: climate is a ladder of states and
@@ -108,25 +126,25 @@
             : def.climate ? 'Lv ' + e.lvl + (e.lvl >= 3 ? ' (negates)' : '')
             : def.band ? 'clears ' + ['Low', 'High', 'G'][def.band[Math.min(def.band.length - 1, e.lvl - 1)]] + ' Rank'
             : '+' + Math.round(def.per * e.lvl * 100) + '%';
-          return row(G.effectName(e.key, e.lvl), val);
+          return row(G.effectName(e.key, e.lvl),
+            (window.MF_SKILLS && window.MF_SKILLS.effectAt(e.key, e.lvl)) || val);
         }).join('')
-      + row('HP', '+' + G.armorStat({ id: a.id, lvl: lvl }, 'hp'))
-      + row('stamina', '+' + G.armorStat({ id: a.id, lvl: lvl }, 'stamina'))
-      + row('guard', Math.round(G.armorStat({ id: a.id, lvl: lvl }, 'guard') * 100) + '%')
+      + row('HP', '+' + G.armorStat(worn, 'hp'))
+      + row('stamina', '+' + G.armorStat(worn, 'stamina'))
+      + row('DEF', Math.round(G.armorStat(worn, 'guard') * 100) + '%')
       + (() => {
-          const worn = { id: a.id, lvl: lvl };
           const all = G.oresAt(num('hr'));
           const kept = G.culledOres(worn, all);
           if (kept.length === all.length) return '';
           return row('still biting', kept.length + ' of ' + all.length + ' varieties')
             + row('', kept.map(x => x.name).join(', '));
         })()
-      + row('forged from', a.mat ? a.matCount + ' x ' + a.mat.name : '-')
+      + row('forged from', pieces.map(p => p.matCount + ' x ' + (p.mat ? p.mat.name : '-')).join(', '))
       + (() => {
           const ctx = { climate: G.climateOf(el('locale').value),
                         hotDrink: el('hotDrink').checked };
-          const cl = G.climateFor({ id: a.id, lvl: lvl }, ctx.climate);
-          const hb = G.heatBand({ id: a.id, lvl: lvl }, ctx);
+          const cl = G.climateFor(worn, ctx.climate);
+          const hb = G.heatBand(worn, ctx);
           return (cl.lvl ? row('climate here', cl.immune ? 'immune'
                     : 'drinks x' + cl.drinkMult) : '')
             + (hb ? row('heat bonus', '+' + Math.round(hb * 100) + '% band') : '');
@@ -159,11 +177,18 @@
     }
     lines.push('');
     lines.push('== every effect ==');
+    // `tiers` is gone: one name per skill, the level does the rest. What a level
+    // actually buys comes from the same probes the skill sheet uses, so this
+    // listing and that sheet cannot disagree.
+    const SK = window.MF_SKILLS;
     for (const k of Object.keys(G.EFFECTS)) {
       const e = G.EFFECTS[k];
-      lines.push('  ' + k.padEnd(10) + e.tiers.join(' -> ').padEnd(52)
-        + (e.flag ? 'flag' : '+' + Math.round(e.per * 100) + '% a level'));
-      lines.push('  ' + ' '.repeat(10) + e.blurb);
+      const wired = SK && SK.isWired(k);
+      lines.push('  ' + k.padEnd(11) + e.name.padEnd(24)
+        + (wired ? '' : '(nothing reads this yet)'));
+      if (wired) for (const lv of [1, 3, 5])
+        lines.push('  ' + ' '.repeat(11) + ('Lv ' + lv).padEnd(6) + SK.effectAt(k, lv));
+      if (e.blurb) lines.push('  ' + ' '.repeat(11) + '"' + e.blurb + '"');
     }
     el('armorBody').innerHTML =
       '<pre style="margin:0;white-space:pre;font:11px ui-monospace,monospace">'
@@ -172,13 +197,29 @@
   }
   const closeArmor = () => el('armorModal').classList.add('hidden');
   el('listArmor').onclick = listArmor;
+  // Testing a full set is the common case and picking the same line three times
+  // from three long lists is a chore, so the helm decides and the rest follow.
+  el('wholeSet').onclick = () => {
+    const helm = G.armorById.get(el('armorHelm').value);
+    if (!helm) return;
+    for (const slot of G.PIECE_SLOTS) {
+      const mate = G.ARMORS.find(a => a.line === helm.line && a.rank === helm.rank && a.slot === slot);
+      const sel = el('armor' + slot[0].toUpperCase() + slot.slice(1));
+      sel.value = mate ? mate.id : '';
+    }
+    // Fire the same change the selects fire, rather than calling one renderer by
+    // name: the bench redraws several panels off that event and picking one of
+    // them left the worn panel showing the helm alone.
+    el('armorWaist').dispatchEvent(new Event('change', { bubbles: true }));
+  };
   el('armorClose').onclick = closeArmor;
   el('armorModal').onclick = e => { if (e.target.id === 'armorModal') closeArmor(); };
   window.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !el('armorModal').classList.contains('hidden')) closeArmor();
   });
 
-  for (const id of ['fish', 'ore', 'monster', 'hr', 'rod', 'rodLvl', 'armor', 'armorLvl',
+  for (const id of ['fish', 'ore', 'monster', 'hr', 'rod', 'rodLvl',
+                    'armorHelm', 'armorChest', 'armorWaist', 'armorLvl',
                     'locale', 'hotDrink', 'coolDrink', 'pool', 'bait'])
     el(id).onchange = el(id).oninput = () => { nums(); worn(); poolReadout(); };
 
