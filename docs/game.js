@@ -2364,7 +2364,9 @@
     'Shogun Ceanataur': {
       name: 'Shogun Ceanataur', icon: 'MHGU-Shogun_Ceanataur_Icon.webp', bait: null,
       floor: 'Low', tier: 0.35, line: 'ceanataur',
-      desc: '', note: '',
+      desc: '',
+      note: 'Its long, sharp pincers allow it to pierce volcanic bedrock and '
+          + 'travel along ceilings.',
     },
     Mizutsune: {
       name: 'Mizutsune', icon: 'MHGU-Mizutsune_Icon.webp', bait: null,
