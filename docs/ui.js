@@ -123,9 +123,66 @@
       + '<div class="panel-body">' + html + '</div>';
   }
 
+  // ── The marketplace ───────────────────────────────────────────────────────
+  //
+  // Parts for the fifty-nine lines you cannot fish. Same rarity both ways, so
+  // what you can see is decided entirely by what you already hold — no rank gate
+  // and no HR gate, because a rarity you have not earned your way to simply has
+  // nothing in the box to trade with.
+  let tradeGive = '';
+  function renderTrader() {
+    const S = A.state;
+    if (!el('traderTable')) return;
+
+    // Only parts you actually hold enough of to trade at all.
+    const holdings = G.MONSTER_MATS
+      .filter(m => (S.mats[m.id] || 0) >= G.tradeRate(m.rarity))
+      .sort((a, b) => a.rarity - b.rarity || a.name.localeCompare(b.name));
+    if (!holdings.some(m => m.id === tradeGive)) tradeGive = holdings[0] ? holdings[0].id : '';
+
+    el('tradeGive').innerHTML = holdings.map(m =>
+      `<option value="${m.id}" ${m.id === tradeGive ? 'selected' : ''}>${m.name}</option>`).join('')
+      || '<option value="">nothing to trade yet</option>';
+    el('tradeGive').disabled = !holdings.length;
+
+    const give = G.monsterMatById.get(tradeGive);
+    el('tradeHeld').textContent = give
+      ? `${S.mats[give.id] || 0} held · ${G.tradeRate(give.rarity)} buys one`
+      : '';
+
+    const rows = [];
+    if (!give) {
+      rows.push('<tr><td class="ic"></td><td class="dt" colspan="8">'
+        + 'Nothing to trade yet. Catch a large monster and bring its parts back.</td></tr>');
+    } else {
+      const cost = G.tradeRate(give.rarity);
+      for (const m of G.matsAtRarity(give.rarity)) {
+        if (m.id === give.id) continue;
+        const held = S.mats[m.id] || 0;
+        const can = A.canTrade(give.id, m.id);
+        rows.push(gearRowHTML({
+          icon: img('assets/ItemIcons/' + m.icon, m.name),
+          name: m.name,
+          skills: `<span class="ent">${G.armorLineName(m.line)}</span>`,
+          detail: `<span class="ent">${m.rank} Rank part</span>`,
+          mats: `<span class="mat ${can ? 'ok' : 'short'}"><b>${cost}&times;</b> ${give.name}</span>`,
+          price: '&mdash;',
+          have: held ? `x${held}` : '&mdash;',
+          buys: [{ label: 'Trade', attr: `data-trade="${m.id}"`, disabled: !can }],
+        }));
+      }
+    }
+    el('traderTable').innerHTML = rows.join('');
+    el('traderTable').querySelectorAll('[data-trade]').forEach(btn =>
+      // renderSmithy, not just refresh: a traded part can make a whole armor
+      // line forgeable, and the Armor tab is built from what you hold.
+      btn.onclick = () => { if (A.trade(tradeGive, btn.dataset.trade)) renderSmithy(); });
+  }
+
   function renderSmithy() {
     const S = A.state;
     renderWorn();
+    renderTrader();
 
     const matCell = (g) => {
       const parts = A.forgeParts(g.id);
@@ -381,7 +438,8 @@
     smithyView = view;
     for (const [name, tab, panel] of [['rods', 'subRods', 'viewRods'],
                                      ['armor', 'subArmor', 'viewArmor'],
-                                     ['cart', 'subCart', 'viewCart']]) {
+                                     ['cart', 'subCart', 'viewCart'],
+                                     ['trader', 'subTrader', 'viewTrader']]) {
       el(tab).classList.toggle('active', view === name);
       el(panel).classList.toggle('active', view === name);
     }
@@ -606,6 +664,8 @@
   el('subRods').onclick = () => showSmithy('rods');
   el('subArmor').onclick = () => showSmithy('armor');
   el('subCart').onclick = () => showSmithy('cart');
+  el('subTrader').onclick = () => showSmithy('trader');
+  el('tradeGive').onchange = e => { tradeGive = e.target.value; renderTrader(); };
   el('navSmithy').onclick = () => show('smithy');
   el('navShop').onclick = () => show('shop');
 

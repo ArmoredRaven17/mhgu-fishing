@@ -1366,19 +1366,26 @@
     mizutsune:  { name: 'Mizutsune',     Low: 'Mizutsune Scale', High: 'Mizutsune Scale+',   G: 'Mizutsune Shard',  icon: 'MH4G-Scale_Icon_White.png' },
   };
   const matId = (line, rank) => `${line}_${rank.toLowerCase()}`;
-  const bossMat = (line, rank) => {
-    const L = MAT_LINES[line];
-    const nm = L && L[rank];
-    return nm ? { id: matId(line, rank), name: nm, icon: L.icon, line, rank } : null;
-  };
-  const MONSTER_MATS = (() => {
-    const out = [];
-    for (const [line, L] of Object.entries(MAT_LINES))
-      for (const rank of ['Low', 'High', 'G'])
-        if (L[rank]) out.push(bossMat(line, rank));
-    return out;
-  })();
-  const monsterMatById = new Map(MONSTER_MATS.map(m => [m.id, m]));
+
+  // ── The marketplace ───────────────────────────────────────────────────────
+  //
+  // Fifty-nine of the seventy-one armor lines belong to monsters you cannot fish.
+  // Their parts are traded for rather than caught, and the whole economy runs on
+  // RARITY and nothing else: hand over several parts of a rarity, take one part
+  // of that same rarity back.
+  //
+  // Same rarity only, deliberately. It needs no rank gate and no HR gate because
+  // rarity already is one — you cannot trade at r8 until something has given you
+  // an r8 part, and only G Rank monsters do.
+  const TRADE_RATE = { 4: 2, 6: 3, 8: 3 };
+  const tradeRate = rarity => TRADE_RATE[rarity] || 3;
+
+  // Everything of one rarity, which is everything a holder of that rarity may ask
+  // for. Sorted by name so the list does not reshuffle as your holdings change.
+  const matsAtRarity = rarity => MONSTER_MATS
+    .filter(m => m.rarity === rarity)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const tradeRarities = () => [...new Set(MONSTER_MATS.map(m => m.rarity))].sort((a, b) => a - b);
 
   // ── Effects ───────────────────────────────────────────────────────────────
   //
@@ -1976,6 +1983,62 @@
   // Names come from mhgu.db, not from splitting an id: "yian_kut_ku" has to read
   // Yian Kut-Ku, and no amount of underscore-splitting produces that hyphen.
   const armorLineName = line => (window.MF_ARMOR_LINE_NAMES || {})[line] || line;
+
+  // The other fifty-nine lines, filled in from the real drop tables. The twelve
+  // above are hand-set and WIN: those names are Raven's, one of them (Zamtrios
+  // Scale) deliberately does not exist in the game, and regenerating over them
+  // would quietly take that back.
+  //
+  // A generated line carries a rarity per tier because the marketplace trades on
+  // rarity and nothing else. The hand-set twelve get theirs from the same ladder
+  // the data uses throughout: r4 Low, r6 High, r8 G.
+  const RANK_RARITY = { Low: 4, High: 6, G: 8 };
+  (() => {
+    const gen = window.MF_MONSTER_PARTS || {};
+    for (const [line, tiers] of Object.entries(gen)) {
+      const L = MAT_LINES[line];
+      if (L) {                       // hand-set: keep the names, take the rarities
+        L.rarity = L.rarity || {};
+        for (const rank of ['Low', 'High', 'G'])
+          if (L[rank]) L.rarity[rank] = (tiers[rank] || {}).rarity || RANK_RARITY[rank];
+        continue;
+      }
+      // The raw map, not armorLineName: that helper is declared with the armor
+      // board further down and is still in its dead zone here.
+      const made = { name: (window.MF_ARMOR_LINE_NAMES || {})[line] || line,
+                     Low: null, High: null, G: null,
+                     icon: (tiers.G || tiers.High || tiers.Low || {}).icon
+                        || 'MH4G-Scale_Icon_Grey.png', rarity: {}, icons: {} };
+      for (const rank of ['Low', 'High', 'G']) {
+        // Only tiers the armor board actually defines. A line whose armor starts
+        // at G has no use for a Low part, and putting one in the marketplace
+        // would offer a trade that buys nothing.
+        if (!tiers[rank] || !(ARMOR_PIECES[line] || {})[rank]) continue;
+        made[rank] = tiers[rank].name;
+        made.rarity[rank] = tiers[rank].rarity;
+        made.icons[rank] = tiers[rank].icon;
+      }
+      if (made.Low || made.High || made.G) MAT_LINES[line] = made;
+    }
+  })();
+
+  const bossMat = (line, rank) => {
+    const L = MAT_LINES[line];
+    const nm = L && L[rank];
+    if (!nm) return null;
+    return { id: matId(line, rank), name: nm,
+             icon: (L.icons && L.icons[rank]) || L.icon, line, rank,
+             rarity: (L.rarity && L.rarity[rank]) || RANK_RARITY[rank] };
+  };
+  const MONSTER_MATS = (() => {
+    const out = [];
+    for (const [line, L] of Object.entries(MAT_LINES))
+      for (const rank of ['Low', 'High', 'G'])
+        if (L[rank]) out.push(bossMat(line, rank));
+    return out;
+  })();
+  const monsterMatById = new Map(MONSTER_MATS.map(m => [m.id, m]));
+
   // S is the MIDDLE of a line, not "the High Rank one". A line with only two
   // suits has no middle, so it runs base then X — the same shape the skill names
   // take, where a two-tier skill goes Sure Grip -> Master's Grip with no `+`.
@@ -2837,6 +2900,7 @@
     MEALS, mealCost, MEAL_SCALE, ITEM_PRICE, priceOf,
     RETIRED_UPGRADES, refundUpgrades,
     MAT_LINES, MONSTER_MATS, monsterMatById, bossMat, matId,
+    TRADE_RATE, tradeRate, matsAtRarity, tradeRarities,
     EFFECTS, EFFECT_MAX, effectName, effectBlurb, isFlagEffect, effectPower, armorEffects,
     effectLevel, climateFor, heatBand, culledOres,
     ARMOR_PIECES, armorLineName, PIECE_SLOTS, PIECE_LABEL, wornSetLine,

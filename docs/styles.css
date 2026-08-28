@@ -1175,3 +1175,14 @@ select{
 .worn-skills li{padding:4px 0}
 .worn-skills .sn{display:block;font-size:12px;font-weight:600}
 .worn-skills .sd{display:block;font-size:11px;opacity:.6;line-height:1.35}
+
+/* ── Marketplace ──────────────────────────────────────────────────────────
+   One picker for what you hand over, then every part of that same rarity you
+   could take back. Rarity is the only gate, so the picker holding nothing is
+   itself the answer to "why can I not trade yet". */
+.trade-pick{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.trade-pick label{font-size:12px;opacity:.7;text-transform:uppercase;letter-spacing:.06em}
+.trade-pick select{background:#12141a;color:inherit;border:1px solid #ffffff2e;
+                   border-radius:6px;padding:6px 10px;font:inherit;font-size:13px;
+                   min-width:200px;max-width:100%}
+.trade-pick .count{font-size:12px;opacity:.7;font-variant-numeric:tabular-nums}

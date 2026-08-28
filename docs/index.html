@@ -6,7 +6,7 @@
 <title>MHGU Fishing</title>
 <!-- Whetfish: the first thing almost anyone catches here. -->
 <link rel="icon" type="image/png" href="assets/FishIcons/MH4G-Fish_Icon_Yellow.png">
-<link rel="stylesheet" href="styles.css?v=314">
+<link rel="stylesheet" href="styles.css?v=317">
 </head>
 <body>
 
@@ -295,6 +295,7 @@
         <button id="subRods" class="subtab active">Rods &amp; Materials</button>
         <button id="subArmor" class="subtab">Armor</button>
         <button id="subCart" class="subtab">Trade Cart</button>
+        <button id="subTrader" class="subtab">Marketplace</button>
       </div>
 
       <div id="viewRods" class="subview active">
@@ -309,6 +310,23 @@
         <div class="panel">
           <div class="panel-body table-wrap">
             <table class="shop-table smithy-table"><tbody id="cartTable"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <div id="viewTrader" class="subview">
+        <!-- Parts for the fifty-nine lines you cannot fish. Same rarity both
+             ways, so the list you can see is decided by what you already hold. -->
+        <div class="panel">
+          <div class="panel-body">
+            <div class="trade-pick">
+              <label for="tradeGive">Trade in</label>
+              <select id="tradeGive"></select>
+              <span id="tradeHeld" class="count"></span>
+            </div>
+          </div>
+          <div class="panel-body table-wrap">
+            <table class="shop-table smithy-table"><tbody id="traderTable"></tbody></table>
           </div>
         </div>
       </div>
@@ -437,22 +455,23 @@
   </div>
 </div>
 
-<script src="data/ores.js?v=314"></script>
-<script src="data/fish.js?v=314"></script>
-<script src="data/locales.js?v=314"></script>
-<script src="data/meals.js?v=314"></script>
-<script src="data/canteen.js?v=314"></script>
-<script src="data/armorlines.js?v=314"></script>
-<script src="data/themes.js?v=314"></script>
-<script src="theme.js?v=314"></script>
-<script src="game.js?v=314"></script>
-<script src="roll.js?v=314"></script>
-<script src="app.js?v=314"></script>
-<script src="guide.js?v=314"></script>
-<script src="prep.js?v=314"></script>
-<script src="fishing.js?v=314"></script>
-<script src="quest.js?v=314"></script>
-<script src="ui.js?v=314"></script>
-<script src="savefile.js?v=314"></script>
+<script src="data/ores.js?v=317"></script>
+<script src="data/fish.js?v=317"></script>
+<script src="data/locales.js?v=317"></script>
+<script src="data/meals.js?v=317"></script>
+<script src="data/canteen.js?v=317"></script>
+<script src="data/armorlines.js?v=317"></script>
+<script src="data/monsterparts.js?v=317"></script>
+<script src="data/themes.js?v=317"></script>
+<script src="theme.js?v=317"></script>
+<script src="game.js?v=317"></script>
+<script src="roll.js?v=317"></script>
+<script src="app.js?v=317"></script>
+<script src="guide.js?v=317"></script>
+<script src="prep.js?v=317"></script>
+<script src="fishing.js?v=317"></script>
+<script src="quest.js?v=317"></script>
+<script src="ui.js?v=317"></script>
+<script src="savefile.js?v=317"></script>
 </body>
 </html>

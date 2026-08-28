@@ -752,6 +752,80 @@ for (const m of q(`SELECT name FROM monsters WHERE class = '0' ORDER BY name`)) 
   armorLineNames[id] = label;
 }
 
+// ── Monster parts for the exchange lines ─────────────────────────────
+//
+// Sixty of the seventy-one armor lines have no material, so they cannot be
+// forged. The marketplace trades for them, and it trades on RARITY, so the parts
+// have to come from the game rather than be invented: real names, real rarities.
+//
+// The ladder the data actually has is r4 / r6 / r8, which maps exactly onto
+// Low / High / G, plus r9 on twenty-four G Rank monsters. Nothing above r9
+// exists — r10 and r11 in this db are EQUIPMENT rarities, not parts.
+//
+// One part per tier, chosen as the cheapest non-Scrap at that rarity: that is the
+// plain Scale or Hide or Shell rather than the gem, which is what a set is
+// actually built out of.
+const PART_TIERS = [['Low', 4], ['High', 6], ['G', 8], ['top', 9]];
+// The editor already maps every item to its real icon and iconOf registers the
+// file for copying, so there is nothing to guess at: a Tigrex Shard gets the
+// Tigrex Shard icon rather than a generic scale in a rank colour. Falls back to a
+// kind-and-rank guess only where the editor has no mapping.
+const partIcon = (name, iconName, rank) => {
+  const real = ITEM_ICONS[name];
+  if (real) { wantedIcons.add(real); return real; }
+  const kind = { icon_scale: 'Scale', icon_hide: 'Hide', icon_shell: 'Shell',
+                 icon_carapace: 'Shell', icon_webbing: 'Webbing', icon_web: 'Webbing',
+                 icon_husk: 'Husk' }[iconName] || 'Scale';
+  const colour = { Low: 'Grey', High: 'Blue', G: 'Red', top: 'White' }[rank] || 'Grey';
+  const want = `MH4G-${kind}_Icon_${colour}.png`;
+  if (existsSync(join(ICON_OUT, want))) return want;
+  return `MH4G-Scale_Icon_${colour}.png`;
+};
+// Read off hunting_rewards, the db's own monster-to-item link, NOT off the name.
+// A monster's parts are frequently not called after it: Cephadrome drops Cephalos
+// parts, Royal Ludroth drops "R.Ludroth", Daimyo Hermitaur just "Hermitaur". A
+// name prefix missed thirteen lines outright.
+//
+// Generic drops have to come out — Monster Bone M and Wyvern Tear fall off half
+// the roster. Rather than hand-list them, an item counts as a PART only if few
+// monsters drop it; anything widely shared is a general material.
+const dropCount = new Map();
+for (const r of q(`SELECT h.item_id, COUNT(DISTINCT h.monster_id) n
+                   FROM hunting_rewards h GROUP BY h.item_id`))
+  dropCount.set(r.item_id, r.n);
+const SPECIFIC = 3;
+// Hide, scale, shell, carapace, webbing, husk: the kinds a set is built from.
+// Fang and bone belong here as well as hide and scale — they are what half the
+// roster's armor is actually made of, and leaving them out cost a lot of lines
+// their Low tier for no reason.
+const CORE_PART_ICONS = new Set(['icon_scale', 'icon_hide', 'icon_shell',
+                                 'icon_carapace', 'icon_webbing', 'icon_husk',
+                                 'icon_fang', 'icon_bone']);
+const partPick = db.prepare(`SELECT i._id, i.name, i.icon_name FROM hunting_rewards h
+   JOIN items i ON i._id = h.item_id
+   JOIN monsters m ON m._id = h.monster_id
+   WHERE m.name = ? AND i.rarity = ? AND i.sell > 0
+     AND i.name NOT LIKE '%Scrap%' AND i.name NOT LIKE '%Ticket%'
+   GROUP BY i._id ORDER BY i.sell ASC`);
+const monsterParts = {};
+for (const m of q(`SELECT name FROM monsters WHERE class = '0' ORDER BY name`)) {
+  if (VARIANTS.includes(m.name)) continue;
+  const [id] = LINE_ALIAS[m.name] || [slug(m.name)];
+  const tiers = {};
+  for (const [rank, rarity] of PART_TIERS) {
+    const rows = partPick.all(m.name, String(rarity))
+      .filter(r => (dropCount.get(r._id) || 99) <= SPECIFIC);
+    // The things armor is made OF, and NOTHING else. Falling back to "cheapest
+    // whatever" put an Aqua Sac in the marketplace as a Kecha Wacha part: a real
+    // drop, a generic item the combine system already owns, and no kind of
+    // material to build a set from. A monster with no proper part at a rarity
+    // simply has no tier there.
+    const row = rows.find(r => CORE_PART_ICONS.has(r.icon_name));
+    if (row) tiers[rank] = { name: row.name, rarity,
+                             icon: partIcon(row.name, row.icon_name, rank) };
+  }
+  if (Object.keys(tiers).length) monsterParts[id] = tiers;
+}
 db.close();
 
 // ── Emit ────────────────────────────────────────────────────────────────────
@@ -791,6 +865,13 @@ writeFileSync(join(OUT, 'meals.js'),
   header('MHGU meals — Hunter HP and Stamina bonuses',
     'data-src/meals.html (Kiranico Meal List)') +
   `window.MF_MEALS = ${JSON.stringify(meals, null, 1)};
+`);
+
+
+writeFileSync(join(OUT, 'monsterparts.js'),
+  header('MHGU monster parts by armor line and rarity',
+    'mhgu.db items table — cheapest non-Scrap part at each rarity') +
+  `window.MF_MONSTER_PARTS = ${JSON.stringify(monsterParts, null, 1)};
 `);
 
 writeFileSync(join(OUT, 'armorlines.js'),

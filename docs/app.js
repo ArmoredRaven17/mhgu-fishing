@@ -547,6 +547,30 @@
   // A rod is forged from whichever line you have been hunting — any part of the
   // right rank will do, so the rod never marches you at a monster you dislike.
   // Armor wants its OWN monster, because that is what the set is made of.
+  // ── The marketplace ───────────────────────────────────────────────────────
+  //
+  // Give N of one part, take one of another at the SAME rarity. Nothing else is
+  // spent: no zenny, no rank check. Rarity is the whole gate, and you cannot hold
+  // a rarity you have not earned your way to.
+  const canTrade = (giveId, getId) => {
+    const give = G.monsterMatById.get(giveId), get = G.monsterMatById.get(getId);
+    if (!give || !get || give.id === get.id) return false;
+    if (give.rarity !== get.rarity) return false;
+    return (S.mats[giveId] || 0) >= G.tradeRate(get.rarity);
+  };
+  function trade(giveId, getId) {
+    if (!canTrade(giveId, getId)) return false;
+    const get = G.monsterMatById.get(getId);
+    const n = G.tradeRate(get.rarity);
+    S.mats[giveId] -= n;
+    if (!S.mats[giveId]) delete S.mats[giveId];
+    S.mats[getId] = (S.mats[getId] || 0) + 1;
+    // Seen, so it stops being ???? on the Materials page the moment you hold one.
+    if (S.matsSeen) S.matsSeen[getId] = true;
+    save();
+    return true;
+  }
+
   function forgeParts(id) {
     const g = gearById(id);
     if (!g) return [];
@@ -692,6 +716,7 @@
     seeMaterial, matSeen, everFished,
     tackled, tackleKinds, setTackle, prunePlans, dropEmptyPlans,
     wanted, wantedBait, questRung, selectQuest,
+    canTrade, trade,
     reset() { S = defaults(); save(); },
   };
 })();
