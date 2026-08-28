@@ -6,7 +6,7 @@
 <title>MHGU Fishing</title>
 <!-- Whetfish: the first thing almost anyone catches here. -->
 <link rel="icon" type="image/png" href="assets/FishIcons/MH4G-Fish_Icon_Yellow.png">
-<link rel="stylesheet" href="styles.css?v=310">
+<link rel="stylesheet" href="styles.css?v=314">
 </head>
 <body>
 
@@ -314,6 +314,11 @@
       </div>
 
       <div id="viewArmor" class="subview">
+        <!-- Only here: rods and the cart have nothing to say about a set. A
+             column down the left of THIS view rather than the whole smithy, so
+             the rod and cart tables keep their full width. -->
+        <section id="wornPanel" class="panel worn-panel"></section>
+
         <!-- One tab per set, built at render time: a line only appears once you
              hold a part of the monster it is made from. -->
         <div id="armorLines" class="subtabs setline"></div>
@@ -432,22 +437,22 @@
   </div>
 </div>
 
-<script src="data/ores.js?v=310"></script>
-<script src="data/fish.js?v=310"></script>
-<script src="data/locales.js?v=310"></script>
-<script src="data/meals.js?v=310"></script>
-<script src="data/canteen.js?v=310"></script>
-<script src="data/armorlines.js?v=310"></script>
-<script src="data/themes.js?v=310"></script>
-<script src="theme.js?v=310"></script>
-<script src="game.js?v=310"></script>
-<script src="roll.js?v=310"></script>
-<script src="app.js?v=310"></script>
-<script src="guide.js?v=310"></script>
-<script src="prep.js?v=310"></script>
-<script src="fishing.js?v=310"></script>
-<script src="quest.js?v=310"></script>
-<script src="ui.js?v=310"></script>
-<script src="savefile.js?v=310"></script>
+<script src="data/ores.js?v=314"></script>
+<script src="data/fish.js?v=314"></script>
+<script src="data/locales.js?v=314"></script>
+<script src="data/meals.js?v=314"></script>
+<script src="data/canteen.js?v=314"></script>
+<script src="data/armorlines.js?v=314"></script>
+<script src="data/themes.js?v=314"></script>
+<script src="theme.js?v=314"></script>
+<script src="game.js?v=314"></script>
+<script src="roll.js?v=314"></script>
+<script src="app.js?v=314"></script>
+<script src="guide.js?v=314"></script>
+<script src="prep.js?v=314"></script>
+<script src="fishing.js?v=314"></script>
+<script src="quest.js?v=314"></script>
+<script src="ui.js?v=314"></script>
+<script src="savefile.js?v=314"></script>
 </body>
 </html>

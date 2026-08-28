@@ -1135,11 +1135,25 @@ select{
 
 
 /* ── What you are wearing ─────────────────────────────────────────────────
-   The Equipment tab in camp, beside Locale, Canteen and Items. It briefly also
-   had a panel down the side of the smithy; that cost more width than the answer
-   was worth, and the smithy's own rows already say what each piece carries.
-   renderWorn still writes to any target that exists, so putting it back is one
-   element. */
+   Two places, one builder: the Equipment tab in camp beside Locale, Canteen and
+   Items, and a panel down the left of the smithy's ARMOR tab — rods and the cart
+   have nothing to say about a set, and scoping it to that one view is what keeps
+   their tables at full width. */
+
+/* The armor view is the only smithy view with a side panel, so the grid lives on
+   the view rather than on #smithy. */
+/* `.active` matters: `#viewArmor.subview` alone outranks the rule that hides an
+   inactive subview, so the armor view — and the panel in it — stayed on screen
+   under the Rods and Trade Cart tabs as well. */
+#viewArmor.subview.active{display:grid;gap:12px;
+                          grid-template-columns:250px minmax(0,1fr);align-items:start}
+#viewArmor > .worn-panel{grid-column:1;grid-row:1 / span 99;
+                         position:sticky;top:12px;margin:0}
+#viewArmor > .subtabs,#viewArmor > .panel:not(.worn-panel){grid-column:2}
+@media (max-width:860px){
+  #viewArmor.subview.active{display:block}
+  #viewArmor > .worn-panel{position:static;margin-bottom:12px}
+}
 .worn-set,.worn-stat,.worn-skills{list-style:none;margin:0;padding:0}
 .worn-set li{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:6px;
              align-items:baseline;padding:3px 0;font-size:12px}

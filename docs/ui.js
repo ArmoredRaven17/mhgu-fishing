@@ -112,12 +112,20 @@
   // smithy's own rows already say what each piece carries. The pane is already a
   // panel-body, so it takes the content as it is.
   function renderWorn() {
+    const html = wornHTML();
+    // The camp pane is already a panel-body and takes the content as it is; the
+    // smithy panel brings its own head and body. Same builder for both, so the
+    // two can never disagree about what you have on.
     const camp = el('paneWorn');
-    if (camp) camp.innerHTML = wornHTML();
+    if (camp) camp.innerHTML = html;
+    const panel = el('wornPanel');
+    if (panel) panel.innerHTML = '<div class="panel-head">Equipment</div>'
+      + '<div class="panel-body">' + html + '</div>';
   }
 
   function renderSmithy() {
     const S = A.state;
+    renderWorn();
 
     const matCell = (g) => {
       const parts = A.forgeParts(g.id);
