@@ -666,10 +666,14 @@
 
       const step = 0.06;
       const prevDown = window.onkeydown, prevUp = window.onkeyup;
-      const finish = function (caught) {
+      // Restoring the old prompt is right when you back OUT — you should be left
+      // reading whatever you were reading. It is wrong once the bomb has gone off:
+      // quest.js appends the result with flushNotes, so putting the previous
+      // blast's line back first chained every message onto the last.
+      const finish = function (caught, restore) {
         window.onkeydown = prevDown; window.onkeyup = prevUp;
         if (pool) pool.bomb = null;
-        if (prompt) prompt.textContent = wasPrompt;
+        if (prompt) prompt.textContent = restore ? wasPrompt : '';
         resolve({ caught: caught });
       };
 
@@ -680,7 +684,7 @@
         else if (k === 'arrowright' || k === 'd') { B.x = Math.min(0.95, B.x + step); place(); e.preventDefault(); }
         else if (k === 'arrowup' || k === 'w') { B.y = Math.max(0.07, B.y - step); place(); e.preventDefault(); }
         else if (k === 'arrowdown' || k === 's') { B.y = Math.min(0.93, B.y + step); place(); e.preventDefault(); }
-        else if (k === 'escape') { marker.remove(); finish([]); }
+        else if (k === 'escape') { marker.remove(); finish([], true); }
         else if (k === ' ' || k === 'spacebar') { e.preventDefault(); window.onkeydown = null; drop(); }
       };
       if (pool) pool.bomb = B;
