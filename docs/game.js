@@ -1439,10 +1439,20 @@
   const TRADE_RATE = { 4: 2, 6: 3, 8: 3 };
   const tradeRate = rarity => TRADE_RATE[rarity] || 3;
 
-  // Everything of one rarity, which is everything a holder of that rarity may ask
-  // for. Sorted by name so the list does not reshuffle as your holdings change.
+  // A line you can meet in the water is a line whose parts you go and CATCH. The
+  // marketplace exists for the fifty-nine you cannot, so offering to sell you a
+  // Lavasioth Shard would be selling you the thing you are already out there for.
+  const isFishableLine = line => Object.values(BOSS).some(b => b.line === line);
+
+  // Everything of one rarity that cannot be fished — which is everything a holder
+  // of that rarity may ask for. Sorted by name so the list does not reshuffle as
+  // your holdings change.
+  //
+  // Only the ASKING side is filtered. Fishable parts are still what you hand over,
+  // and that is the whole trade: you fish what you can reach and trade it for what
+  // you cannot.
   const matsAtRarity = rarity => MONSTER_MATS
-    .filter(m => m.rarity === rarity)
+    .filter(m => m.rarity === rarity && !isFishableLine(m.line))
     .sort((a, b) => a.name.localeCompare(b.name));
   const tradeRarities = () => [...new Set(MONSTER_MATS.map(m => m.rarity))].sort((a, b) => a - b);
 
@@ -3004,7 +3014,7 @@
     MEALS, mealCost, MEAL_SCALE, ITEM_PRICE, priceOf,
     RETIRED_UPGRADES, refundUpgrades,
     MAT_LINES, MONSTER_MATS, monsterMatById, bossMat, matId,
-    TRADE_RATE, tradeRate, matsAtRarity, tradeRarities,
+    TRADE_RATE, tradeRate, matsAtRarity, tradeRarities, isFishableLine,
     EFFECTS, EFFECT_MAX, effectName, effectBlurb, isFlagEffect, effectPower, armorEffects,
     effectLevel, climateFor, heatBand, culledOres,
     ARMOR_PIECES, armorLineName, PIECE_SLOTS, PIECE_LABEL, wornSetLine, armorRarity,
