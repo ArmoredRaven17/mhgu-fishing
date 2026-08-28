@@ -86,11 +86,24 @@
   const nameOf = k => NAMES[k] || k;
   const isSpecific = k => Object.prototype.hasOwnProperty.call(SPECIFIC, k);
 
-  // Every other large monster in MHGU, deviants excluded — the DB has none, so
-  // the roster is already clean. Their parts are not fished; they come from the
-  // Trader, exchanged for parts of the eight that are. Listed by MONSTER name:
-  // the armor set's real name often differs (Deviljho's is Vangis, Teostra's is
-  // Kaiser) and mapping those is a separate job from assigning skills.
+  // Every other large monster in MHGU. Their parts are not fished; they come
+  // from the Trader, exchanged for parts of the eight that are. Listed by
+  // MONSTER name: the armor set's real name often differs (Deviljho's is Vangis,
+  // Teostra's is Kaiser) and mapping those is a separate job from skills.
+  //
+  // Two categories are deliberately absent, and neither is missing by accident:
+  //
+  //   DEVIANTS — Redhelm Arzuros, Dreadking Rathalos, Hellblade Glavenus and the
+  //   other fifteen. They ARE in mhgu.db, in class 2; the roster is built from
+  //   class 0, which is what leaves them out. (An earlier comment here claimed
+  //   the database had none of them. It has all eighteen.)
+  //
+  //   VARIANTS — Savage Deviljho, Furious Rajang, Raging Brachydios and Chaotic
+  //   Gore Magala. All four out, for now.
+  //
+  // Subspecies need no filter: MHGU has none. The generation dropped them for
+  // Deviants and Hyper states, so Gold Rathian and Silver Rathalos are rare
+  // species rather than subspecies, and they stay.
   // [name, floor] — the floor is the lowest rank the set exists at, seeded from
   // the EARLIEST QUEST RANK each monster actually appears at in MHGU. Derived
   // from monster_to_quest joined to quests in mhgu.db, so Fatalis is G and
@@ -101,11 +114,11 @@
     ['Amatsu', 'High'], ['Arzuros', 'Low'], ['Astalos', 'Low'],
     ['Barioth', 'High'], ['Barroth', 'High'], ['Basarios', 'High'],
     ['Blangonga', 'Low'], ['Brachydios', 'Low'], ['Bulldrome', 'Low'],
-    ['Chameleos', 'Low'], ['Chaotic Gore Magala', 'G'],
+    ['Chameleos', 'Low'], 
     ['Congalala', 'High'], ['Crimson Fatalis', 'G'],
     ['Daimyo Hermitaur', 'Low'], ['Deviljho', 'High'],
     ['Diablos', 'High'], ['Duramboros', 'High'], ['Fatalis', 'G'],
-    ['Furious Rajang', 'High'], ['Gammoth', 'Low'], ['Gendrome', 'Low'],
+     ['Gammoth', 'Low'], ['Gendrome', 'Low'],
     ['Giadrome', 'High'], ['Glavenus', 'Low'], ['Gold Rathian', 'High'],
     ['Gore Magala', 'Low'], ['Gravios', 'High'], ['Great Maccao', 'Low'],
     ['Gypceros', 'Low'], ['Iodrome', 'Low'], ['Kecha Wacha', 'High'],
@@ -113,8 +126,8 @@
     ['Lagombi', 'Low'], ['Lao-Shan Lung', 'G'], ['Malfestio', 'Low'],
     ['Mizutsune', 'Low'], ['Najarala', 'Low'], ['Nakarkos', 'Low'],
     ['Nargacuga', 'Low'], ['Nerscylla', 'High'], ['Old Fatalis', 'G'],
-    ['Raging Brachydios', 'G'], ['Rajang', 'High'], ['Rathalos', 'Low'],
-    ['Rathian', 'Low'], ['Savage Deviljho', 'High'], ['Seltas', 'High'],
+     ['Rajang', 'High'], ['Rathalos', 'Low'],
+    ['Rathian', 'Low'],  ['Seltas', 'High'],
     ['Seltas Queen', 'High'], ['Seregios', 'Low'],
     ['Shagaru Magala', 'Low'], ['Shogun Ceanataur', 'Low'],
     ['Silver Rathalos', 'High'], ['Teostra', 'Low'],
