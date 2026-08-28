@@ -61,6 +61,8 @@ const STAGES = {
     stock: id => Math.min(G.STOCK_CAP, G.ownCap(id)),
     parts: 30,
     stats: { trips: 250, carts: 12, casts: 9000, landed: 7400, lost: 1600, bosses: 180, pests: 900 },
+    // Nakarkos landed, which is the only thing that puts you at HR13 at all.
+    beatFinal: true,
   },
   lowrank: {
     hr: 3, rank: 'Low', ranks: ['Low'],
@@ -91,6 +93,11 @@ const beenTo = new Set();
 for (let hr = 1; hr <= S.hr; hr++)
   for (const id of G.localesAtHR(hr) || [])
     if (!S.holdBack.includes(id)) beenTo.add(id);
+// Wyvern's End is on no rung, so the loop above cannot reach it. A stage that has
+// finished the ladder has been there, by definition — it is the only way to be
+// standing at HR13 at all.
+const clearedFinal = !!S.beatFinal;
+if (clearedFinal) beenTo.add(G.FINAL_LOCALE);
 
 // ── What you have caught ────────────────────────────────────────────────────
 const ores = ORES.list.filter(o => G.oreUnlockHR(o) <= S.hr);
@@ -117,6 +124,11 @@ const visited = {};
 for (let hr = 1; hr <= S.hr; hr++) {
   const rung = (G.localesAtHR(hr) || []).filter(id => !S.holdBack.includes(id));
   if (rung.length) visited[hr] = Object.fromEntries(rung.map(id => [id, true]));
+}
+// ...and the clear mark for the arena, recorded at the rung it is actually fished
+// on — your own, since it belongs to none.
+if (clearedFinal) {
+  visited[S.hr] = { ...(visited[S.hr] || {}), [G.FINAL_LOCALE]: true };
 }
 
 // ...and which tables you have read where.
@@ -230,5 +242,6 @@ console.log(`  ${Object.keys(caughtAt).length} locales fished, ${Object.keys(vis
 console.log(`  ${Object.keys(state.owned).length} baits, ${Object.keys(state.pouch).length} pouch items`);
 console.log(`  ${Object.keys(gearOwned).length} gear pieces, ${Object.keys(mats).length} monster parts, ` +
             `${Object.keys(monsters).length} monsters met`);
+if (clearedFinal) console.log(`  ${G.FINAL_BOSS} landed — ${G.FINAL_LOCALE} cleared`);
 console.log(`  wearing ${bestRod.name}` + (G.PIECE_SLOTS.some(sl => bestPieces[sl])
   ? ` and ${G.PIECE_SLOTS.map(sl => bestPieces[sl] ? bestPieces[sl].name : '—').join(' / ')}` : ''));
