@@ -663,8 +663,13 @@ const habitats = q(`SELECT m.name AS monster, l.name AS locale
 // regeneration dropped it. Anything invented has to be HERE or it does not
 // survive the next run — this list is the sanctioned place for a placement the
 // habitat data does not give us.
+//
+// Nakarkos has NO habitat row in the db at all — it is an arena-only monster, so
+// there is nothing to transcribe. Wyvern's End is where the game actually fights
+// it, so the placement is faithful even though the data cannot say so.
 const EXTRA_HABITAT = [
   ['Lavasioth', 'Volcanic Hollow'],
+  ['Nakarkos', "Wyvern's End"],
 ];
 
 const bossAt = new Map();

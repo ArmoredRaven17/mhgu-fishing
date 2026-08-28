@@ -259,6 +259,13 @@
   // true is the only thing needed to bring them back.
   const SHOW_DESIGNED_LOCALES = false;
 
+  // ...except this one, which is designed AND shown. It is the endgame locale and
+  // the only non-fishing locale with a reason to exist, so it is allowed through
+  // the hasFishing gate by name rather than by flipping the flag above and
+  // letting eleven unfinished locales out with it.
+  const SPECIAL_LOCALES = new Set(['wyvern_s_end']);
+  const isSpecialLocale = id => SPECIAL_LOCALES.has(id);
+
   const RANK_ORDER = ['Low', 'High', 'G', 'Gplus'];
   const rankIndex = id => Math.max(0, RANK_ORDER.indexOf(id));
 
@@ -311,6 +318,10 @@
   const bandOf = hr => BAND.find(([a, b]) => hr >= a && hr <= b);
 
   const localesAtHR = hr => LADDER[hr] || [];
+  // Every rung that actually holds locales. HR8 is empty by design, so asking
+  // "is the ladder finished" has to skip it rather than wait on it forever.
+  const LADDER_RUNGS = Object.keys(LADDER).map(Number)
+    .filter(hr => (LADDER[hr] || []).length).sort((a, b) => a - b);
 
   // Everything reachable at this HR: every rung of the current rank up to here.
   // At G Rank+ the ladder is done, so all of it is open.
@@ -424,6 +435,22 @@
       ],
       // The whole point of the trip: the ore roll is shoved upward.
       oreBoost: { 0: 0.3, 1: 1.3, 2: 3.2 },
+    },
+    // Wyvern's End. Nothing cheap is in this water — the five dearest species in
+    // the game and no filler, because there is no goal here to grind toward and
+    // the fish are what make the wait for Nakarkos worth standing through rather
+    // than a toll you pay. Ore is pushed to the top band for the same reason.
+    wyvern_s_end: {
+      note: 'Designed. The game defines no fishing here; it is where Nakarkos is.',
+      areas: { 1: { Low: null, High: null, G: null } },
+      pool: [
+        { fish: 'guardfish', pct: 28 },
+        { fish: 'king_brocadefish', pct: 24 },
+        { fish: 'silverfish', pct: 20 },
+        { fish: 'ancient_fish', pct: 18 },
+        { fish: 'speartuna', pct: 10 },
+      ],
+      oreBoost: { 0: 0.2, 1: 1.0, 2: 3.6 },
     },
   };
 
@@ -1331,6 +1358,11 @@
     // Mizutsune runs the same Scale / Scale+ / Shard as the other leviathans.
     hermitaur:  { name: 'Hermitaur',     Low: 'Hermitaur Shell', High: 'Hermitaur Carapace', G: 'Hermitaur Cortex', icon: 'MH4G-Shell_Icon_Red.png' },
     ceanataur:  { name: 'Ceanataur',     Low: 'Ceanataur Shell', High: 'Ceanataur Carapace', G: 'Ceanataur Cortex', icon: 'MH4G-Shell_Icon_Blue.png' },
+    // G only, because that is where its armor starts and there is no earlier
+    // Nakarkos to meet. The real parts: materials in MHGU top out at rarity 9
+    // (r10 and r11 in the data are EQUIPMENT, not parts), and Nakarkos sits right
+    // at that ceiling, which is what makes it worth being the last thing you fish.
+    nakarkos:   { name: 'Nakarkos',      Low: null,              High: null,               G: 'Nakarkos Hardshell', icon: 'MH4G-Shell_Icon_Blue.png' },
     mizutsune:  { name: 'Mizutsune',     Low: 'Mizutsune Scale', High: 'Mizutsune Scale+',   G: 'Mizutsune Shard',  icon: 'MH4G-Scale_Icon_White.png' },
   };
   const matId = (line, rank) => `${line}_${rank.toLowerCase()}`;
@@ -2257,6 +2289,17 @@
       note: 'Royal Ludroth use their sponge-like neck scales to absorb water and '
           + 'keep from drying out on land.',
     },
+    // The last thing in the water. tier 1 is the top of the scale — the hardest
+    // fight, the best pay and the rarest part in the app.
+    //
+    // desc and note are deliberately empty: they are Raven's words, and the three
+    // monsters added before this one waited for his too.
+    Nakarkos: {
+      name: 'Nakarkos', icon: 'MHGU-Nakarkos_Body_Icon.webp', bait: null,
+      floor: 'G', tier: 1, line: 'nakarkos',
+      desc: '',
+      note: '',
+    },
     Nibelsnarf: {
       name: 'Nibelsnarf', icon: 'MHGU-Nibelsnarf_Icon.webp', bait: null,
       floor: 'Low', tier: 0.5, line: 'nibelsnarf',
@@ -2365,6 +2408,12 @@
           if (bossAvailable(name, +hr) && bossClimates[name].has(climate)) out[name].add(rank);
       }
     }
+    // Nakarkos lives at Wyvern's End, which is deliberately NOT on the ladder, so
+    // the loop above can never reach it — it would have had no rank at all, been
+    // filtered out of every sighting, and the locale would have been impossible to
+    // clear. Its rank is its own floor and nothing else.
+    for (const [name, b] of Object.entries(BOSS))
+      if (b.line === 'nakarkos') out[name].add(b.floor);
     return out;
   })();
   const bossMeetableAt = (name, rank) => !!bossRanks[name] && bossRanks[name].has(rank);
@@ -2510,6 +2559,9 @@
   };
 
   function sightChance(localeId, rank) {
+    // Wyvern's End is one monster's arena. It is always there — a report saying
+    // the place is quiet would mean a trip that could not possibly clear it.
+    if (localeId === FINAL_LOCALE) return 1;
     if (soleHomes.has(localeId)) return 1;
     const loc = (window.MF_LOCALES || []).find(l => l.id === localeId);
     const residents = ((loc && loc.boss) || []).filter(n => bossMeetableAt(n, rank));
@@ -2519,11 +2571,19 @@
   // Everything that could be sighted here, split into the ones that live here and
   // the ones that could only be passing through.
   function sightCandidates(localeId, rank) {
+    // Nothing else swims here. Without this the arena reported Royal Ludroth and
+    // five others as passing through, which is both wrong and a way to reach a
+    // locale that cannot be cleared by what is in it.
+    if (localeId === FINAL_LOCALE) return { home: [FINAL_BOSS], visiting: [] };
     const loc = (window.MF_LOCALES || []).find(l => l.id === localeId);
     const home = ((loc && loc.boss) || []).filter(n => bossMeetableAt(n, rank));
     const climate = climateOf(localeId);
+    // A final boss does not wander. Without this it would turn up as a visitor in
+    // any locale sharing Wyvern's End's climate, which would both spoil it and
+    // hand out its parts long before the locale opens.
     const visiting = Object.keys(BOSS).filter(n =>
-      !home.includes(n) && bossMeetableAt(n, rank) && bossClimates[n].has(climate));
+      !home.includes(n) && n !== FINAL_BOSS
+      && bossMeetableAt(n, rank) && bossClimates[n].has(climate));
     return { home, visiting };
   }
 
@@ -2542,7 +2602,9 @@
           return from.length ? from[Math.floor(rng() * from.length)] : null;
         })()
       : null;
-    return { boss, pests: rng() < SIGHT.pests };
+    // Nothing small pesters you at the arena either; the data gives it no pests,
+    // and saying otherwise in the report would promise an attack that never comes.
+    return { boss, pests: localeId === FINAL_LOCALE ? false : rng() < SIGHT.pests };
   }
 
   const sightingKey = (localeId, hr) => `${localeId}@${hr}`;
@@ -2565,7 +2627,11 @@
 
   // Encounter chance per cast. Volcano is the outlier on purpose — you go there
   // knowing Lavasioth is the tax on the ore.
+  // Nakarkos is not fished FOR — it is what you are there to catch, so it checks
+  // in far more readily than anything else. Wyvern's End is one locale with one
+  // monster in it, so there is nothing for a low rate to preserve the mystery of.
   const ENCOUNTER_CHANCE = {
+    Nakarkos: 0.024,
     Cephadrome: 0.012, 'Royal Ludroth': 0.012, Nibelsnarf: 0.010,
     Plesioth: 0.007, Zamtrios: 0.010, Agnaktor: 0.012,
     Lagiacrus: 0.008, Lavasioth: 0.022,
@@ -2573,6 +2639,18 @@
     // scarcer, being the late one of the three.
     'Daimyo Hermitaur': 0.010, 'Shogun Ceanataur': 0.012, Mizutsune: 0.008,
   };
+
+  // ── Wyvern's End ──────────────────────────────────────────────────────────
+  //
+  // The one locale that is not a fishing spot. It opens only once every rung of
+  // the ladder is behind you, it has no zenny goal, and the only thing that
+  // clears it is landing Nakarkos.
+  //
+  // It is kept OUT of LADDER on purpose. Promotion counts ladder locales, so a
+  // locale in there would have to be cleared before HR could move — and this one
+  // is the thing that moves HR itself.
+  const FINAL_LOCALE = 'wyvern_s_end';
+  const FINAL_BOSS = 'Nakarkos';
 
   // ── When a monster checks in ──────────────────────────────────────────────
   //
@@ -2736,6 +2814,7 @@
     freshChance, freshMax, hireCut, haggle, basketTarget, braceHoldMs,
     partsChance, siteChance, xpGain, pondFor,
     DESIGNED_POOLS, ARENA_POOL, RANK_ORDER, rankIndex, SHOW_DESIGNED_LOCALES,
+    SPECIAL_LOCALES, isSpecialLocale, FINAL_LOCALE, FINAL_BOSS, LADDER_RUNGS,
     LADDER, localesAtHR, localesOpenAt, bandOf, openedAtHR, rungsOpenAt, nextHR, MAX_LADDER_HR,
     GOAL_CASTS, GOAL_CASTS_BY_RANK, GOAL_CASTS_BY_HR, goalCasts, GOAL_ROUND,
     CLIMATE, climateOf, WATER, WATER_BY_CLIMATE, waterOf,

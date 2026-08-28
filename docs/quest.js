@@ -689,7 +689,12 @@
     // was the first-clear message it broke exactly one case: retiring on a quest
     // you had just completed for the first time. The button simply stopped
     // responding, since the throw happened before the modal opened.
-    const completed = trip.value >= trip.goal;
+    // Wyvern's End is cleared by LANDING Nakarkos, not by what you bring home.
+    // Everywhere else a goal is the contract; there, the monster is.
+    const isFinal = trip.localeId === G.FINAL_LOCALE;
+    const completed = isFinal
+      ? trip.haul.some(h => h.name === 'Nakarkos')
+      : trip.value >= trip.goal;
     const goal = trip.goal;
     const questHR = trip.questHR;
     const short = goal - trip.value;
@@ -727,8 +732,11 @@
       extra.push(`${localeName} cleared — ` +
         `${A.visitedCount(questHR)} of ${A.hrTotal(questHR)} at HR ${questHR}.`);
     }
-    if (!completed && short > 0)
+    if (!completed && short > 0 && !isFinal)
       extra.push(`${z(short)} short of the ${z(goal)} needed to clear ${localeName}.`);
+    // No goal to fall short of here — you either landed it or you did not.
+    if (!completed && isFinal)
+      extra.push(`Nakarkos is still out there.`);
     if (promoted) extra.push(`Every locale fished. You are now HR ${promoted}, ${G.rankAt(promoted).name}.`);
     if (basket) {
       extra.push(`A full basket — ${G.basketTarget(A.state.gear)} fish caught, ${z(basket)} bonus.`);

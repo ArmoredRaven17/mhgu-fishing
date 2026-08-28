@@ -21,6 +21,33 @@
     return n >= G.MAX_LADDER_HR ? 'G Rank+' : `HR ${n}`;
   };
 
+  // Wyvern's End gets a panel of its own rather than a place on a rung. It is not
+  // on the ladder, nothing is cleared by a goal there, and it only exists once
+  // every other locale is behind you — so putting it in a rung panel would have
+  // to lie about all three.
+  function finalPanel() {
+    const S = A.state;
+    if (!A.finalLocaleOpen()) return '';
+    const l = R.localeById.get(G.FINAL_LOCALE);
+    if (!l) return '';
+    const done = A.nakarkosLanded();
+    const on = S.localeId === l.id;
+    return `<section class="panel rung-panel final ${on ? 'current' : ''}">
+      <div class="panel-head rung-head">
+        <span>${G.rankAt(S.hr).name}</span>
+        <span class="rmeta">${done ? 'cleared' : 'not cleared'}</span>
+      </div>
+      <div class="panel-body"><ul class="locale-list">
+        <li data-id="${l.id}" data-hr="${S.hr}" class="${on ? 'sel' : ''} ${done ? 'done' : ''}">
+          <div class="linfo">
+            <span class="lname">${l.name}</span>
+            <span class="lmeta">no goal &mdash; land what lives here</span>
+          </div>
+          <div class="ltags">${done ? '<span class="tag done">Completed</span>' : ''}</div>
+        </li>
+      </ul></div></section>`;
+  }
+
   function renderLocales() {
     const S = A.state;
     const ever = A.everVisited();          // the mark is a record, not a rung
@@ -66,11 +93,10 @@
           <div class="linfo">
             <span class="lname">${l.name}</span>
             <span class="lmeta">${meta}</span>
-          </div>
-          <div class="ltags">${tags.join('')}</div>
+              <div class="ltags">${tags.join('')}</div>
         </li>`;
       }).join('') + `</ul></div></section>`;
-    }).join('');
+    }).join('') + finalPanel();
 
     el('localeList').querySelectorAll('li[data-id]').forEach(li => {
       li.onclick = () => { A.selectQuest(li.dataset.id, Number(li.dataset.hr)); renderAll(); };

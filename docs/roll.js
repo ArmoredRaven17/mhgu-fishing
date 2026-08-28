@@ -50,7 +50,14 @@
   function localeUnlocked(localeId, hr) {
     const loc = localeById.get(localeId);
     if (!loc) return false;
-    if (!loc.hasFishing && !G.SHOW_DESIGNED_LOCALES) return false;
+    // Wyvern's End is not on the ladder and never will be — what opens it is
+    // having finished the ladder, which only the app knows. Asked here rather
+    // than threaded through, the same way rollPest already asks about sightings.
+    if (localeId === G.FINAL_LOCALE) {
+      const A = window.MF_APP;
+      return !!(A && A.finalLocaleOpen && A.finalLocaleOpen());
+    }
+    if (!loc.hasFishing && !G.isSpecialLocale(localeId) && !G.SHOW_DESIGNED_LOCALES) return false;
     return G.localesOpenAt(hr).includes(localeId);
   }
 

@@ -193,7 +193,7 @@
   // Past HR13 there are no more locales to open, so XP takes over.
   const localesForHR = hr => G.localesAtHR(hr).filter(id => {
     const loc = R.localeById.get(id);
-    return loc && (loc.hasFishing || G.SHOW_DESIGNED_LOCALES);
+    return loc && (loc.hasFishing || G.isSpecialLocale(loc.id) || G.SHOW_DESIGNED_LOCALES);
   });
 
   const visitedAt = hr => S.visited[hr] || {};
@@ -209,6 +209,17 @@
   const visitedCount = hr => localesForHR(hr).filter(id => visitedAt(hr)[id]).length;
   const hrTotal = hr => localesForHR(hr).length;
   const hrComplete = hr => visitedCount(hr) >= hrTotal(hr);
+
+  // ── The end of the ladder ─────────────────────────────────────────────────
+  //
+  // Every rung of every rank, cleared. That is what opens Wyvern's End, and it is
+  // read literally rather than inferred from HR: HR is the thing the final locale
+  // is going to move, so it cannot also be what decides whether you may go.
+  const ladderDone = () => G.LADDER_RUNGS.every(hr => hrComplete(hr));
+  // Nakarkos LANDED, not merely met. Meeting it and losing is the whole middle of
+  // the fight.
+  const nakarkosLanded = () => !!(S.monsters['Nakarkos'] && S.monsters['Nakarkos'].landed > 0);
+  const finalLocaleOpen = () => ladderDone();
 
   function syncHR() {
     S.rank = G.rankAt(S.hr).id;
@@ -230,7 +241,11 @@
   function checkPromotion() {
     if (S.hr >= G.MAX_LADDER_HR) return null;
     const from = S.hr;
-    while (S.hr < G.MAX_LADDER_HR && hrComplete(S.hr)) S.hr++;
+    // HR stops one short of MAX_LADDER_HR until Nakarkos is landed. Clearing the
+    // last rung used to promote you straight to G Rank+; now it opens Wyvern's
+    // End instead, and catching what lives there is what finishes the climb.
+    const ceiling = nakarkosLanded() ? G.MAX_LADDER_HR : G.MAX_LADDER_HR - 1;
+    while (S.hr < ceiling && hrComplete(S.hr)) S.hr++;
     if (S.hr === from) return null;
     S.xp = 0;
     syncHR();
@@ -355,10 +370,15 @@
     for (const r of G.rungsOpenAt(S.hr) || []) {
       for (const id of r.locales) {
         const loc = window.MF_ROLL && window.MF_ROLL.localeById.get(id);
-        if (!loc || (!loc.hasFishing && !G.SHOW_DESIGNED_LOCALES)) continue;
+        if (!loc || (!loc.hasFishing && !G.isSpecialLocale(id) && !G.SHOW_DESIGNED_LOCALES)) continue;
         out[G.sightingKey(id, r.hr)] = G.rollSighting(id, r.hr);
       }
     }
+    // ...and the arena, which is on no rung at all, so the loop above cannot
+    // reach it. Without this it never gets a report, sightingAt returns nothing,
+    // and Nakarkos can never be encountered — the locale would be unclearable.
+    if (finalLocaleOpen())
+      out[G.sightingKey(G.FINAL_LOCALE, S.hr)] = G.rollSighting(G.FINAL_LOCALE, S.hr);
     S.sightings = out;
   }
 
@@ -634,6 +654,10 @@
   // The selected quest, kept honest. A rung you have not reached, or one that
   // does not run this locale, falls back to the newest rung that does.
   function questRung() {
+    // Wyvern's End runs on no rung — it is not in LADDER — so the fallback below
+    // would walk every rung, find it on none, and hand back HR1. It is always
+    // fished at the rung you are standing on.
+    if (S.localeId === G.FINAL_LOCALE) return S.hr;
     const runs = G.localesAtHR(S.questHR) || [];
     if (S.questHR <= S.hr && runs.includes(S.localeId)) return S.questHR;
     let best = 1;
@@ -653,6 +677,7 @@
     load, save, defaults, snapshot, loadFrom, SAVE_KEY,
     rank, meal, maxHP, maxStamina, xpNeeded, addXP, syncHR,
     localesForHR, visitedAt, visitedCount, hrTotal, hrComplete,
+    ladderDone, nakarkosLanded, finalLocaleOpen,
     markVisited, checkPromotion, everVisited,
     record, guideTotal, guideFound, recordIngredient, reconcileFresh, rerollFresh, pantryCount, freshCount, fresh,
     fishedLocales, caughtAtLocale, caughtTotalAt, markFished, revealedRanks,

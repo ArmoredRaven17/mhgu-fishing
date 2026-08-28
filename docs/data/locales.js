@@ -68030,7 +68030,9 @@ window.MF_LOCALES = [
   "hasFishing": false,
   "gather": {},
   "gatherRows": 15,
-  "boss": [],
+  "boss": [
+   "Nakarkos"
+  ],
   "pests": [],
   "hubStar": "Hub 3",
   "rank": "Low",
