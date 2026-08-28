@@ -244,18 +244,18 @@
         // drop onto. Anything already assigned stays visible rather than being
         // silently binned — the checks say it will not export.
         if (!open && !list.length)
-          return `<div class="cell ${p.key} shut"><span class="none">&mdash;</span></div>`;
+          return `<div class="cell ${p.key} shut"><span class="none">&middot;</span></div>`;
         return `<div class="cell ${p.key}${open ? '' : ' shut'}"`
           + (open ? ` data-line="${id}" data-rank="${rank}" data-piece="${p.key}"` : '')
           + `>`
           + (list.length
               ? list.map((e, i) => entryHTML(e, id, rank, p.key, i)).join('')
-              : `<span class="none">drop a skill</span>`)
+              : `<span class="none">+</span>`)
           + `</div>`;
       }).join('');
       const sb = board[id].setBonus;
       const setCell = `<div class="cell setb" data-line="${id}" data-rank="set" data-piece="set">`
-        + (sb ? entryHTML(sb, id, 'set', 'set', 0) : `<span class="none">none</span>`)
+        + (sb ? entryHTML(sb, id, 'set', 'set', 0) : `<span class="none">+</span>`)
         + `</div>`;
       const floorCtl = `<span class="floor">` + RANKS.map(r =>
         `<button data-floor="${r}" data-fline="${id}"`
