@@ -38,7 +38,9 @@
                     // and one per remaining tunable nothing reads yet — see the
                     // comments beside each name below for what it moves.
                     'bobber', 'reach', 'hook', 'carry', 'duration',
-                    'cats', 'hire', 'fresh', 'bounty', 'salvage', 'basket'];
+                    'cats', 'hire', 'fresh', 'bounty', 'salvage', 'basket',
+                    // bombs and traps — designed, not built; see MHGU-TASKS.md
+                    'blast', 'bruising', 'trapping', 'trapsize'];
   const isProposed = k => PROPOSED.includes(k);
 
   // WORKING NAMES — one word for the thing the skill affects, nothing more.
@@ -52,6 +54,12 @@
   // would misdescribe them.
   const SPECIFIC = { cull: 'Shock Bobber', hotblood: 'Heat Hunter', guts: 'Guts' };
   const NAMES = {
+    // taking fish without the rod
+    blast:    'Blast',       // how wide a bomb reaches
+    bruising: 'Bruising',    // value lost to a blast, and to a Shock Trap
+    trapping: 'Trapping',    // a trap's odds of catching
+    trapsize: 'Capacity',    // how many fish a trap holds for the trip.
+                             // Not Carrying, which is pouch and bait slots
     // before the hook — a whole phase with nothing on it today
     bobber:   'Bobber',      // POND.bobberStep / stepCooldownMs / glideRate
     reach:    'Reach',       // POND.attract / attractRange, how far bait pulls
