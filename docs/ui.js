@@ -125,7 +125,9 @@
       else {
         buys.push({ label: 'Upgrade', attr: `data-level="${g.id}"`,
                     disabled: capped || locked || !A.canLevel(g.id) });
-        if (!worn) buys.push({ label: 'Equip', attr: `data-equip="${g.id}"` });
+        // Always present, disabled when it is already on. Hiding it made the row
+        // reflow and the buttons beside it jump as you equipped down a list.
+        buys.push({ label: 'Equip', attr: `data-equip="${g.id}"`, disabled: worn });
       }
       return gearRowHTML({
         icon: img(g.icon || 'assets/ItemIcons/' + (g.mat ? g.mat.icon : 'MH4G-Ore_Icon_Grey.png'), g.name),
@@ -173,14 +175,25 @@
     el('armorLines').querySelectorAll('[data-line]').forEach(btn =>
       btn.onclick = () => { smithyLine = btn.dataset.line; renderSmithy(); });
 
-    // The second axis. Same argument as the line tabs: what a player weighs here
-    // is "do I climb this piece a rank" — three ranks of ONE piece side by side —
-    // and all nine rows at once buried exactly that.
-    el('armorPieces').innerHTML = !lines.length ? '' : G.PIECE_SLOTS.map(sl =>
-      `<button class="subtab ${sl === smithyPiece ? 'active' : ''}" data-piece="${sl}">${
-        G.PIECE_LABEL[sl]}</button>`).join('');
-    el('armorPieces').querySelectorAll('[data-piece]').forEach(btn =>
-      btn.onclick = () => { smithyPiece = btn.dataset.piece; renderSmithy(); });
+    // The second axis is the TIER, not the piece. A set is forged and worn as a
+    // set, so the three pieces of one tier belong on screen together; splitting
+    // by piece instead put a helm beside two helms you would never wear with it.
+    //
+    // Tabs are labelled the way the armor is: base, S, X. A line with only two
+    // tiers runs base then X, with no S between — the same rule armorSuffix uses,
+    // read off the pieces that actually exist rather than assumed.
+    const tiersHere = ['Low', 'High', 'G'].filter(r =>
+      knownArmor.some(a => a.line === smithyLine && a.rank === r));
+    if (!tiersHere.includes(smithyTier)) smithyTier = tiersHere[0] || '';
+    const tierLabel = (rank, i) => {
+      const suffix = G.armorSuffix(i, tiersHere.length).trim();
+      return suffix || 'Base';
+    };
+    el('armorPieces').innerHTML = !lines.length ? '' : tiersHere.map((r, i) =>
+      `<button class="subtab ${r === smithyTier ? 'active' : ''}" data-tier="${r}">${
+        tierLabel(r, i)}</button>`).join('');
+    el('armorPieces').querySelectorAll('[data-tier]').forEach(btn =>
+      btn.onclick = () => { smithyTier = btn.dataset.tier; renderSmithy(); });
 
     const armorRows = [];
     if (!lines.length) {
@@ -191,10 +204,14 @@
       // No header row: the tab above already names the line, and the rows below
       // already name its skills. Saying both again in between was the same
       // information three times.
-      const rows = knownArmor.filter(a => a.line === smithyLine && a.slot === smithyPiece);
+      // Helm, chest, waist in that order — the order they are worn in and the
+      // order the board is written in, not whatever order ARMORS happened to build.
+      const rows = G.PIECE_SLOTS
+        .map(sl => knownArmor.find(a => a.line === smithyLine && a.rank === smithyTier && a.slot === sl))
+        .filter(Boolean);
       if (!rows.length) {
         armorRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
-          + 'Nothing of this piece yet.</td></tr>');
+          + 'Nothing of this tier yet.</td></tr>');
       } else {
         for (const g of rows) armorRows.push(gearRow(g, g.slot));
       }
@@ -287,7 +304,7 @@
   // re-render without throwing you back to the rods.
   let smithyView = 'rods';
   let smithyLine = '';        // which set's tab is open, '' until one is known
-  let smithyPiece = 'helm';   // which of the three the armor tab is showing
+  let smithyTier = '';        // which tier of the line the armor tab is showing
   function showSmithy(view) {
     smithyView = view;
     for (const [name, tab, panel] of [['rods', 'subRods', 'viewRods'],
