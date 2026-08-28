@@ -229,7 +229,10 @@ function rankGear(hr) {
 // player cannot answer by pressing harder.
 const bossWinChance = (boss) => {
   const f = boss.fight;
-  const grace = (f.band * 2) / f.sinkPerSec;    // seconds of slack before you fall out
+  // Grace is time spent HELD before falling out of the band, so it reads the
+  // held sink — which is the one Control lowers. Reading the plain sink meant
+  // the sim could not see Control at all.
+  const grace = (f.band * 2) / (f.sinkInBand ?? f.sinkPerSec);
   const pressure = (f.escapePerSec || 0) / f.progressPerSec;
   return Math.min(0.9, Math.max(0.08, 0.10 + grace * 0.85 - (pressure - 1) * 0.12));
 };

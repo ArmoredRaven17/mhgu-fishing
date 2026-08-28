@@ -1226,12 +1226,23 @@
       // buys you time on every fish rather than a fixed amount that would mean
       // everything on a cheap one and nothing on a dear one.
       sinkPerSec: Math.max(0.16, rate * lift * (1 - rodSink(rod))),
+      // Control, and the reason it is TWO numbers rather than one.
+      //
+      // Inside the sweet spot, help has to be help you can hold: a bigger press
+      // would carry the line straight back out the top, so what you want there is
+      // for it to fall more slowly and stay where you put it.
+      //
+      // Outside it, the opposite — you are trying to get back, and a bigger press
+      // is exactly the help you want. So Control slows the SINK while you are
+      // held and lengthens the PRESS while you are not, and fishing.js picks
+      // between them by where the line actually sits.
+      sinkInBand: Math.max(0.16, rate * lift * (1 - rodSink(rod)))
+        * (1 - effectPower(armor, 'control')),
+      liftOutOfBand: lift * (1 + effectPower(armor, 'control')),
       // What one press buys. Nearly flat, so the rhythm stays the skill; the rod
       // adds a little, which is the only reason a press is ever worth more.
-      // Control lifts the LINE, not the sink: `lift` also sets sinkPerSec
-      // above, so scaling it there would hand back with one hand what it gave
-      // with the other.
-      liftPerPress: lift * (1 + effectPower(armor, 'control')),
+      // Plain. Control's help lives in sinkInBand and liftOutOfBand above.
+      liftPerPress: lift,
       // Half-width of the good stretch either side of centre, set by what the
       // fish is WORTH. Rarity and ore rank were far too coarse for this: a 47z
       // Iron Whetfish and a 52z Iron Pin Tuna came out identical, and the most
@@ -2423,7 +2434,10 @@
       mat: bossMat(b.line, rank),
       fight: {
         sinkPerSec: rate * lift * (1 - rodSink(rod)),
-        liftPerPress: lift * (1 + effectPower(armor, 'control')),
+        // Same two faces as a fish — see fightFor.
+        sinkInBand: rate * lift * (1 - rodSink(rod)) * (1 - effectPower(armor, 'control')),
+        liftOutOfBand: lift * (1 + effectPower(armor, 'control')),
+        liftPerPress: lift,
         band: Math.max(BOSS_BAND_FLOOR,
           (0.115 - t * 0.05) * (1 + rodBand(rod) + effectPower(armor, 'band') + heatBand(armor, ctx))),
         progressPerSec,

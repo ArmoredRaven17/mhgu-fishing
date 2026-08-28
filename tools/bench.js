@@ -100,9 +100,16 @@
           + row('  rod adds', '+' + (withRod - bare).toFixed(1) + ' pts')
           + row('  armor adds', '+' + (now - withRod).toFixed(1) + ' pts');
       })()) +
-      row('sink', f.sinkPerSec.toFixed(3) + '/s') +
-      row('lift', f.liftPerPress.toFixed(3) + '/press') +
-      row('grace', (f.band / f.sinkPerSec).toFixed(2) + 's') +
+      // Control makes both of these two numbers, so both are shown. HELD is what
+      // you get while you are in the sweet spot, OUT is what you get while you
+      // are climbing back to it.
+      row('sink', f.sinkPerSec.toFixed(3) + '/s out'
+        + (f.sinkInBand < f.sinkPerSec ? '  ' + f.sinkInBand.toFixed(3) + '/s held' : '')) +
+      row('lift', f.liftPerPress.toFixed(3) + '/press held'
+        + (f.liftOutOfBand > f.liftPerPress ? '  ' + f.liftOutOfBand.toFixed(3) + '/press out' : '')) +
+      // Grace is time spent HELD before you fall out of the band, so it reads the
+      // held sink. It was quietly overstating what Control bought before.
+      row('grace', (f.band / (f.sinkInBand ?? f.sinkPerSec)).toFixed(2) + 's') +
       row('escape', (f.escapePerSec / f.progressPerSec).toFixed(2) + 'x gain') +
       row('strike', Math.round(f.strikeWindowMs) + 'ms');
   }

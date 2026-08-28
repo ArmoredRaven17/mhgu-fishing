@@ -253,10 +253,25 @@
         el('reelHint').textContent = 'Tap Space to keep the line in the middle.';
       }
 
+      // Is the line in the stretch that gains ground right now? Control reads
+      // this and so does the frame, so it lives in one place.
+      // S.fight rather than S.hooked.fight: both readers run in the reel phase,
+      // where S.fight is the live one, and it is the same object the band test
+      // further down already uses.
+      const inBand = () => !!S.fight
+        && S.tension >= 0.5 - S.fight.band
+        && S.tension <= 0.5 + S.fight.band;
+
       // A press only lifts the line. Ground is gained by where the line SITS, not
       // by pressing, so mashing past the top is a way to lose rather than to win.
+      //
+      // Control lengthens the press only when you are OUT of the sweet spot,
+      // where a bigger press is recovery. Inside it a bigger press would carry
+      // you straight back out the top, so the help there is a slower sink instead
+      // — see sinkInBand in the frame.
       function pull() {
-        S.tension += S.fight.liftPerPress;
+        const f = S.fight;
+        S.tension += (inBand() ? f.liftPerPress : (f.liftOutOfBand ?? f.liftPerPress));
         bobber.classList.add('pulling');
         setTimeout(() => bobber.classList.remove('pulling'), 90);
       }
@@ -436,7 +451,10 @@
           S.braceIn -= dt;
           if (S.braceIn <= 0) beginBrace();
 
-          S.tension -= S.fight.sinkPerSec * dt;
+          // Held: Control slows the fall so what you have is easier to keep.
+          // Out: it falls at the honest rate and the press is what is bigger.
+          const f = S.fight;
+          S.tension -= (inBand() ? (f.sinkInBand ?? f.sinkPerSec) : f.sinkPerSec) * dt;
           const t = S.tension;
           if (t <= 0) return done({ landed: false, reason: 'slack', catch: S.hooked.c });
           if (t >= 1) return done({ landed: false, reason: 'snap', catch: S.hooked.c });
