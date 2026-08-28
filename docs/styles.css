@@ -885,7 +885,18 @@ select{
    skill. Both use the same entry height so the two stacks stay in step — without
    it a three-line description would push its own column out of alignment with the
    name beside it. */
-.smithy-table .sk,.smithy-table .dt{vertical-align:top;padding-top:7px}
+.smithy-table .sk,.smithy-table .dt,.smithy-table .st{vertical-align:top;padding-top:7px}
+/* HP, Stamina and DEF as a list of their own rather than a run-on line tacked to
+   the end of the descriptions — where it made a six-skill piece show six names
+   against seven description entries, and broke the pairing the two columns are
+   for. Sized to content and never wrapped: three short rows of figures. */
+.smithy-table .st{white-space:nowrap;width:1%;font-size:12px}
+.smithy-table .st .ent{display:flex;gap:5px;align-items:baseline;line-height:1.5;opacity:.85}
+.smithy-table .st .ent b{font-variant-numeric:tabular-nums;font-weight:600;
+                         min-width:3.2em;text-align:right}
+/* What one more level buys, beside the figure it would change. */
+.smithy-table .st .gain{font-style:normal;font-size:11px;opacity:.6}
+@media (max-width:640px){.shop-table .st{display:none}}
 .smithy-table .sk{white-space:nowrap;width:1%;font-size:12px}
 .smithy-table .dt{white-space:normal;max-width:44ch}
 .smithy-table .sk .ent,.smithy-table .dt .ent{

@@ -101,21 +101,28 @@
       // What the suit is actually worth, and what a level buys. Levelling armor
       // does NOT strengthen its skills — those are fixed by the tier — so
       // without this the Upgrade button spends money on nothing you can see.
+      // What the piece is worth, in its OWN column. It used to be appended to the
+      // description column, so a piece with six skills produced six names against
+      // seven description entries and the pairing the two columns exist to make
+      // stopped lining up.
+      let stats = '';
       if (armor) {
         // armorStat reads a worn SET, so asking what one piece is worth means
         // handing it a set containing only that piece. Passing the piece itself
         // silently returned zero for all three.
         const at = { [g.slot]: { id: g.id, lvl } };
-        detail += `<span class="ent stat">+${G.armorStat(at, 'hp')} HP`
-          + ` &middot; +${G.armorStat(at, 'stamina')} Stamina`
-          + ` &middot; +${Math.round(G.armorStat(at, 'guard') * 100)}% DEF</span>`;
-        if (owned && !capped) {
-          const P = G.ARMOR_PER_LEVEL;
-          detail += `<span class="ent gain">Lv ${lvl + 1} adds`
-            + ` +${G.armorStat({ [g.slot]: { id: g.id, lvl: lvl + 1 } }, 'hp') - G.armorStat(at, 'hp')} HP,`
-            + ` +${G.armorStat({ [g.slot]: { id: g.id, lvl: lvl + 1 } }, 'stamina') - G.armorStat(at, 'stamina')} Stamina,`
-            + ` +${(P.guard * 100).toFixed(1)}% DEF</span>`;
-        }
+        const next = n => ({ [g.slot]: { id: g.id, lvl: lvl + n } });
+        const line = (label, val, gain) =>
+          `<span class="ent stat"><b>${val}</b> ${label}`
+          + (gain ? `<i class="gain">+${gain}</i>` : '') + `</span>`;
+        const showGain = owned && !capped;
+        stats =
+          line('HP', '+' + G.armorStat(at, 'hp'),
+            showGain && (G.armorStat(next(1), 'hp') - G.armorStat(at, 'hp'))) +
+          line('Stamina', '+' + G.armorStat(at, 'stamina'),
+            showGain && (G.armorStat(next(1), 'stamina') - G.armorStat(at, 'stamina'))) +
+          line('DEF', '+' + Math.round(G.armorStat(at, 'guard') * 100) + '%',
+            showGain && (G.ARMOR_PER_LEVEL.guard * 100).toFixed(1) + '%');
       }
       if (owned && locked) detail += `<span class="unlock">Next level at HR ${gate}</span>`;
 
@@ -133,6 +140,7 @@
         icon: img(g.icon || 'assets/ItemIcons/' + (g.mat ? g.mat.icon : 'MH4G-Ore_Icon_Grey.png'), g.name),
         name: g.name,
         skills, detail,
+        stats,
         mats: owned ? '<span class="none">&mdash;</span>' : matCell(g),
         price: !owned ? z(g.cost) : (capped ? '&mdash;' : z(cost)),
         have: owned ? `Lv ${lvl} / ${max}` : '&mdash;',
@@ -198,7 +206,7 @@
     const armorRows = [];
     if (!lines.length) {
       armorRows.push(gearSection('Angler Armor'));
-      armorRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
+      armorRows.push('<tr><td class="ic"></td><td class="dt" colspan="8">'
         + 'Nothing to forge yet. Catch a large monster and the smith will know what to do with it.</td></tr>');
     } else {
       // No header row: the tab above already names the line, and the rows below
@@ -210,7 +218,7 @@
         .map(sl => knownArmor.find(a => a.line === smithyLine && a.rank === smithyTier && a.slot === sl))
         .filter(Boolean);
       if (!rows.length) {
-        armorRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
+        armorRows.push('<tr><td class="ic"></td><td class="dt" colspan="8">'
           + 'Nothing of this tier yet.</td></tr>');
       } else {
         for (const g of rows) armorRows.push(gearRow(g, g.slot));
@@ -222,7 +230,7 @@
     const held = G.MONSTER_MATS.filter(m => (S.mats[m.id] || 0) > 0);
     rodRows.push(gearSection('Monster Parts'));
     if (!held.length) {
-      rodRows.push('<tr><td class="ic"></td><td class="dt" colspan="7">'
+      rodRows.push('<tr><td class="ic"></td><td class="dt" colspan="8">'
         + 'Nothing yet. Parts come off the large monsters you catch.</td></tr>');
     } else {
       for (const m of held) rodRows.push(gearRowHTML({
@@ -353,18 +361,19 @@
   // Say when a stock is full, so a row of dead buttons explains itself.
   const stockLabel = n => n >= G.STOCK_CAP ? `${G.STOCK_CAP} max` : String(n);
   const section = label => `<tr class="sect"><th colspan="6">${label}</th></tr>`;
-  const gearSection = label => `<tr class="sect"><th colspan="8">${label}</th></tr>`;
+  const gearSection = label => `<tr class="sect"><th colspan="9">${label}</th></tr>`;
 
   // The Smithy carries one column the Shop does not: what a piece is made of.
   // Buried in the description it read as a footnote; in its own column you can
   // run an eye down the list and see which monster you still have to go and find.
-  const gearRowHTML = ({ icon = '', name, skills = '', detail = '', mats = '',
-                         price, have, buys, worn = false }) => `
+  const gearRowHTML = ({ icon = '', name, skills = '', detail = '', stats = '',
+                         mats = '', price, have, buys, worn = false }) => `
     <tr class="${worn ? 'worn' : ''}">
       <td class="ic">${icon}</td>
       <td class="nm">${name}</td>
       <td class="sk">${skills}</td>
       <td class="dt">${detail}</td>
+      <td class="st">${stats}</td>
       <td class="mt">${mats}</td>
       <td class="pr">${price}</td>
       <td class="hv">${have}</td>
