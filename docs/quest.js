@@ -295,6 +295,13 @@
   async function cast() {
     if (!trip || trip.busy) return;
     trip.busy = true; render();
+    // Clear the line before the cast, not after it. flushNotes APPENDS, so the
+    // only thing keeping one result off the end of the last was every terminal
+    // branch remembering to SET the prompt first — and a branch that pushed a
+    // note without setting one chained onto whatever was already there. Clearing
+    // here makes one action produce one line structurally rather than by the
+    // discipline of six separate branches.
+    el('castPrompt').textContent = '';
     const S = A.state;
     S.stats.casts++;
     // Counts CASTS, not landings: a check falls due on the cast whether or
@@ -645,6 +652,7 @@
 
   async function throwBomb(id) {
     const S = A.state;
+    el('castPrompt').textContent = '';   // same rule as a cast
     const bomb = G.effectOf(id);
     trip.sta -= G.STAMINA_COST.cast * G.BOMB.staminaMult;
     S.stats.casts++;
