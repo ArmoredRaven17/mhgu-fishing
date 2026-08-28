@@ -1984,6 +1984,13 @@
   // Yian Kut-Ku, and no amount of underscore-splitting produces that hyphen.
   const armorLineName = line => (window.MF_ARMOR_LINE_NAMES || {})[line] || line;
 
+  // A rank is armor only if something is assigned to it. An entry whose three
+  // pieces are all empty arrays is a placeholder waiting for Raven, not a set.
+  const hasArmorAt = (line, rank) => {
+    const at = (ARMOR_PIECES[line] || {})[rank];
+    return !!at && PIECE_SLOTS.some(slot => (at[slot] || []).length > 0);
+  };
+
   // The other fifty-nine lines, filled in from the real drop tables. The twelve
   // above are hand-set and WIN: those names are Raven's, one of them (Zamtrios
   // Scale) deliberately does not exist in the game, and regenerating over them
@@ -2010,10 +2017,11 @@
                      icon: (tiers.G || tiers.High || tiers.Low || {}).icon
                         || 'MH4G-Scale_Icon_Grey.png', rarity: {}, icons: {} };
       for (const rank of ['Low', 'High', 'G']) {
-        // Only tiers the armor board actually defines. A line whose armor starts
-        // at G has no use for a Low part, and putting one in the marketplace
-        // would offer a trade that buys nothing.
-        if (!tiers[rank] || !(ARMOR_PIECES[line] || {})[rank]) continue;
+        // Only tiers that are actually ARMOR. A line whose armor starts at G has
+        // no use for a Low part, and fifteen lines — the elders and the Fatalis
+        // family — are on the board with every piece still empty. Both would put
+        // a part in the marketplace that buys nothing.
+        if (!tiers[rank] || !hasArmorAt(line, rank)) continue;
         made[rank] = tiers[rank].name;
         made.rarity[rank] = tiers[rank].rarity;
         made.icons[rank] = tiers[rank].icon;
@@ -2054,15 +2062,32 @@
   // What a suit is worth defensively, before its levels. HP and stamina replace
   // Vitality and Endurance outright, so a G suit at full level lands near where
   // twenty levels of each used to.
-  // A THIRD of what one suit used to give, so a full set of three lands where a
-  // suit did and the money and the numbers both stay comparable across the
-  // rework. Wearing one piece is then honestly worth a third of a set, which is
-  // the trade mixing is supposed to make you weigh.
-  const ARMOR_PIECE_BASE = {
-    Low:  { hp: 5,  stamina: 3,  guard: 0.017 },
-    High: { hp: 13, stamina: 9,  guard: 0.037 },
-    G:    { hp: 23, stamina: 15, guard: 0.057 },
-  };
+  // Stats come off the armor's own RARITY, not its rank. Bulldrome and Nakarkos
+  // are both G Rank sets and should not be worth the same, and rarity is the axis
+  // the game itself uses to say so — Bulldrome X is rarity 8, Tigrex X rarity 9.
+  //
+  // Real rarities come from mhgu.db's armor_families. Nineteen lines cannot be
+  // matched to a family, because armor names agree with neither the monster nor
+  // its parts — Royal Ludroth drops "R.Ludroth" parts and wears "Ludroth" armor —
+  // so those fall back to what is typical for the rank.
+  const ARMOR_RARITY_DEFAULT = { Low: 3, High: 6, G: 8 };
+  // Nakarkos has no family in the data at all. Raven: "his armor is Rare 10".
+  const ARMOR_RARITY_OVERRIDE = { nakarkos: { G: 10 } };
+  const armorRarity = (line, rank) =>
+    (ARMOR_RARITY_OVERRIDE[line] || {})[rank]
+    || (((window.MF_ARMOR_STATS || {})[line] || {})[rank] || {}).rarity
+    || ARMOR_RARITY_DEFAULT[rank] || 4;
+
+  // Linear in rarity, and deliberately calibrated so the ranks land where they
+  // already did: a typical Low set is rarity 2, a High 5, a G 9, and those come
+  // out at the 5/3, 13/9, 23/15 the flat table used to hand out. Nothing about
+  // the balance moves; what moves is that a dearer set is now worth more than a
+  // cheap one of the same rank.
+  const ARMOR_PIECE_BASE = rarity => ({
+    hp: Math.round(2.57 * rarity - 0.14),
+    stamina: Math.round(1.71 * rarity - 0.43),
+    guard: +(0.0056 + 0.0057 * rarity).toFixed(4),
+  });
   const ARMOR_PER_LEVEL = { hp: 1.33, stamina: 1, guard: 0.0027 };
   // Levels are money only, and locked behind HR so a suit cannot be pushed far
   // ahead of the rank it belongs to. Same shape as the Books of Fishing Combos.
@@ -2517,13 +2542,15 @@
       // nobody could ever forge.
       const boss = Object.values(BOSS).find(b => b.line === line);
       const ranks = ['Low', 'High', 'G'].filter(r =>
-        L[r] && (!mats || (mats[r] && (!boss || bossMeetableAt(boss.name, r)))));
+        L[r] && hasArmorAt(line, r)
+        && (!mats || (mats[r] && (!boss || bossMeetableAt(boss.name, r)))));
       ranks.forEach((rank, i) => {
         for (const slot of PIECE_SLOTS) {
           out.push({
             id: `${line}_${slot}_${rank.toLowerCase()}`, line, rank, slot,
             name: `${armorLineName(line)} ${PIECE_LABEL[slot]}${armorSuffix(rank)}`,
-            ...ARMOR_PIECE_BASE[rank],
+            rarity: armorRarity(line, rank),
+            ...ARMOR_PIECE_BASE(armorRarity(line, rank)),
             // Levels are the board's now, not the rank's. A G helm can carry a
             // level 2 where its chest carries a 1 — which is the whole reason
             // three pieces are worth having.
@@ -2911,7 +2938,7 @@
     TRADE_RATE, tradeRate, matsAtRarity, tradeRarities,
     EFFECTS, EFFECT_MAX, effectName, effectBlurb, isFlagEffect, effectPower, armorEffects,
     effectLevel, climateFor, heatBand, culledOres,
-    ARMOR_PIECES, armorLineName, PIECE_SLOTS, PIECE_LABEL, wornSetLine,
+    ARMOR_PIECES, armorLineName, PIECE_SLOTS, PIECE_LABEL, wornSetLine, armorRarity,
     gearWith,
     ARMORS, armorById, armorStat, ARMOR_LEVELS, ARMOR_PER_LEVEL, armorSuffix,
     RODS, rodById, ROD_LEVELS, ROD_PER_LEVEL,

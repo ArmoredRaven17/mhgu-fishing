@@ -32,7 +32,7 @@ const OUT = process.argv[3] || join(REPO, `mhgu-fishing-${STAGE}.json`);
 
 globalThis.window = globalThis;
 for (const f of ['data/ores.js', 'data/fish.js', 'data/locales.js', 'data/meals.js',
-                 'data/canteen.js', 'data/armorlines.js', 'data/monsterparts.js', 'game.js', 'roll.js']) {
+                 'data/canteen.js', 'data/armorlines.js', 'data/monsterparts.js', 'data/armorstats.js', 'game.js', 'roll.js']) {
   new Function(readFileSync(join(REPO, 'docs', f), 'utf8')).call(globalThis);
 }
 

@@ -815,6 +815,13 @@ const partPick = db.prepare(`SELECT i._id, i.name, i.icon_name FROM hunting_rewa
      AND i.name NOT LIKE '%Scrap%' AND i.name NOT LIKE '%Ticket%'
    GROUP BY i._id ORDER BY i.sell ASC`);
 const monsterParts = {};
+const armorStats = {};
+// Blademaster or shared only: the gunner half of a family carries half the
+// defense and would halve the numbers at random depending on which row came back.
+const armorSet = db.prepare(`SELECT f.rarity, a.slot, a.defense
+   FROM armor_families f JOIN armor a ON a.family = f._id
+   WHERE f.name = ? AND a.hunter_type IN (0, 2)
+     AND a.slot IN ('Head', 'Body', 'Waist')`);
 for (const m of q(`SELECT name FROM monsters WHERE class = '0' ORDER BY name`)) {
   if (VARIANTS.includes(m.name)) continue;
   const [id] = LINE_ALIAS[m.name] || [slug(m.name)];
@@ -852,6 +859,40 @@ for (const m of q(`SELECT name FROM monsters WHERE class = '0' ORDER BY name`)) 
                              icon: partIcon(row.name, row.icon_name, rank) };
   }
   if (Object.keys(tiers).length) monsterParts[id] = tiers;
+
+  // ── and what that line's armor is actually worth ────────────────────────
+  //
+  // Bulldrome and Nakarkos should not have the same numbers just because both
+  // are G Rank, so the stats come off the real sets: family rarity, and the real
+  // defense of the Head, Body and Waist pieces.
+  //
+  // Families are named on the same base / S / X convention the pieces are, and
+  // keyed off the same PREFIX the parts are — Cephadrome's armor is "Cephalos",
+  // not "Cephadrome". R, XR and GX are Deviant and G-exclusive variants and are
+  // deliberately not matched.
+  {
+    // The armor's own name is a THIRD naming, agreeing with neither the monster
+    // nor its parts: Royal Ludroth drops "R.Ludroth" parts and wears "Ludroth"
+    // armor. So every plausible name is tried and the first that exists wins.
+    const bases = [...new Set([prefix, m.name, LINE_ALIAS[m.name] && LINE_ALIAS[m.name][1],
+                               m.name.split(' ').pop()].filter(Boolean))];
+    const stats = {};
+    for (const [rank, suffix] of [['Low', ''], ['High', ' S'], ['G', ' X']]) {
+      let rows = [];
+      for (const base of bases) {
+        rows = armorSet.all(base + suffix);
+        if (rows.length) break;
+      }
+      if (!rows.length) continue;
+      const bySlot = {};
+      for (const r of rows) bySlot[r.slot] = r;
+      const pick = slot => bySlot[slot] ? bySlot[slot].defense : null;
+      const helm = pick('Head'), chest = pick('Body'), waist = pick('Waist');
+      if (helm == null && chest == null && waist == null) continue;
+      stats[rank] = { rarity: rows[0].rarity, helm, chest, waist };
+    }
+    if (Object.keys(stats).length) armorStats[id] = stats;
+  }
 }
 db.close();
 
@@ -894,6 +935,12 @@ writeFileSync(join(OUT, 'meals.js'),
   `window.MF_MEALS = ${JSON.stringify(meals, null, 1)};
 `);
 
+
+writeFileSync(join(OUT, 'armorstats.js'),
+  header('MHGU armor defense and rarity by line and tier',
+    'mhgu.db armor + armor_families — blademaster Head/Body/Waist') +
+  `window.MF_ARMOR_STATS = ${JSON.stringify(armorStats, null, 1)};
+`);
 
 writeFileSync(join(OUT, 'monsterparts.js'),
   header('MHGU monster parts by armor line and rarity',
