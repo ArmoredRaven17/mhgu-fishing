@@ -184,6 +184,9 @@
   const rankIndex = r => RANKS.indexOf(r);
   const atOrAbove = (id, r) => rankIndex(r) >= rankIndex(FLOOR[id]);
   let filter = '';
+  // How the 71 lines are ordered. 'water' is the default and puts what you can
+  // fish at the top, since those are the sets a player reaches first.
+  let sortMode = 'water';
   const skillKeys = [...Object.keys(G.EFFECTS), ...PROPOSED];
 
   // ── The board ─────────────────────────────────────────────────────────
@@ -215,7 +218,7 @@
 
   function save() {
     try {
-      localStorage.setItem(KEY, JSON.stringify({ v: 1, board, floors: FLOOR }));
+      localStorage.setItem(KEY, JSON.stringify({ v: 1, board, floors: FLOOR, sort: sortMode }));
     } catch (e) { /* private window, blocked storage — the tool still works */ }
   }
 
@@ -238,6 +241,7 @@
     }
     for (const [id, f] of Object.entries(saved.floors || {}))
       if (fresh[id] && RANKS.includes(f)) FLOOR[id] = f;
+    if (saved.sort && ['water', 'rank', 'name'].includes(saved.sort)) sortMode = saved.sort;
     restoreNote = placed
       ? `Restored ${placed} assignment${placed === 1 ? '' : 's'}`
         + (dropped.length ? ` &middot; dropped ${dropped.length} line${dropped.length === 1 ? '' : 's'} `
@@ -291,9 +295,17 @@
       + PIECES.map(p => `<div class="ghead">${p.label}</div>`).join('')
       + `<div class="ghead">Set bonus &middot; all three</div>`;
 
-    // 75 lines is a long scroll; the filter is how you reach one.
-    const shown = lineIds.filter(id =>
-      !filter || lineName(id).toLowerCase().includes(filter));
+    // 71 lines is a long scroll; the filter is how you reach one and the sort is
+    // how you work through them in an order that suits the pass you are making.
+    const byName = (a, b) => lineName(a).localeCompare(lineName(b));
+    const SORTS = {
+      water: (a, b) => (isFished(b) - isFished(a)) || byName(a, b),
+      rank:  (a, b) => (rankIndex(FLOOR[a]) - rankIndex(FLOOR[b])) || byName(a, b),
+      name:  byName,
+    };
+    const shown = lineIds
+      .filter(id => !filter || lineName(id).toLowerCase().includes(filter))
+      .sort(SORTS[sortMode] || SORTS.water);
     const rows = shown.map(id => {
       const open = atOrAbove(id, rank);
       const cells = PIECES.map(p => {
@@ -327,6 +339,9 @@
     el('grid').innerHTML = head + rows;
     el('shownCount').textContent = shown.length + ' of ' + lineIds.length + ' lines';
 
+    // Sorting by rank while changing a floor would jump the row out from under
+    // the click, so the sort is applied at render and the floor buttons simply
+    // re-render — the row moves once, after the change, which reads as feedback.
     el('grid').querySelectorAll('[data-floor]').forEach(b => b.onclick = () => {
       FLOOR[b.dataset.fline] = b.dataset.floor;
       renderAll();
@@ -515,6 +530,15 @@
     save();
   }
 
+  el('sortSegs').addEventListener('click', e => {
+    const b = e.target.closest('[data-sort]');
+    if (!b) return;
+    sortMode = b.dataset.sort;
+    for (const x of el('sortSegs').querySelectorAll('[data-sort]'))
+      x.setAttribute('aria-pressed', String(x === b));
+    renderAll();
+  });
+
   el('rankSegs').addEventListener('click', e => {
     const b = e.target.closest('[data-rank]');
     if (!b) return;
@@ -527,6 +551,29 @@
     filter = e.target.value.trim().toLowerCase();
     renderGrid();
   });
+  // Most sets will want the same skills at every rank, differing only in level,
+  // so assigning Low three times is busywork. Copies the rank you are looking at
+  // onto the others — but never into a rank below a line's floor, where the set
+  // does not exist.
+  el('applyAll').onclick = () => {
+    const others = RANKS.filter(r => r !== rank);
+    // Count BEFORE touching anything, so cancelling really cancels.
+    const doable = lineIds.filter(id =>
+      atOrAbove(id, rank)
+      && PIECES.some(p => cellOf(id, rank, p.key).length)
+      && others.some(r => atOrAbove(id, r)));
+    if (!doable.length) { alert('Nothing on this rank to copy.'); return; }
+    if (!confirm(`Copy ${rank} Rank onto the other ranks for ${doable.length} line`
+        + `${doable.length === 1 ? '' : 's'}? This replaces whatever is on them.`)) return;
+    for (const id of doable)
+      for (const r of others) {
+        if (!atOrAbove(id, r)) continue;
+        for (const p of PIECES)
+          board[id][r][p.key] = cellOf(id, rank, p.key).map(e => ({ ...e }));
+      }
+    renderAll();
+  };
+
   el('clear').onclick = () => {
     if (!confirm('Clear every assignment on every line and rank?')) return;
     board = blank();

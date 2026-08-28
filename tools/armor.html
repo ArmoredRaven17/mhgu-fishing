@@ -125,8 +125,14 @@
           <button data-rank="High" aria-pressed="false">High</button>
           <button data-rank="G" aria-pressed="false">G</button>
         </div>
+        <div class="segs" role="group" id="sortSegs" title="line order">
+          <button data-sort="water" aria-pressed="true">Water</button>
+          <button data-sort="rank" aria-pressed="false">Rank</button>
+          <button data-sort="name" aria-pressed="false">Name</button>
+        </div>
         <input type="search" id="lineFilter" placeholder="find a monster&hellip;" autocomplete="off">
         <span id="shownCount" class="count"></span>
+        <button class="act" id="applyAll">Copy rank to all</button>
         <button class="act" id="clear">Clear all</button>
         <button class="act" id="copy">Copy output</button>
       </div>
