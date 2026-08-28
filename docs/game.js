@@ -2371,7 +2371,9 @@
     Mizutsune: {
       name: 'Mizutsune', icon: 'MHGU-Mizutsune_Icon.webp', bait: null,
       floor: 'Low', tier: 0.7, line: 'mizutsune',
-      desc: '', note: '',
+      desc: '',
+      note: 'Mizutsune can secrete a peculiar fluid that covers its foes in '
+          + 'immobilizing bubbles.',
     },
   };
 
