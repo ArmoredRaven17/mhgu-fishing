@@ -562,6 +562,9 @@
     // Against a climate you are NOT in it does nothing, so a plain drink is dead
     // weight here. A meat still has the food half to offer, so it falls through.
     if (e.protects && !e.stamina && !e.hp) return false;
+    // A bomb is worth throwing whenever you can pay for it. Nothing about your
+    // gauges makes it pointless, only empty stamina does.
+    if (e.bomb) return trip.sta >= G.STAMINA_COST.cast * G.BOMB.staminaMult;
     if (e.dash || e.def) return true;              // always worth refreshing
     const helpsHp = e.hp && trip.hp < trip.maxHP;
     const helpsSta = e.stamina && trip.sta < trip.maxSta;
@@ -582,6 +585,7 @@
     // Effect Up — Gluttony's Gourmand and Scavenger, in one number.
     const more = 1 + G.effectPower(A.state.gear, 'effectup');
     trip.carried[id]--;
+    if (e.bomb) { throwBomb(id); return; }
     if (e.hp) trip.hp = Math.min(trip.maxHP, trip.hp + e.hp * more);
     if (e.stamina) trip.sta = Math.min(trip.maxSta, trip.sta + e.stamina * more);
     // A Hot Drink is the wrong drink for hot water, but Tropic Hunter wants it
@@ -613,6 +617,54 @@
     }
     A.save();
     render();
+  }
+
+  // ── Bombs ─────────────────────────────────────────────────────────────────
+  //
+  // Everything inside the blast comes up at once, bruised and worth less for it.
+  // No minigame: a bomb is the thing you throw when you do not want to fight for
+  // it, so fighting for it would be the wrong price. The price is stamina, the
+  // item, and what the fish are worth.
+  //
+  // They count a FRACTION toward the basket and the cart — see BOMB.countFraction
+  // and the reasoning beside it. Without that a bomb is simply a faster rod.
+  function throwBomb(id) {
+    const S = A.state;
+    const bomb = G.effectOf(id);
+    trip.sta -= G.STAMINA_COST.cast * G.BOMB.staminaMult;
+    S.stats.casts++;
+
+    const n = G.bombCatch(id, S.gear);
+    const mult = G.bombValueMult(S.gear);
+    const school = R.rollSchool({ localeId: trip.localeId, bait: trip.bait,
+                                  hr: trip.questHR, rod: S.gear.rod, armor: S.gear });
+    const took = (school || []).slice(0, n);
+    if (!took.length) {
+      trip.notes.push('The bomb goes off and nothing floats up.');
+    } else {
+      let gained = 0;
+      for (const c of took) {
+        A.record(c.id, trip.localeId, c.fish.id);
+        const paid = Math.round(c.value * mult * (1 + trip.fresh.zenny)
+          * G.payMult(trip.questHR) * (1 + G.effectPower(S.gear, 'zenny')));
+        trip.haul.push({ name: c.name, value: paid,
+                         icon: window.MF_GUIDE.fishImg(c.ore, 22, c.name) });
+        trip.value += paid;
+        gained += paid;
+        S.stats.landed++;
+      }
+      // Fractional on purpose. Rounded only where it is read, so three bombs do
+      // not quietly lose what each one's remainder was worth.
+      trip.landed += took.length * G.BOMB.countFraction;
+      trip.notes.push(`${bomb.label ? '' : ''}The blast brings up `
+        + `${took.length} fish — ${z(gained)}, bruised.`);
+    }
+    A.save();
+    // Notes are queued, not printed: every other path flushes them and this one
+    // did not, so the blast happened in silence.
+    flushNotes();
+    render();
+    if (trip.sta <= 0) finish('out of stamina');
   }
 
   // ── Ending the trip ───────────────────────────────────────────────────────

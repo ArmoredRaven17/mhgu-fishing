@@ -539,6 +539,28 @@
   const DASH_SECONDS = 90;
   const DASH_MULT = 0.5;
 
+  // ── Bombs ─────────────────────────────────────────────────────────────────
+  //
+  // The whole feature turns on one number, and it is not the radius: it is what a
+  // bombed fish COUNTS for. trip.landed feeds the full basket and the Trade Cart,
+  // and both pay on count rather than value — the basket deliberately, so that a
+  // run of cheap catches is worth staying out for. A bomb makes count cheaply, so
+  // at face value it would be the fastest way to fill a forty-fish basket and cap
+  // the cart, and the rod would be for people who had not worked it out yet.
+  //
+  // So a bombed fish counts a FRACTION. Everything else here is a dial; this is
+  // the one that decides whether bombs are a tool or a replacement.
+  const BOMB = {
+    countFraction: 0.4,   // toward the basket and the cart
+    valueMult: 0.55,      // and what the bruised fish sells for
+    staminaMult: 1.8,     // against one cast, so it is a burst and not a rhythm
+  };
+  // Blast widens the radius; Bruising is what the fish keeps of its value.
+  const bombCatch = (id, gear) =>
+    Math.max(1, Math.round((ITEM_EFFECT[id] || {}).bomb * (1 + effectPower(gear, 'blast'))));
+  const bombValueMult = gear =>
+    Math.min(1, BOMB.valueMult * (1 + effectPower(gear, 'bruising')));
+
   const CLIMATE_RATES = {
     temperate: { staminaMult: 1,    hpPerTick: 0 },
     cold:      { staminaMult: 1.85, hpPerTick: 0 },
@@ -588,6 +610,13 @@
     // two things they replace put together.
     hot_meat:        { group: 'misc', stamina: 50, protects: 'cold', unlock: 13, carry: 5, label: '+50 Stamina and cold resistance' },
     chilled_meat:    { group: 'misc', stamina: 50, protects: 'hot',  unlock: 13, carry: 5, label: '+50 Stamina and heat resistance' },
+    // ── Bombs ────────────────────────────────────────────────────────────
+    // Thrown into the water rather than cast into it: everything inside the
+    // blast comes up at once, bruised and worth less for it. `bomb` is how many
+    // fish the radius reaches.
+    barrel_bomb_s:   { group: 'misc',      bomb: 2,             unlock: 3,  carry: 10, label: 'Takes a few fish at once, worth less for it' },
+    barrel_bomb_l:   { group: 'misc',      bomb: 3,             unlock: 6,  carry: 3,  label: 'Takes several fish at once, worth less for it' },
+    barrel_bomb_lp:  { group: 'misc',      bomb: 5,             unlock: 9,  carry: 2,  label: 'Takes a haul of fish at once, worth less for it' },
     armorskin:       { group: 'misc',      def: 0.15, secs: 1,  unlock: 5,  carry: 5,  label: '+15% DEF for a short time' },
     mega_armorskin:  { group: 'misc',      def: 0.25, secs: 2,  unlock: 9,  carry: 2,  label: '+25% DEF, for twice as long' },
   };
@@ -2931,6 +2960,7 @@
     CAST_PRESSES, CAST_PRESS_WINDOW_MS,
     CLIMATE_RATES, CLIMATE_TICK_MS, DRINK_SECONDS,
     DASH_SECONDS, DASH_MULT, ARMOR_SECONDS,
+    BOMB, bombCatch, bombValueMult,
     BASE_MAX_HP, BASE_MAX_STAMINA, STAMINA_COST,
     MEALS, mealCost, MEAL_SCALE, ITEM_PRICE, priceOf,
     RETIRED_UPGRADES, refundUpgrades,

@@ -360,6 +360,18 @@ window.MF_FISH = {
       "icon": "MH4G-Meat_Icon_Orange.png"
     },
     {
+      "id": "barrel_bomb_s",
+      "gid": 88,
+      "name": "Barrel Bomb S",
+      "role": "bomb",
+      "rarity": 2,
+      "buy": 156,
+      "sell": 16,
+      "color": "Yellow",
+      "desc": "A small time bomb.",
+      "icon": "MH4G-Bomb_Icon_Yellow.png"
+    },
+    {
       "id": "mega_potion",
       "gid": 10,
       "name": "Mega Potion",
@@ -432,6 +444,18 @@ window.MF_FISH = {
       "icon": "MH4G-Medicine_Icon_White.png"
     },
     {
+      "id": "barrel_bomb_l",
+      "gid": 89,
+      "name": "Barrel Bomb L",
+      "role": "bomb",
+      "rarity": 3,
+      "buy": 518,
+      "sell": 52,
+      "color": "Red",
+      "desc": "A powerful bomb triggered by external physical impact.",
+      "icon": "MH4G-Bomb_Icon_Red.png"
+    },
+    {
       "id": "armorskin",
       "gid": 20,
       "name": "Armorskin",
@@ -442,6 +466,18 @@ window.MF_FISH = {
       "color": "Orange",
       "desc": "Boosts your Defense by turning your skin as hard as rock.",
       "icon": "MH4G-Medicine_Icon_Orange.png"
+    },
+    {
+      "id": "barrel_bomb_lp",
+      "gid": 90,
+      "name": "Barrel Bomb L+",
+      "role": "bomb",
+      "rarity": 4,
+      "buy": 800,
+      "sell": 80,
+      "color": "Red",
+      "desc": "Upgraded Large Barrel Bomb. Effective against large monsters.",
+      "icon": "MH4G-Bomb_Icon_Red.png"
     },
     {
       "id": "mega_dash_juice",

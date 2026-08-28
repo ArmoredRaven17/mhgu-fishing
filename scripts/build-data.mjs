@@ -517,12 +517,17 @@ const PREP_ROLE = {
   23: 'cool', 24: 'hot',
   20: 'defence', 21: 'defence',       // Armorskin, Mega Armorskin
   52: 'chill', 53: 'warm',            // Chilled Meat, Hot Meat
+  88: 'bomb', 89: 'bomb', 90: 'bomb',  // Barrel Bomb S, L, L+
 };
+// slug() would give "Barrel Bomb L" and "Barrel Bomb L+" the SAME id — the plus
+// becomes a separator and then gets trimmed — so one would silently overwrite the
+// other in every id-keyed map in the app.
+const ID_OVERRIDE = { 90: 'barrel_bomb_lp' };
 const PREP_IDS = Object.keys(PREP_ROLE).join(',');
 const prep = q(`SELECT _id, name, rarity, buy, sell, description, icon_name, icon_color
                 FROM items WHERE _id IN (${PREP_IDS})`)
   .map(r => ({
-    id: slug(r.name), gid: r._id, name: r.name, role: PREP_ROLE[r._id],
+    id: ID_OVERRIDE[r._id] || slug(r.name), gid: r._id, name: r.name, role: PREP_ROLE[r._id],
     rarity: r.rarity, buy: r.buy, sell: r.sell,
     color: COLOR[r.icon_color] || 'Grey', desc: r.description || '',
     icon: iconOf(r.name),
