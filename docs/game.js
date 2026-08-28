@@ -2352,9 +2352,14 @@
     // and the Monster Hunter's Notes verbatim, so these are left empty on
     // purpose rather than filled with mine.
     'Daimyo Hermitaur': {
-      name: 'Daimyo Hermitaur', icon: 'MHGU-Hermitaur_Icon.webp', bait: null,
+      // MHGU-Hermitaur_Icon is the SMALL Hermitaur. The two names differ by one
+      // word and the files sit next to each other, which is exactly how the wrong
+      // one gets picked.
+      name: 'Daimyo Hermitaur', icon: 'MHGU-Daimyo_Hermitaur_Icon.webp', bait: null,
       floor: 'Low', tier: 0.15, line: 'hermitaur',
-      desc: '', note: '',
+      desc: '',
+      note: 'This large Carapaceon wears a massive monster skull on its back, and '
+          + 'uses its large pincers and bubble breath to attack prey.',
     },
     'Shogun Ceanataur': {
       name: 'Shogun Ceanataur', icon: 'MHGU-Shogun_Ceanataur_Icon.webp', bait: null,
