@@ -200,14 +200,17 @@
   }
 
   // ── Grid ──────────────────────────────────────────────────────────────
+  // One badge instead of a minus, a number and a plus. The stepper was 48px of a
+  // 98px cell and crushed the skill's name to six pixels, so the entry was almost
+  // entirely controls with the label ellipsed away. Click the badge to raise the
+  // level, shift-click to lower it.
   function entryHTML(e, line, r, piece, i) {
     const at = `data-line="${line}" data-rank="${r}" data-piece="${piece}" data-i="${i}"`;
-    return `<div class="ent">`
+    return `<div class="ent" title="${nameOf(e.k)} Lv ${e.lvl}">`
       + `<span class="nm" draggable="true" data-key="${e.k}" ${at}>${nameOf(e.k)}</span>`
-      + `<span class="lv">`
-      + `<button data-step="-1" ${at}>&minus;</button><b>${e.lvl}</b>`
-      + `<button data-step="1" ${at}>+</button></span>`
-      + `<button class="rm" data-rm="1" ${at}>&times;</button></div>`;
+      + `<button class="lv" data-step="1" ${at} title="click to raise, shift-click to lower">`
+      + `${e.lvl}</button>`
+      + `<button class="rm" data-rm="1" ${at} title="remove">&times;</button></div>`;
   }
 
   function renderGrid() {
@@ -280,9 +283,12 @@
                     piece: n.dataset.piece, i: +n.dataset.i });
     for (const c of el('grid').querySelectorAll('.cell')) wireDrop(c);
 
-    el('grid').querySelectorAll('[data-step]').forEach(b => b.onclick = () => {
+    el('grid').querySelectorAll('[data-step]').forEach(b => b.onclick = ev => {
       const t = target(b);
-      t.lvl = Math.max(1, Math.min(CAP, t.lvl + Number(b.dataset.step)));
+      // Wraps rather than clamping, so a badge can always reach any level with
+      // clicks alone and never sits dead at either end.
+      const step = ev.shiftKey ? -1 : 1;
+      t.lvl = ((t.lvl - 1 + step + CAP) % CAP) + 1;
       renderAll();
     });
     el('grid').querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
