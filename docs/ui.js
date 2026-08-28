@@ -371,9 +371,9 @@
     <tr class="${worn ? 'worn' : ''}">
       <td class="ic">${icon}</td>
       <td class="nm">${name}</td>
+      <td class="st">${stats}</td>
       <td class="sk">${skills}</td>
       <td class="dt">${detail}</td>
-      <td class="st">${stats}</td>
       <td class="mt">${mats}</td>
       <td class="pr">${price}</td>
       <td class="hv">${have}</td>
