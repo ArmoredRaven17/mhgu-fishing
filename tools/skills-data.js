@@ -86,7 +86,11 @@
     list: SKILLS,
     groups: GROUPS,
     byKey: Object.fromEntries(SKILLS.map(s => [s.k, s])),
-    nameOf: k => (window.MF_SKILLS.byKey[k] || {}).name || k,
+    // game.js is the source of a skill's NAME now that it holds exactly one per
+    // skill. The `name` in the list above is only the fallback for a skill the
+    // game has not declared yet, so the two cannot drift.
+    nameOf: k => (window.MF_GAME && window.MF_GAME.EFFECTS[k] || {}).name
+              || (window.MF_SKILLS.byKey[k] || {}).name || k,
     // Shipped means the game already reads it. Everything else is a proposal.
     isShipped: k => !!(window.MF_GAME && window.MF_GAME.EFFECTS[k]),
   };

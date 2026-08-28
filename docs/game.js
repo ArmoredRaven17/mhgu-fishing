@@ -1329,113 +1329,99 @@
   // tools breaking and Fate about quest rewards, so neither was allowed to stand
   // in for bait saving or trade yield — those got names of their own. Every
   // invented name here was checked against the game's real skill list first.
+  // ONE name per skill; the level does the rest. Every tier ladder that used to
+  // live here — Sure Grip / Sure Grip+ / Master's Grip — collapsed into
+  // `Sure Grip Lv N`, which is what killed the invented-top-tier-name problem
+  // for good. The names below are the ones Raven already had; the block after
+  // them carries working names he replaces once the allotment settles.
+  //
+  // `blurb` is deliberately absent on some. Four of the shipped skills only ever
+  // had wording that was true at ONE level — Heat Cancel negates, Heat Resist
+  // lengthens a drink — so there was no level-neutral line to keep, and inventing
+  // one is not mine to do. Those, and every newly declared skill, wait for his
+  // words rather than getting a placeholder that would quietly ship.
   const EFFECTS = {
-    band:     { tiers: ['Sure Grip', 'Sure Grip+', "Master's Grip"],            per: 0.18,
-                blurbs: ['Slightly widens the sweet spot when catching a fish',
-                         'Widens the sweet spot when catching a fish',
-                         'Greatly widens the sweet spot when catching a fish'] },
-    escape:   { tiers: ['Tireless Arm', 'Iron Arm'],                            per: 0.12,
-                blurbs: ["The fish's escape bar fills more slowly when outside of the sweet spot",
-                         "The fish's escape bar fills much more slowly when outside of the sweet spot"] },
-    progress: { tiers: ['Quick Reel', 'Quick Reel+', 'Peerless Reel'],          per: 0.12,
-                blurbs: ['The capture bar fills more quickly while in the sweet spot',
-                         'The capture bar fills considerably more quickly while in the sweet spot',
-                         'The capture bar fills much more quickly while in the sweet spot'] },
-    bites:    { tiers: ['Baited Water', 'Feeding Frenzy'],                      per: 0.15,
-                blurbs: ['Fish are more eager to bite the line',
-                         'Fish are far more eager to bite the line'] },
-    zenny:    { tiers: ['Fair Price'],                                          per: 0.15,
-                blurbs: ['Every catch is worth a little more'] },
-    saver:    { tiers: ['Sparing Hand', 'Sparing Hand+', 'Bottomless Pouch'],   per: 0.12,
-                blurbs: ['A chance to not use bait/items when used',
-                         'A good chance to not use bait/items when used',
-                         'A high chance to not use bait/items when used'] },
-    // Sometimes / often / very often is the game's own ladder for a chance-based
-    // skill — Good Luck, Great Luck, Miraculous Luck, word for word.
-    gather:   { tiers: ['Beachcomber', 'Beachcomber+', 'Master Beachcomber'],   per: 0.20,
-                blurbs: ['When gathering, Palicos sometimes find more items',
-                         'When gathering, Palicos often find more items',
-                         'When gathering, Palicos very often find more items'] },
-    trade:    { tiers: ['Fair Trade', "Trader's Favour"],                       per: 0.25,
-                blurbs: ['The Trade Cart will obtain more items',
-                         'The Trade Cart will obtain far more items'] },
-    combo:    { tiers: ['Steady Mixer', 'Steady Mixer+', 'Master Mixer'],       per: 0.08,
-                blurbs: ['Slightly increases your combo success chances',
-                         'Increases your combo success chances',
-                         'Greatly increases your combo success chances'] },
-    // The one skill the real game already wrote all three lines for, and the
-    // source of the Slightly / - / Greatly pattern the rest of these follow.
-    defense:  { tiers: ['Defense Up (S)', 'Defense Up (M)', 'Defense Up (L)'],  per: 0.18,
-                blurbs: ['When attacked by a monster, you take slightly less damage',
-                         'When attacked by a monster, you take less damage',
-                         'When attacked by a monster, you take greatly reduced damage'] },
-    stamina:  { tiers: ['Long Haul', 'Long Haul+', 'Second Wind'],              per: 0.08,
-                blurbs: ['Casting and reeling cost slightly less stamina',
-                         'Casting and reeling cost less stamina',
-                         'Casting and reeling cost greatly reduced stamina'] },
-    effectup: { tiers: ['Effect Up', 'Effect Up+', 'Effective Use'],            per: 0.25,
-                blurbs: ['Slightly increases the effects of items',
-                         'Increases the effects of items',
-                         'Greatly increases the effects of items'] },
-    // Lagiacrus charges the water and the small stuff stops coming. Cuts how
-    // heavily the common varieties are weighted, so the mix shifts up rather than
-    // every catch being worth more — a different lever from Fair Price.
-    cull:     { tiers: ['Shock Bobber', 'Shock Bobber+', 'Deathly Shock Bobber'],
-                // The bar rises a whole RANK BAND at a time. Level 1 drives off
-                // the lower half of Low Rank; level 2 everything below the lower
-                // half of High; level 3 everything below the lower half of G. So
-                // by the top rung only the best varieties still bite.
-                //
-                // `band` is how far up the ore ranks the cull reaches, and `half`
-                // says it stops at the lower half of that rank rather than taking
-                // the whole of it.
-                band: [0, 1, 2],
-                // No separate penalty: the cost is already in the fish. Limiting
-                // yourself to high varieties makes every fight harder on its own,
-                // because fightFor scales band and press rate off what the catch is
-                // WORTH — 447z and 2.99 presses a second becomes 1,300z and 3.87.
-                // Thinning the school as well would charge twice for one choice.
-                blurbs: ['Repels the lower varieties of Low Rank',
-                         'Repels up to the lower varieties of High Rank',
-                         'Repels up to the lower varieties of G Rank'] },
-    // Each rung is a different thing rather than the same thing louder, so each
-    // says only its own part. The top line is MHGU's own wording for Heat Cancel.
-    heat:     { tiers: ['Heat Resist', 'Heat Resist+', 'Heat Cancel'],          climate: 'hot',
-                blurbs: ['Cool Drinks last 50% longer',
-                         'Cool Drinks last twice as long',
-                         'Negates the damage incurred from heat and lava'] },
-    cold:     { tiers: ['Cold Resist', 'Cold Resist+', 'Cold Cancel'],          climate: 'cold',
-                blurbs: ['Hot Drinks last 50% longer',
-                         'Hot Drinks last twice as long',
-                         'Negates all cold'] },
-    // Everything Heat Resist does, and a wider line on top of it while you are
-    // somewhere hot — more so with a Hot Drink in hand, which is the wrong drink
-    // for the weather and exactly what the real skill rewards.
-    hotblood: { tiers: ['Heat Hunter', 'Heat Hunter+', 'Tropic Hunter'],        climate: 'hot', bandInHeat: true,
-                blurbs: ['You are more comfortable in Hot regions and like Hot Drinks',
-                         'You are at home in Hot regions and like Hot Drinks',
-                         'You thrive in Hot Regions and enjoy Hot Drinks'] },
-    guts:     { tiers: ['Guts'],             flag: true,
-                blurbs: ['Once per trip, instead of carting from any HP, you will be left with 1 HP.'] },
-    repel:    { tiers: ["Fisherman's Talisman"],  per: 0.35,
-                blurbs: ['Repels small monsters, making attacks from them less common'] },
-    // Divine Blessing was defined here and dropped: in the real game it softens an
-    // attack, and you are attacked far too rarely out here for a chance-based cut
-    // to be worth a line's worth of armor. Defense Up already does that job.
+    // ── Read by the game today ────────────────────────────────────────────
+    band:     { name: 'Sure Grip',        per: 0.18,
+                blurb: 'Widens the sweet spot when catching a fish' },
+    escape:   { name: 'Tireless Arm',     per: 0.12,
+                blurb: "The fish's escape bar fills more slowly when outside of the sweet spot" },
+    progress: { name: 'Quick Reel',       per: 0.12,
+                blurb: 'The capture bar fills more quickly while in the sweet spot' },
+    bites:    { name: 'Baited Water',     per: 0.15,
+                blurb: 'Fish are more eager to bite the line' },
+    zenny:    { name: 'Fair Price',       per: 0.15,
+                blurb: 'Every catch is worth more' },
+    saver:    { name: 'Sparing Hand',     per: 0.12,
+                blurb: 'A chance to not use bait/items when used' },
+    gather:   { name: 'Beachcomber',      per: 0.20,
+                blurb: 'When gathering, Palicos often find more items' },
+    trade:    { name: 'Fair Trade',       per: 0.25,
+                blurb: 'The Trade Cart will obtain more items' },
+    combo:    { name: 'Steady Mixer',     per: 0.08,
+                blurb: 'Increases your combo success chances' },
+    defense:  { name: 'Defense Up',       per: 0.18,
+                blurb: 'When attacked by a monster, you take less damage' },
+    stamina:  { name: 'Long Haul',        per: 0.08,
+                blurb: 'Casting and reeling cost less stamina' },
+    effectup: { name: 'Effect Up',        per: 0.25,
+                blurb: 'Increases the effects of items' },
+    repel:    { name: "Fisherman's Talisman", per: 0.35,
+                blurb: 'Repels small monsters, making attacks from them less common' },
+    guts:     { name: 'Guts',             flag: true,
+                blurb: 'Once per trip, instead of carting from any HP, you will be left with 1 HP.' },
+    // `band` is how far up the ore ranks the cull reaches; it clears everything
+    // beneath that rank and then the lower half of the rank itself. Never the
+    // whole pool — see CULL_KEEP.
+    cull:     { name: 'Shock Bobber',     band: [0, 1, 2, 2, 2], blurb: '' },
+    heat:     { name: 'Heat Resist',      climate: 'hot',  blurb: '' },
+    cold:     { name: 'Cold Resist',      climate: 'cold', blurb: '' },
+    hotblood: { name: 'Heat Hunter',      climate: 'hot', bandInHeat: true, blurb: '' },
+
+    // ── Declared, nothing reads them yet ──────────────────────────────────
+    // These exist so the armor board can name them and the checker can verify
+    // them. Every `per` here is a placeholder of mine to be tuned against the
+    // sim once the thing it moves is actually wired up; the comment names the
+    // constant each one is for, which is the same spec tools/skills-data.js
+    // carries. Working names throughout — Raven's to replace.
+    strike:     { name: 'Strike',     per: 0.10, blurb: '' },  // strikeWindowMs
+    control:    { name: 'Control',    per: 0.10, blurb: '' },  // lift per press
+    hook:       { name: 'Hooking',    per: 0.12, blurb: '' },  // POND.hookChance
+    reach:      { name: 'Reach',      per: 0.15, blurb: '' },  // POND.attract / attractRange
+    bobber:     { name: 'Bobber',     per: 0.12, blurb: '' },  // POND.bobberStep / glideRate
+    lure:       { name: 'Lure',       per: 0.15, blurb: '' },  // how soon a monster checks in
+    parts:      { name: 'Parts',      per: 0.20, blurb: '' },  // what a monster leaves behind
+    siteGather: { name: 'Gathering',  per: 0.20, blurb: '' },  // Gather sites
+    siteBug:    { name: 'Bugs',       per: 0.20, blurb: '' },  // Bug sites
+    siteMine:   { name: 'Mining',     per: 0.20, blurb: '' },  // Mine sites
+    vigor:      { name: 'Vitality',   per: 0.10, blurb: '' },  // HP and Stamina carried
+    brace:      { name: 'Brace',      per: 0.20, blurb: '' },  // BOSS_ATTACK.holdMs
+    carry:      { name: 'Carrying',   per: 0.20, blurb: '' },  // POUCH_SLOTS / TACKLE_SLOTS / BAIT_CARRY
+    duration:   { name: 'Duration',   per: 0.20, blurb: '' },  // DRINK_SECONDS / DASH_SECONDS / ARMOR_SECONDS
+    hire:       { name: 'Hire',       per: 0.20, blurb: '' },  // PEST.hireCut
+    fresh:      { name: 'Fresh',      per: 0.15, blurb: '' },  // FRESH_CHANCE / FRESH_MAX
+    bounty:     { name: 'Bounty',     per: 0.15, blurb: '' },  // BOSS_REWARD_MULT
+    haggle:     { name: 'Costs',      per: 0.10, blurb: '' },  // hire / Palico / cart charges
+    lesson:     { name: 'Experience', per: 0.20, blurb: '' },  // XP per catch
+    basket:     { name: 'Basket',     per: 0.10, blurb: '' },  // BASKET.target
+    // Bombs and traps are designed but unbuilt; these four wait on that feature.
+    blast:      { name: 'Blast',      per: 0.15, blurb: '' },  // bomb blast radius
+    bruising:   { name: 'Bruising',   per: 0.15, blurb: '' },  // value lost to a blast / Shock Trap
+    trapping:   { name: 'Trapping',   per: 0.15, blurb: '' },  // a trap's odds of catching
+    trapsize:   { name: 'Capacity',   per: 0.15, blurb: '' },  // how many fish a trap holds
   };
-  // Level 1/2/3 picks tier name 0/1/2. A two-tier line hands out levels 1 and 3,
-  // which is what makes it read Sure Grip -> Master's Grip with no `+` between.
+  // Levels now STACK across pieces rather than being read off the rank, so a
+  // ceiling is required where none used to be needed.
+  const EFFECT_MAX = 5;
+  // The number carries the degree, so the name never has to. A flag has no
+  // level to show.
   const effectName = (key, lvl) => {
     const e = EFFECTS[key];
     if (!e) return '';
-    return e.tiers[Math.min(e.tiers.length - 1, Math.max(0, lvl - 1))];
+    return e.flag ? e.name : e.name + ' Lv ' + Math.min(EFFECT_MAX, Math.max(1, lvl || 1));
   };
-  const effectBlurb = (key, lvl = 1) => {
-    const e = EFFECTS[key];
-    if (!e) return '';
-    const i = Math.min((e.blurbs || e.tiers).length - 1, Math.max(0, lvl - 1));
-    return (e.blurbs && e.blurbs[i]) || e.blurb || '';
-  };
+  // One line per skill regardless of level. Empty until Raven writes it.
+  const effectBlurb = key => EFFECTS[key]?.blurb || '';
   const isFlagEffect = key => !!EFFECTS[key]?.flag;
 
   // ── Armor ─────────────────────────────────────────────────────────────────
@@ -1549,11 +1535,18 @@
   };
 
   // What the armor you are wearing actually grants, as {effectKey: level}.
+  // THE merge point. Everything downstream — effectPower, effectLevel,
+  // climateFor, heatBand, culledOres — reads only this, which is why three
+  // pieces summing into one total is a change here and nowhere else.
+  //
+  // Still one suit today, so Math.max over its own list is all it does. The
+  // clamp is live already so the ceiling exists before anything can exceed it.
   function armorEffects(armor) {
     const a = armor && armorById.get(armor.id);
     const out = {};
     if (!a) return out;
     for (const e of a.effects) out[e.key] = Math.max(out[e.key] || 0, e.lvl);
+    for (const k of Object.keys(out)) out[k] = Math.min(EFFECT_MAX, out[k]);
     return out;
   }
   // Effect strength, already multiplied out. Flags come back as 0 or 1.
@@ -1561,7 +1554,7 @@
     const lvl = armorEffects(armor)[key] || 0;
     if (!lvl) return 0;
     const e = EFFECTS[key];
-    return e.flag ? 1 : e.per * lvl;
+    return e.flag ? 1 : (e.per || 0) * lvl;
   }
   // How many levels of an effect a suit carries, 0 if none. Climate wants this
   // rather than effectPower: 1 and 2 lengthen a drink, 3 removes the need for one.
@@ -2127,7 +2120,7 @@
     MEALS, mealCost, MEAL_SCALE, ITEM_PRICE, priceOf,
     RETIRED_UPGRADES, refundUpgrades,
     MAT_LINES, MONSTER_MATS, monsterMatById, bossMat, matId,
-    EFFECTS, effectName, effectBlurb, isFlagEffect, effectPower, armorEffects,
+    EFFECTS, EFFECT_MAX, effectName, effectBlurb, isFlagEffect, effectPower, armorEffects,
     effectLevel, climateFor, heatBand, culledOres,
     ARMOR_LINES, ARMORS, armorById, armorStat, ARMOR_LEVELS, ARMOR_PER_LEVEL, armorSuffix,
     RODS, rodById, ROD_LEVELS, ROD_PER_LEVEL,
