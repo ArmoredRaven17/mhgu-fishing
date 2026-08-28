@@ -192,7 +192,53 @@
     }
     return b;
   };
-  let board = blank();
+  // ── Persistence ───────────────────────────────────────────────────────
+  //
+  // 71 lines x 3 ranks x 3 pieces is far too much work to lose to a reload.
+  // Saved on every change, restored on load.
+  //
+  // The restore MERGES into a fresh blank board rather than replacing it,
+  // because the roster moves underneath this file — three monsters joined the
+  // water and four Variants left in one afternoon. A saved line that no longer
+  // exists is reported and dropped; a line that did not exist when you saved
+  // simply comes up empty.
+  const KEY = 'mhgu-armor-bench';
+  let restoreNote = '';
+
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ v: 1, board, floors: FLOOR }));
+    } catch (e) { /* private window, blocked storage — the tool still works */ }
+  }
+
+  function load() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; }
+    if (!saved || !saved.board) return null;
+    const fresh = blank();
+    let placed = 0, dropped = [];
+    for (const [id, data] of Object.entries(saved.board)) {
+      if (!fresh[id]) { dropped.push(id); continue; }
+      for (const r of RANKS)
+        for (const p of PIECES) {
+          const list = ((data[r] || {})[p.key] || [])
+            .filter(e => e && typeof e.k === 'string');
+          fresh[id][r][p.key] = list.map(e => ({ k: e.k, lvl: Math.max(1, Math.min(CAP, e.lvl | 0)) }));
+          placed += list.length;
+        }
+      if (data.setBonus) fresh[id].setBonus = { ...data.setBonus };
+    }
+    for (const [id, f] of Object.entries(saved.floors || {}))
+      if (fresh[id] && RANKS.includes(f)) FLOOR[id] = f;
+    restoreNote = placed
+      ? `Restored ${placed} assignment${placed === 1 ? '' : 's'}`
+        + (dropped.length ? ` &middot; dropped ${dropped.length} line${dropped.length === 1 ? '' : 's'} `
+           + `no longer in the roster (${dropped.join(', ')})` : '')
+      : '';
+    return fresh;
+  }
+
+  let board = load() || blank();
   let rank = 'Low';
 
   const cellOf = (line, r, piece) => board[line][r][piece];
@@ -379,9 +425,11 @@
 
     if (!filled) {
       el('checks').innerHTML = '<div class="warn">Blank slate &mdash; nothing assigned. '
-        + 'Drag a skill from the left into a piece.</div>';
+        + 'Drag a skill from the left into a piece. Work is saved in this browser '
+        + 'as you go.</div>';
       return;
     }
+    if (restoreNote) notes.push(['ok', restoreNote]);
 
     // The clamp is silent in play, so say it here instead.
     for (const id of lineIds)
@@ -454,7 +502,10 @@
     el('out').textContent = txt;
   }
 
-  function renderAll() { renderPal(); renderGrid(); renderTotals(); renderChecks(); renderOut(); }
+  function renderAll() {
+    renderPal(); renderGrid(); renderTotals(); renderChecks(); renderOut();
+    save();
+  }
 
   el('rankSegs').addEventListener('click', e => {
     const b = e.target.closest('[data-rank]');
@@ -468,7 +519,12 @@
     filter = e.target.value.trim().toLowerCase();
     renderGrid();
   });
-  el('clear').onclick = () => { board = blank(); renderAll(); };
+  el('clear').onclick = () => {
+    if (!confirm('Clear every assignment on every line and rank?')) return;
+    board = blank();
+    restoreNote = '';
+    renderAll();
+  };
   el('copy').onclick = () => {
     navigator.clipboard.writeText(el('out').textContent).then(
       () => { el('copy').textContent = 'Copied'; setTimeout(() => el('copy').textContent = 'Copy output', 1200); },
