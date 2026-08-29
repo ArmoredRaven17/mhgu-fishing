@@ -360,6 +360,18 @@ window.MF_FISH = {
       "icon": "MH4G-Meat_Icon_Orange.png"
     },
     {
+      "id": "net",
+      "gid": 82,
+      "name": "Net",
+      "role": "trap",
+      "rarity": 2,
+      "buy": 108,
+      "sell": 54,
+      "color": "White",
+      "desc": "A sturdy net able to support a certain amount of weight without breaking.",
+      "icon": "MH4G-Trap_Icon_Green.png"
+    },
+    {
       "id": "barrel_bomb_s",
       "gid": 88,
       "name": "Barrel Bomb S",
@@ -442,6 +454,18 @@ window.MF_FISH = {
       "color": "White",
       "desc": "Provides temporary relief from extreme heat.",
       "icon": "MH4G-Medicine_Icon_White.png"
+    },
+    {
+      "id": "shock_trap",
+      "gid": 84,
+      "name": "Shock Trap",
+      "role": "trap",
+      "rarity": 3,
+      "buy": 320,
+      "sell": 160,
+      "color": "Purple",
+      "desc": "A trap that immobilizes a target. Use it to capture monsters.",
+      "icon": "MH4G-Trap_Icon_Purple.png"
     },
     {
       "id": "barrel_bomb_l",

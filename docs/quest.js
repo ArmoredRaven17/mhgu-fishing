@@ -576,6 +576,9 @@
     // A bomb is worth throwing whenever you can pay for it. Nothing about your
     // gauges makes it pointless, only empty stamina does.
     if (e.bomb) return trip.sta >= G.STAMINA_COST.cast * G.BOMB.staminaMult;
+    // A trap costs nothing to set and fishes while you do something else, so it
+    // is always worth setting.
+    if (e.trap) return true;
     if (e.dash || e.def) return true;              // always worth refreshing
     const helpsHp = e.hp && trip.hp < trip.maxHP;
     const helpsSta = e.stamina && trip.sta < trip.maxSta;
@@ -597,6 +600,7 @@
     const more = 1 + G.effectPower(A.state.gear, 'effectup');
     trip.carried[id]--;
     if (e.bomb) { throwBomb(id); return; }
+    if (e.trap) { setTrap(id); return; }
     if (e.hp) trip.hp = Math.min(trip.maxHP, trip.hp + e.hp * more);
     if (e.stamina) trip.sta = Math.min(trip.maxSta, trip.sta + e.stamina * more);
     // A Hot Drink is the wrong drink for hot water, but Tropic Hunter wants it
@@ -703,6 +707,49 @@
     flushNotes();
     render();
     if (trip.sta <= 0) finish('out of stamina');
+  }
+
+  // ── Traps ─────────────────────────────────────────────────────────────────
+  //
+  // Set in the water and left there. It costs no stamina — the cost is the item
+  // and the fish it takes being worth less, on a Shock Trap — and it goes on
+  // fishing while you cast, which is the whole reason to set one.
+  //
+  // Trapped fish count the same FRACTION as bombed ones, for the same reason:
+  // count feeds the full basket and the cart, and a trap makes count while you
+  // are busy doing something else.
+  async function setTrap(id) {
+    const S = A.state;
+    const kept = trip.carried[id];
+    trip.busy = true; render();
+    const res = await window.MF_FISHING.setTrap({
+      icon: (G.pouchItemById.get(id) || {}).icon || 'MH4G-Trap_Icon_Green.png',
+      radius: G.trapRadius(id),
+      chance: G.trapChance(id, S.gear),
+      hold: G.trapHold(id, S.gear),
+      onCatch: c => {
+        const paid = Math.round(c.value * G.trapValueMult(id) * (1 + trip.fresh.zenny)
+          * G.payMult(trip.questHR) * (1 + G.effectPower(S.gear, 'zenny')));
+        trip.haul.push({ name: c.name, value: paid,
+                         icon: window.MF_GUIDE.fishImg(c.ore, 22, c.name) });
+        trip.value += paid;
+        trip.landed += G.BOMB.countFraction;
+        S.stats.landed++;
+        A.record(c.id, trip.localeId, c.fish.id);
+        A.save();
+        render();
+      },
+      onFull: () => {
+        trip.notes.push('A trap is full.');
+        flushNotes();
+      },
+    });
+    trip.busy = false;
+    // Backing out has to hand the item back — it was taken before the placing,
+    // the same way a bomb's is, and a trap you never set is a trap you still have.
+    if (!res.placed) trip.carried[id] = kept;
+    A.save();
+    render();
   }
 
   // ── Ending the trip ───────────────────────────────────────────────────────

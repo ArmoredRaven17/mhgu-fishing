@@ -1242,3 +1242,29 @@ select{
   .bomb-marker,.bomb-marker img,.bomb-marker .ring,
   .swimmer.pooled,.swimmer.blasted{transition:none}
 }
+
+/* ── A trap ───────────────────────────────────────────────────────────────
+   Placed like a bomb but it STAYS, and it goes on taking fish while you cast.
+   The ring is the reach it actually has, sized off the pond in pixels for the
+   same reason the blast is. */
+.trap-marker{position:absolute;transform:translate(-50%,-50%);z-index:5;
+             pointer-events:none;transition:left .12s ease,top .12s ease}
+.trap-marker img{width:24px;height:24px;display:block;position:relative;z-index:2;
+                 filter:drop-shadow(0 2px 3px #0007)}
+.trap-marker .ring{position:absolute;left:50%;top:50%;width:var(--d);height:var(--d);
+                   transform:translate(-50%,-50%);border-radius:50%;
+                   border:2px dashed color-mix(in srgb,var(--water,#2E7D6B) 55%,#fff);
+                   background:color-mix(in srgb,var(--water,#2E7D6B) 22%,transparent);
+                   opacity:.5;transition:opacity .25s ease}
+/* While you are still choosing where, it is brighter than once it is down. */
+.trap-marker.placing .ring{opacity:.75;border-style:dashed}
+.trap-marker.set .ring{opacity:.34;border-style:solid}
+.trap-marker.catching .ring{opacity:.85;background:color-mix(in srgb,#fff 28%,transparent)}
+/* Full: still there so you can see where it was, and that it is done. */
+.trap-marker.full{opacity:.4}
+.trap-marker.full .ring{border-style:dotted}
+.swimmer.trapped{transition:opacity .4s ease,transform .4s ease;
+                 opacity:0;transform:translate(-50%,-50%) scale(.5)}
+@media (prefers-reduced-motion:reduce){
+  .trap-marker,.trap-marker .ring,.swimmer.trapped{transition:none}
+}

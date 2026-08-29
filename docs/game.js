@@ -555,6 +555,32 @@
     valueMult: 0.55,      // and what the bruised fish sells for
     staminaMult: 1.8,     // against one cast, so it is a burst and not a rhythm
   };
+  // ── Traps ─────────────────────────────────────────────────────────────────
+  //
+  // The Net is patient and honest: it catches less often and the fish is worth
+  // what it is worth. The Shock Trap is the opposite trade — it takes far more,
+  // and everything it takes comes up the worse for it.
+  //
+  // Same counting rule as a bomb, and for the same reason: trapped fish would
+  // otherwise be the cheapest possible way to fill a forty-fish basket.
+  const TRAP = {
+    net:   { radius: 0.13, chance: 0.16, hold: 3, valueMult: 1.00 },
+    shock: { radius: 0.17, chance: 0.42, hold: 5, valueMult: 0.60 },
+  };
+  const trapOf = id => TRAP[(ITEM_EFFECT[id] || {}).trap] || null;
+  // Trapping is how readily it takes; Capacity is how much it holds before it is
+  // full and done for the trip.
+  const trapChance = (id, gear) => {
+    const t = trapOf(id);
+    return t ? Math.min(0.9, t.chance * (1 + effectPower(gear, 'trapping'))) : 0;
+  };
+  const trapHold = (id, gear) => {
+    const t = trapOf(id);
+    return t ? Math.max(1, Math.round(t.hold * (1 + effectPower(gear, 'trapsize')))) : 0;
+  };
+  const trapValueMult = id => (trapOf(id) || {}).valueMult ?? 1;
+  const trapRadius = id => (trapOf(id) || {}).radius ?? 0.13;
+
   // Blast widens the radius; Bruising is what the fish keeps of its value.
   // Capped: a blast that covers the whole pond stops being a placement decision.
   const bombRadius = (id, gear) =>
@@ -623,6 +649,12 @@
     barrel_bomb_s:   { group: 'misc',      bomb: 0.15,          unlock: 3,  carry: 10, label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
     barrel_bomb_l:   { group: 'misc',      bomb: 0.22,          unlock: 6,  carry: 3,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
     barrel_bomb_lp:  { group: 'misc',      bomb: 0.30,          unlock: 9,  carry: 2,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
+    // ── Traps ────────────────────────────────────────────────────────────
+    // Set in the water and left there. A bomb is one loud moment; a trap is the
+    // opposite — you place it, walk away, and fish it never asked for wander in.
+    // `trap` is the kind; the numbers live in TRAP.
+    net:             { group: 'misc',      trap: 'net',         unlock: 2,  carry: 5,  label: 'Set in the water. Catches fish that wander into it' },
+    shock_trap:      { group: 'misc',      trap: 'shock',       unlock: 5,  carry: 3,  label: 'Set in the water. Catches fish that wander into it' },
     armorskin:       { group: 'misc',      def: 0.15, secs: 1,  unlock: 5,  carry: 5,  label: '+15% DEF for a short time' },
     mega_armorskin:  { group: 'misc',      def: 0.25, secs: 2,  unlock: 9,  carry: 2,  label: '+25% DEF, for twice as long' },
   };
@@ -3010,6 +3042,7 @@
     CLIMATE_RATES, CLIMATE_TICK_MS, DRINK_SECONDS,
     DASH_SECONDS, DASH_MULT, ARMOR_SECONDS,
     POOL, BOMB, bombRadius, bombValueMult,
+    TRAP, trapOf, trapChance, trapHold, trapValueMult, trapRadius,
     BASE_MAX_HP, BASE_MAX_STAMINA, STAMINA_COST,
     MEALS, mealCost, MEAL_SCALE, ITEM_PRICE, priceOf,
     RETIRED_UPGRADES, refundUpgrades,

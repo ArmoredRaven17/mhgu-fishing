@@ -31,8 +31,11 @@
   // Retiring is allowed with a fish on the line, so tearing down has to settle
   // the promise cast() is sitting on. Otherwise the trip ends but the await
   // never returns and the cast is left half-resolved.
-  function cleanup() {
-    stopPool();
+  // `forget` is the difference between a CAST ending and a TRIP ending. done()
+  // calls this after every cast, so forgetting here threw away every trap in the
+  // water the first time you cast past one. Only quest.js's cancel() forgets.
+  function cleanup(forget) {
+    stopPool(forget);
     const pending = state && !state.settled ? state : null;
     if (raf) cancelAnimationFrame(raf);
     raf = null;
@@ -515,10 +518,22 @@
   // monster you could see coming is a monster you could simply not cast at.
   let poolRaf = null;
   let pool = null;
+  // Traps set before a cast are still set after it. stopPool tears the pool down
+  // for the cast to own the pond; this is what survives that.
+  let keptTraps = [];
 
-  function stopPool() {
+  function stopPool(forget) {
     if (poolRaf) cancelAnimationFrame(poolRaf);
     poolRaf = null;
+    // A cast PAUSES the pool; the end of a trip ends it. Only the second forgets
+    // what was set in the water.
+    //
+    // The `else if (pool)` matters: a cast calls this TWICE — once from start() to
+    // take the pond, and again from cleanup() when it finishes. On the second call
+    // pool is already null, and the earlier version read that as "nothing to keep"
+    // and emptied the list a moment after filling it.
+    if (forget) keptTraps = [];
+    else if (pool) keptTraps = pool.traps;
     pool = null;
   }
 
@@ -558,10 +573,14 @@
     el('reel') && el('reel').classList.add('hidden');
 
     pool = {
-      fish: [], roll: spec.roll, armor: spec.armor || null,
+      fish: [], traps: keptTraps, roll: spec.roll, armor: spec.armor || null,
       last: performance.now(), spawnIn: 0, bomb: null,
       aspect: pondAspect(),
     };
+    // A trap outlives a cast. The pond is emptied and rebuilt around it, so the
+    // markers are put back rather than left as detached nodes nothing can see.
+    for (const t of pool.traps) { t.node.remove(); el('pond').appendChild(t.node); }
+    keptTraps = [];
     // Open with a few already in the water rather than an empty pond that fills
     // itself over the first ten seconds.
     for (let i = 0; i < 3; i++) spawnOne(true);
@@ -597,6 +616,7 @@
 
     pool.spawnIn -= dt;
     if (pool.spawnIn <= 0) { spawnOne(false); pool.spawnIn = POOL.spawnEverySec; }
+    trapFrame(dt);
 
     for (let i = pool.fish.length - 1; i >= 0; i--) {
       const f = pool.fish[i];
@@ -717,7 +737,115 @@
     });
   }
 
-  window.MF_FISHING = { start: start, cancel: cleanup, openPool: openPool,
-                        stopPool: stopPool, throwBomb: throwBomb };
+  // ── Setting a trap ────────────────────────────────────────────────────────
+  //
+  // Aimed the way a bomb is, but it STAYS. A bomb is one loud moment; a trap is
+  // the opposite — you put it somewhere and go back to fishing, and it takes what
+  // wanders in while you are busy.
+  //
+  // It reports catches through a callback rather than a promise, because the
+  // whole point is that it goes on paying out after the placing is over.
+  //
+  // spec: { icon, radius, chance, hold, onCatch(catchObj), onFull() }
+  function setTrap(spec) {
+    return new Promise(function (resolve) {
+      if (!pool) { resolve({ placed: false }); return; }
+      const marker = document.createElement('div');
+      marker.className = 'trap-marker placing';
+      marker.innerHTML = '<span class="ring"></span>'
+        + '<img src="assets/ItemIcons/' + spec.icon + '" alt="">';
+      const box = el('pond').getBoundingClientRect();
+      marker.style.setProperty('--d', (2 * spec.radius * box.height) + 'px');
+      el('pond').appendChild(marker);
+
+      const T = { x: 0.5, y: 0.5 };
+      const place = function () {
+        marker.style.left = (T.x * 100) + '%';
+        marker.style.top = (T.y * 100) + '%';
+      };
+      place();
+      const prompt = el('castPrompt');
+      const wasPrompt = prompt ? prompt.textContent : '';
+      if (prompt) prompt.textContent = 'Arrows or WASD to place it. Space to set it.';
+
+      const step = 0.06;
+      const prevDown = window.onkeydown, prevUp = window.onkeyup;
+      const done = function (placed, restore) {
+        window.onkeydown = prevDown; window.onkeyup = prevUp;
+        if (prompt) prompt.textContent = restore ? wasPrompt : '';
+        resolve({ placed: placed });
+      };
+
+      window.onkeyup = null;
+      window.onkeydown = function (e) {
+        const k = (e.key || '').toLowerCase();
+        if (k === 'arrowleft' || k === 'a') { T.x = Math.max(0.05, T.x - step); place(); e.preventDefault(); }
+        else if (k === 'arrowright' || k === 'd') { T.x = Math.min(0.95, T.x + step); place(); e.preventDefault(); }
+        else if (k === 'arrowup' || k === 'w') { T.y = Math.max(0.07, T.y - step); place(); e.preventDefault(); }
+        else if (k === 'arrowdown' || k === 's') { T.y = Math.min(0.93, T.y + step); place(); e.preventDefault(); }
+        else if (k === 'escape') { marker.remove(); done(false, true); }
+        else if (k === ' ' || k === 'spacebar') {
+          e.preventDefault();
+          window.onkeydown = null;
+          marker.classList.remove('placing');
+          marker.classList.add('set');
+          pool.traps.push({
+            x: T.x, y: T.y, node: marker,
+            radius: spec.radius, chance: spec.chance,
+            hold: spec.hold, taken: 0,
+            cooldown: 0,
+            onCatch: spec.onCatch, onFull: spec.onFull,
+          });
+          done(true, false);
+        }
+      };
+    });
+  }
+
+  // Traps only check every so often. Rolling every frame would make the chance
+  // meaningless — sixty rolls a second turns any number into a certainty — so a
+  // trap gets ONE roll a second against each fish sitting in it.
+  const TRAP_CHECK_SEC = 1;
+
+  function trapFrame(dt) {
+    if (!pool || !pool.traps.length) return;
+    for (let ti = pool.traps.length - 1; ti >= 0; ti--) {
+      const t = pool.traps[ti];
+      if (t.done) continue;
+      t.cooldown -= dt;
+      if (t.cooldown > 0) continue;
+      t.cooldown = TRAP_CHECK_SEC;
+      for (let i = pool.fish.length - 1; i >= 0; i--) {
+        if (t.taken >= t.hold) break;
+        const f = pool.fish[i];
+        const dx = (f.x - t.x) * pool.aspect;
+        const dy = f.y - t.y;
+        if (Math.sqrt(dx * dx + dy * dy) > t.radius) continue;
+        if (Math.random() >= t.chance) continue;
+        t.taken++;
+        t.node.classList.add('catching');
+        setTimeout(function () { t.node.classList.remove('catching'); }, 300);
+        f.node.classList.add('trapped');
+        const node = f.node;
+        setTimeout(function () { node.remove(); }, 400);
+        pool.fish.splice(i, 1);
+        if (t.onCatch) t.onCatch(f.c);
+      }
+      if (t.taken >= t.hold) {
+        t.node.classList.add('full');
+        t.done = true;
+        if (t.onFull) t.onFull();
+        // Kept in the list rather than spliced out. The list is what survives a
+        // cast and gets its markers put back, so dropping it here meant a full
+        // trap vanished the next time you cast — and seeing where one filled up
+        // is worth as much as seeing where one is still working.
+      }
+    }
+  }
+
+  // cancel() is the TRIP ending — retiring, carting, setting out again — so it
+  // is the one that forgets what was set in the water.
+  window.MF_FISHING = { start: start, cancel: () => cleanup(true), openPool: openPool,
+                        stopPool: stopPool, throwBomb: throwBomb, setTrap: setTrap };
 
 })();

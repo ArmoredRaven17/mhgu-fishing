@@ -518,11 +518,16 @@ const PREP_ROLE = {
   20: 'defence', 21: 'defence',       // Armorskin, Mega Armorskin
   52: 'chill', 53: 'warm',            // Chilled Meat, Hot Meat
   88: 'bomb', 89: 'bomb', 90: 'bomb',  // Barrel Bomb S, L, L+
+  82: 'trap', 84: 'trap',              // Net, Shock Trap
 };
 // slug() would give "Barrel Bomb L" and "Barrel Bomb L+" the SAME id — the plus
 // becomes a separator and then gets trimmed — so one would silently overwrite the
 // other in every id-keyed map in the app.
 const ID_OVERRIDE = { 90: 'barrel_bomb_lp' };
+// The Net's own icon is a spiderweb, which reads as scenery rather than as a trap
+// you set. Raven's call: it wears the Pitfall Trap's icon, so the two traps look
+// like a pair — purple for Shock, green for the Net.
+const ICON_OVERRIDE = { 82: 'Pitfall Trap' };
 const PREP_IDS = Object.keys(PREP_ROLE).join(',');
 const prep = q(`SELECT _id, name, rarity, buy, sell, description, icon_name, icon_color
                 FROM items WHERE _id IN (${PREP_IDS})`)
@@ -530,7 +535,7 @@ const prep = q(`SELECT _id, name, rarity, buy, sell, description, icon_name, ico
     id: ID_OVERRIDE[r._id] || slug(r.name), gid: r._id, name: r.name, role: PREP_ROLE[r._id],
     rarity: r.rarity, buy: r.buy, sell: r.sell,
     color: COLOR[r.icon_color] || 'Grey', desc: r.description || '',
-    icon: iconOf(r.name),
+    icon: iconOf(ICON_OVERRIDE[r._id] || r.name),
   }))
   .sort((a, b) => a.buy - b.buy || a.name.localeCompare(b.name));
 
