@@ -584,7 +584,12 @@
     // take the pond, and again from cleanup() when it finishes. On the second call
     // pool is already null, and the earlier version read that as "nothing to keep"
     // and emptied the list a moment after filling it.
-    if (forget) keptTraps = [];
+    //
+    // A BORROWED pool — the screen saver — never speaks for the traps. It has
+    // none of its own, so either branch below would have reported an empty list
+    // as the truth and thrown away what a trip had actually left in the water.
+    if (pool && pool.borrowed) { /* leave keptTraps exactly as the trip left it */ }
+    else if (forget) keptTraps = [];
     else if (pool) keptTraps = pool.traps;
     pool = null;
   }
@@ -623,8 +628,20 @@
     pool.reseed = 3;
   }
 
-  const pondAspect = () => {
-    const p = el('pond');
+  // Fish steer in pond-widths, so the box they are in has to be told to them or a
+  // wide box would make every circle an ellipse. Takes the host now: the pond is
+  // one box the pool can live in, a full window is another.
+  // Change how full the water is while it is running. Growing is just a bigger
+  // ceiling and the spawner catches up on its own; shrinking has to let the
+  // extras go, or the count would only ever fall as fish timed out.
+  function resizePool(max) {
+    if (!pool) return;
+    pool.max = Math.max(1, max | 0);
+    while (pool.fish.length > pool.max) letGo(pool.fish.pop().node);
+  }
+
+  const pondAspect = (host) => {
+    const p = host || el('pond');
     const b = p ? p.getBoundingClientRect() : { width: 0, height: 0 };
     return b.width > 0 ? b.width / Math.max(1, b.height) : 1.6;
   };
@@ -646,45 +663,69 @@
     return bubbles;
   }
 
-  // spec: { roll() -> catch|null, armor }
+  // spec: { roll() -> catch|null, armor, host?, max?, chrome? }
   // `roll` is handed in so the pond never learns what decides a catch — the same
   // reason it is handed a school today rather than a locale.
+  //
+  // `host` and `chrome` are what let the same water run somewhere other than the
+  // quest. The screen saver hands it the whole window and chrome:false, because
+  // there is no Cast button to show and no trap to put back out there.
   function openPool(spec) {
-    stopPool();
-    const pondEl = el('pond');
+    const pondEl = spec.host || el('pond');
     if (!pondEl) return;
+    // Handing the water to a DIFFERENT box — the screen saver opening over a
+    // trip, or closing back onto one. The old box's fish are let go rather than
+    // abandoned: stopPool only drops the bookkeeping, so without this they stay
+    // in the old box as frozen scenery that never moves, ages or leaves, and a
+    // pond you came back to held twice the fish it was counting.
+    if (pool && pool.host && pool.host !== pondEl) {
+      for (const f of pool.fish) letGo(f.node);
+      pool.fish = [];
+    }
+    stopPool();
+    const chrome = spec.chrome !== false;
     // Leave whatever is mid-fade alone — cleanup() has just set the cast's school
     // on its way out and wiping here would delete it a frame later, which is the
     // blink this is meant to remove. Only what the pool itself owns is rebuilt.
     pondEl.querySelectorAll('.bubbles,.bobber').forEach(function (n) { n.remove(); });
     pondEl.appendChild(makeBubbles());
-    el('castArea') && el('castArea').classList.remove('hidden');
-    el('reel') && el('reel').classList.add('hidden');
+    if (chrome) {
+      el('castArea') && el('castArea').classList.remove('hidden');
+      el('reel') && el('reel').classList.add('hidden');
+    }
 
     pool = {
-      fish: [], traps: keptTraps, roll: spec.roll, armor: spec.armor || null,
+      host: pondEl, borrowed: !chrome, fish: [], traps: chrome ? keptTraps : [],
+      max: spec.max || G().POOL.max,
+      roll: spec.roll, armor: spec.armor || null,
       last: performance.now(), spawnIn: 0, bomb: null,
-      aspect: pondAspect(),
+      aspect: pondAspect(pondEl),
     };
     // A trap outlives a cast. The pond is emptied and rebuilt around it, so the
     // markers are put back rather than left as detached nodes nothing can see.
-    for (const t of pool.traps) { t.node.remove(); el('pond').appendChild(t.node); }
-    keptTraps = [];
-    // Open with a few already in the water rather than an empty pond that fills
+    for (const t of pool.traps) { t.node.remove(); pondEl.appendChild(t.node); }
+    if (chrome) keptTraps = [];
+    // Open with some already in the water rather than an empty pond that fills
     // itself over the first ten seconds. They ARRIVE — `quiet` put them there
     // fully drawn, which read as a cut every time a cast let go.
-    for (let i = 0; i < 3; i++) spawnOne(false);
+    //
+    // A trip seeds three and lets the rest drift in, because arriving fish are
+    // half the life of the pond. The screen saver seeds the lot: you chose a
+    // number, and waiting the better part of a minute to see it is not a choice
+    // you made.
+    const seed = Math.min(pool.max, spec.seed || 3);
+    for (let i = 0; i < seed; i++) spawnOne(false);
     poolRaf = requestAnimationFrame(poolFrame);
   }
 
   function spawnOne(quiet) {
-    if (!pool || pool.fish.length >= G().POOL.max) return;
+    if (!pool || pool.fish.length >= pool.max) return;
     const c = pool.roll ? pool.roll() : null;
     if (!c) return;
     const node = document.createElement('div');
     node.className = 'swimmer pooled' + (quiet ? '' : ' arriving');
     node.innerHTML = window.MF_GUIDE.fishImg(c.ore, 30, c.name);
-    el('pond').appendChild(node);
+    pool.host.appendChild(node);
     if (!quiet) fadeIn(node);
     const a = Math.random() * Math.PI * 2;
     const life = G().POOL.lifeSec;
@@ -945,6 +986,7 @@
   // is the one that forgets what was set in the water.
   window.MF_FISHING = { start: start, cancel: () => cleanup(true), openPool: openPool,
                         stopPool: stopPool, refreshPool: refreshPool,
+                        resizePool: resizePool,
                         throwBomb: throwBomb, setTrap: setTrap };
 
 })();

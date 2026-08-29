@@ -6,7 +6,7 @@
 <title>MHGU Fishing</title>
 <!-- Whetfish: the first thing almost anyone catches here. -->
 <link rel="icon" type="image/png" href="assets/FishIcons/MH4G-Fish_Icon_Yellow.png">
-<link rel="stylesheet" href="styles.css?v=352">
+<link rel="stylesheet" href="styles.css?v=356">
 </head>
 <body>
 
@@ -22,6 +22,7 @@
       <button id="openBtn"   class="btn tiny">Open&hellip;</button>
     </span>
     <input type="file" id="importFile" accept=".json,application/json" class="hidden">
+    <button id="saverBtn" class="btn tiny">Screen Saver</button>
     <button id="linksBtn" class="icon-btn" title="Other MHGU apps" aria-label="Other MHGU apps">&#128279;</button>
     <button id="themeBtn" class="icon-btn" title="Theme" aria-label="Theme">&#9881;</button>
     <div class="stats">
@@ -468,24 +469,62 @@
   </div>
 </div>
 
-<script src="data/ores.js?v=352"></script>
-<script src="data/fish.js?v=352"></script>
-<script src="data/locales.js?v=352"></script>
-<script src="data/meals.js?v=352"></script>
-<script src="data/canteen.js?v=352"></script>
-<script src="data/armorlines.js?v=352"></script>
-<script src="data/monsterparts.js?v=352"></script>
-<script src="data/armorstats.js?v=352"></script>
-<script src="data/themes.js?v=352"></script>
-<script src="theme.js?v=352"></script>
-<script src="game.js?v=352"></script>
-<script src="roll.js?v=352"></script>
-<script src="app.js?v=352"></script>
-<script src="guide.js?v=352"></script>
-<script src="prep.js?v=352"></script>
-<script src="fishing.js?v=352"></script>
-<script src="quest.js?v=352"></script>
-<script src="ui.js?v=352"></script>
-<script src="savefile.js?v=352"></script>
+<!-- ── Screen Saver ────────────────────────────────────────────────────── -->
+<div id="saverModal" class="modal hidden">
+  <div class="modal-box saver-box">
+    <h2>Screen Saver</h2>
+    <p class="saver-note">The water on its own. No casting, no clock.</p>
+
+    <label class="saver-field">
+      <span>Pool Size</span>
+      <span class="saver-range">
+        <input type="range" id="saverSize" min="1" max="60" step="1">
+        <b id="saverSizeOut">18</b>
+      </span>
+    </label>
+
+    <label class="saver-field">
+      <span>Locale</span>
+      <select id="saverLocale"></select>
+    </label>
+
+    <div class="saver-actions">
+      <button id="saverStart" class="btn accent">Start</button>
+      <button id="saverClose" class="btn tiny">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- The saver itself. Outside every view, because it answers to the window and
+     not to wherever you happened to be standing when you opened it. -->
+<div id="saverStage" class="saver-stage hidden">
+  <!-- .pond as well, so the water is the game's water and not a copy of it. -->
+  <div id="saverWater" class="pond saver-water"></div>
+  <div class="saver-bar">
+    <button id="saverFull" class="btn tiny">Fullscreen</button>
+    <button id="saverExit" class="btn tiny">Exit</button>
+  </div>
+</div>
+
+<script src="data/ores.js?v=356"></script>
+<script src="data/fish.js?v=356"></script>
+<script src="data/locales.js?v=356"></script>
+<script src="data/meals.js?v=356"></script>
+<script src="data/canteen.js?v=356"></script>
+<script src="data/armorlines.js?v=356"></script>
+<script src="data/monsterparts.js?v=356"></script>
+<script src="data/armorstats.js?v=356"></script>
+<script src="data/themes.js?v=356"></script>
+<script src="theme.js?v=356"></script>
+<script src="game.js?v=356"></script>
+<script src="roll.js?v=356"></script>
+<script src="app.js?v=356"></script>
+<script src="guide.js?v=356"></script>
+<script src="prep.js?v=356"></script>
+<script src="fishing.js?v=356"></script>
+<script src="quest.js?v=356"></script>
+<script src="ui.js?v=356"></script>
+<script src="savefile.js?v=356"></script>
+<script src="screensaver.js?v=356"></script>
 </body>
 </html>

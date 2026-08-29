@@ -1051,6 +1051,9 @@
   }
   window.addEventListener('keydown', castKey);
 
-  window.MF_QUEST = { begin, cast, retire, render, useItem, equipBait,
+  // openPool is out here for the screen saver, which borrows the pond's loop for
+  // the whole window and has to hand the water back when it closes. There is one
+  // pool, so whoever took it last owns it.
+  window.MF_QUEST = { begin, cast, retire, render, useItem, equipBait, openPool,
     get active() { return !!trip; } };
 })();
