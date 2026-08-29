@@ -297,13 +297,14 @@
       // A press only lifts the line. Ground is gained by where the line SITS, not
       // by pressing, so mashing past the top is a way to lose rather than to win.
       //
-      // Control lengthens the press only when you are OUT of the sweet spot,
-      // where a bigger press is recovery. Inside it a bigger press would carry
-      // you straight back out the top, so the help there is a slower sink instead
-      // — see sinkInBand in the frame.
+      // One press, the same wherever the line is. Control is already inside
+      // liftPerPress — it makes every press SMALLER, which is what lets you sit
+      // in a narrow sweet spot. This used to pick a bigger press whenever you
+      // were out of the spot, but out was tested on both sides, so it handed you
+      // a harder shove when you were already too high.
       function pull() {
         const f = S.fight;
-        S.tension += (inBand() ? f.liftPerPress : (f.liftOutOfBand ?? f.liftPerPress));
+        S.tension += f.liftPerPress;
         bobber.classList.add('pulling');
         setTimeout(() => bobber.classList.remove('pulling'), 90);
       }
@@ -484,7 +485,8 @@
           if (S.braceIn <= 0) beginBrace();
 
           // Held: Control slows the fall so what you have is easier to keep.
-          // Out: it falls at the honest rate and the press is what is bigger.
+          // Out: it falls at the honest rate, because every exit is upward and
+          // you need that fall to bring you back.
           const f = S.fight;
           S.tension -= (inBand() ? (f.sinkInBand ?? f.sinkPerSec) : f.sinkPerSec) * dt;
           const t = S.tension;

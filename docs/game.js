@@ -1377,23 +1377,30 @@
       // buys you time on every fish rather than a fixed amount that would mean
       // everything on a cheap one and nothing on a dear one.
       sinkPerSec: Math.max(0.16, rate * lift * (1 - rodSink(rod))),
-      // Control, and the reason it is TWO numbers rather than one.
+      // Control, and the reason it is fineness rather than force.
       //
-      // Inside the sweet spot, help has to be help you can hold: a bigger press
-      // would carry the line straight back out the top, so what you want there is
-      // for it to fall more slowly and stay where you put it.
+      // It shrinks the two things that MOVE the line — the fall while you are
+      // held, and the press — by the same amount. The rhythm needed to hold is
+      // therefore unchanged; what changes is the SIZE of every correction. Small
+      // steps are what let you sit inside a narrow sweet spot, which is the whole
+      // point of the skill: the spot tightens as a fish gets dearer, and this is
+      // what keeps a dear fish holdable.
       //
-      // Outside it, the opposite — you are trying to get back, and a bigger press
-      // is exactly the help you want. So Control slows the SINK while you are
-      // held and lengthens the PRESS while you are not, and fishing.js picks
-      // between them by where the line actually sits.
+      // It used to LENGTHEN the press whenever you were out of the spot, which
+      // was backwards twice over. Out was tested two-sidedly, so a press while
+      // already too high shoved you harder toward a snap — and a bigger press is
+      // a coarser one, the opposite of control. Traced over a minute, every exit
+      // from the spot was out the TOP and none out the bottom, so the old design
+      // was insuring against a loss that never happened while making the loss
+      // that did happen more likely.
       sinkInBand: Math.max(0.16, rate * lift * (1 - rodSink(rod)))
         * (1 - effectPower(armor, 'control')),
-      liftOutOfBand: lift * (1 + effectPower(armor, 'control')),
+      // The fall OUTSIDE the spot is deliberately untouched: exits are upward, so
+      // slowing that fall would only keep you above the spot for longer.
+      //
       // What one press buys. Nearly flat, so the rhythm stays the skill; the rod
       // adds a little, which is the only reason a press is ever worth more.
-      // Plain. Control's help lives in sinkInBand and liftOutOfBand above.
-      liftPerPress: lift,
+      liftPerPress: lift * (1 - effectPower(armor, 'control')),
       // Half-width of the good stretch either side of centre, set by what the
       // fish is WORTH. Rarity and ore rank were far too coarse for this: a 47z
       // Iron Whetfish and a 52z Iron Pin Tuna came out identical, and the most
@@ -1605,7 +1612,8 @@
     // constant each one is for, which is the same spec tools/skills-data.js
     // carries. Working names throughout — Raven's to replace.
     strike:     { name: 'Strike',     per: 0.10, blurb: 'You have longer to answer a bite before it is gone' },  // strikeWindowMs
-    control:    { name: 'Control',    per: 0.10, blurb: 'The line holds in the sweet spot more easily, and climbs back to it faster' },  // lift per press
+    // per starts LOW on purpose — Raven is playtesting the feel before the size.
+    control:    { name: 'Control',    per: 0.04, blurb: 'The line answers in smaller steps, so a narrow sweet spot is easier to sit in' },  // sink in band + lift per press
     hook:       { name: 'Hooking',    per: 0.12, blurb: 'A nibbling fish is more likely to take the line under' },  // POND.hookChance
     reach:      { name: 'Reach',      per: 0.15, blurb: 'Baited fish notice the bobber from further away' },  // POND.attract / attractRange
     bobber:     { name: 'Bobber',     per: 0.12, blurb: 'The bobber travels further with each nudge and settles sooner' },  // POND.bobberStep / glideRate
@@ -2736,8 +2744,7 @@
         sinkPerSec: rate * lift * (1 - rodSink(rod)),
         // Same two faces as a fish — see fightFor.
         sinkInBand: rate * lift * (1 - rodSink(rod)) * (1 - effectPower(armor, 'control')),
-        liftOutOfBand: lift * (1 + effectPower(armor, 'control')),
-        liftPerPress: lift,
+        liftPerPress: lift * (1 - effectPower(armor, 'control')),
         band: Math.max(BOSS_BAND_FLOOR,
           (0.115 - t * 0.05) * (1 + rodBand(rod) + effectPower(armor, 'band') + heatBand(armor, ctx))),
         progressPerSec,

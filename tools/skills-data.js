@@ -29,7 +29,7 @@
     { k: 'band',       name: 'Sweetspot',  group: 'The reel', at: 'how wide the sweet spot is' },
     { k: 'progress',   name: 'Capture',    group: 'The reel', at: 'how fast the capture bar fills inside it' },
     { k: 'escape',     name: 'Escape',     group: 'The reel', at: 'how fast the escape bar fills outside it' },
-    { k: 'control',    name: 'Control',    group: 'The reel', at: 'sink while held, and lift per press while out of the sweet spot' },
+    { k: 'control',    name: 'Control',    group: 'The reel', at: 'sink while held, and lift per press' },
     { k: 'strike',     name: 'Strike',     group: 'The reel', at: 'strikeWindowMs, the moment to strike a nibble' },
 
     // ── The water ─────────────────────────────────────────────────────────
@@ -96,8 +96,9 @@
     band:       (G, g) => 'sweet spot +' + pct(G.effectPower(g, 'band')),
     progress:   (G, g) => 'capture +' + pct(G.effectPower(g, 'progress')),
     escape:     (G, g) => 'escape -' + pct(G.effectPower(g, 'escape')),
-    control:    (G, g) => 'held: the line falls ' + pct(G.effectPower(g, 'control'))
-                        + ' slower; out: each press lifts ' + pct(G.effectPower(g, 'control')) + ' further',
+    control:    (G, g) => 'every press is ' + pct(G.effectPower(g, 'control'))
+                        + ' smaller, and the line falls ' + pct(G.effectPower(g, 'control'))
+                        + ' slower while held — smaller steps, so a narrow sweet spot is sittable',
     strike:     (G, g) => 'strike window +' + pct(G.effectPower(g, 'strike')),
     bites:      (G, g) => 'bite rate +' + pct(G.effectPower(g, 'bites')),
     hook:       (G, g) => 'hook ' + pct(G.pondFor(g).hookChance) + ' (from ' + pct(G.POND.hookChance) + ')',

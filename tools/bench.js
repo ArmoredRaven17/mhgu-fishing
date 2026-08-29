@@ -102,11 +102,12 @@
       })()) +
       // Control makes both of these two numbers, so both are shown. HELD is what
       // you get while you are in the sweet spot, OUT is what you get while you
-      // are climbing back to it.
+      // are climbing back to it. The lift is one number now — Control shrinks it
+      // rather than growing a second one for when you are out.
       row('sink', f.sinkPerSec.toFixed(3) + '/s out'
         + (f.sinkInBand < f.sinkPerSec ? '  ' + f.sinkInBand.toFixed(3) + '/s held' : '')) +
-      row('lift', f.liftPerPress.toFixed(3) + '/press held'
-        + (f.liftOutOfBand > f.liftPerPress ? '  ' + f.liftOutOfBand.toFixed(3) + '/press out' : '')) +
+      row('lift', f.liftPerPress.toFixed(3) + '/press'
+        + '   (' + ((f.liftPerPress / (f.band * 2)) * 100).toFixed(0) + '% of the spot)') +
       // Grace is time spent HELD before you fall out of the band, so it reads the
       // held sink. It was quietly overstating what Control bought before.
       row('grace', (f.band / (f.sinkInBand ?? f.sinkPerSec)).toFixed(2) + 's') +
