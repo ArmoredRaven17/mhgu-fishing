@@ -638,6 +638,12 @@
     hot_meat:        { group: 'climate', stamina: 50, protects: 'cold', unlock: 13, carry: 5, label: '+50 Stamina and cold resistance' },
     chilled_meat:    { group: 'climate', stamina: 50, protects: 'hot',  unlock: 13, carry: 5, label: '+50 Stamina and heat resistance' },
     // ── Bombs ────────────────────────────────────────────────────────────
+    // `carry` is deliberately UNDER what MHGU allows — the game lets you take ten
+    // Barrel Bomb S and ten Nets. Here a bomb replaces a cast and a trap fishes
+    // while you do, so ten of either is not a decision about where to put one, it
+    // is a way to stop casting. Shock Trap's 1 is the real figure; the rest are
+    // cut to keep them a choice rather than a rhythm.
+    //
     // `bomb` is the blast RADIUS as a fraction of the pond, and it is the only
     // thing separating the three — so they share one line, Raven's, rather than
     // three that hint at the difference. What the bigger bomb buys is a thing to
@@ -646,15 +652,15 @@
     // It used to be a count, back when a bomb rolled a school and took the first
     // N of it. It is aimed at the real pool now, so what it catches is whatever
     // happens to be inside the circle.
-    barrel_bomb_s:   { group: 'bombs',     bomb: 0.15,          unlock: 3,  carry: 10, label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
-    barrel_bomb_l:   { group: 'bombs',     bomb: 0.22,          unlock: 6,  carry: 3,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
-    barrel_bomb_lp:  { group: 'bombs',     bomb: 0.30,          unlock: 9,  carry: 2,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
+    barrel_bomb_s:   { group: 'bombs',     bomb: 0.15,          unlock: 3,  carry: 4,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
+    barrel_bomb_l:   { group: 'bombs',     bomb: 0.22,          unlock: 6,  carry: 2,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
+    barrel_bomb_lp:  { group: 'bombs',     bomb: 0.30,          unlock: 9,  carry: 1,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
     // ── Traps ────────────────────────────────────────────────────────────
     // Set in the water and left there. A bomb is one loud moment; a trap is the
     // opposite — you place it, walk away, and fish it never asked for wander in.
     // `trap` is the kind; the numbers live in TRAP.
-    net:             { group: 'traps',     trap: 'net',         unlock: 2,  carry: 5,  label: 'Set in the water. Catches fish that wander into it' },
-    shock_trap:      { group: 'traps',     trap: 'shock',       unlock: 5,  carry: 3,  label: 'Set in the water. Catches fish that wander into it' },
+    net:             { group: 'traps',     trap: 'net',         unlock: 2,  carry: 3,  label: 'Set in the water. Catches fish that wander into it' },
+    shock_trap:      { group: 'traps',     trap: 'shock',       unlock: 5,  carry: 1,  label: 'Set in the water. Catches fish that wander into it' },
     armorskin:       { group: 'misc',      def: 0.15, secs: 1,  unlock: 5,  carry: 5,  label: '+15% DEF for a short time' },
     mega_armorskin:  { group: 'misc',      def: 0.25, secs: 2,  unlock: 9,  carry: 2,  label: '+25% DEF, for twice as long' },
   };
