@@ -1159,9 +1159,13 @@ select{
    scroller so the table beside it keeps its full height. */
 .line-list{display:flex;flex-direction:column;gap:2px;
            max-height:calc(100vh - 150px);overflow-y:auto;padding-right:4px}
-.line-list .subtab{text-align:left;width:100%;border:0;border-radius:6px;
+/* flex:0 0 auto is the whole fix for the list packing itself: a column flex
+   SHRINKS its children by default, so fifty-six entries in a height-capped column
+   compressed until the text sat on top of itself. They keep their height and the
+   column scrolls instead. */
+.line-list .subtab{flex:0 0 auto;text-align:left;width:100%;border:0;border-radius:6px;
                    padding:6px 10px;font-size:13px;white-space:nowrap;
-                   overflow:hidden;text-overflow:ellipsis}
+                   overflow:hidden;text-overflow:ellipsis;line-height:1.4}
 .line-list .subtab.active{font-weight:600}
 @media (max-width:1000px){
   #viewArmor.subview.active{display:block}

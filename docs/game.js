@@ -626,17 +626,17 @@
     well_done_steak: { group: 'stamina', stamina: 50,           unlock: 9,  carry: 5,  label: '+50 Stamina' },
     ration:          { group: 'stamina', stamina: 25,                       carry: 10, label: '+25 Stamina' },
     ancient_potion:  { group: 'misc',    hp: 999, stamina: 999, unlock: 13, carry: 1,  label: 'Full HP and Stamina' },
-    cool_drink:      { group: 'misc', protects: 'hot',          unlock: 1,  carry: 5,  label: 'Increases heat resistance for a short time' },
-    hot_drink:       { group: 'misc', protects: 'cold',         unlock: 1,  carry: 5,  label: 'Increases cold resistance for a short time' },
-    dash_juice:      { group: 'misc',      dash: 1,             unlock: 5,  carry: 5,  label: 'Halves Stamina used while reeling' },
-    mega_dash_juice: { group: 'misc',      dash: 2,             unlock: 9,  carry: 2,  label: 'Halves Stamina used while reeling, for twice as long' },
+    cool_drink:      { group: 'climate', protects: 'hot',          unlock: 1,  carry: 5,  label: 'Increases heat resistance for a short time' },
+    hot_drink:       { group: 'climate', protects: 'cold',         unlock: 1,  carry: 5,  label: 'Increases cold resistance for a short time' },
+    dash_juice:      { group: 'stamina',   dash: 1,             unlock: 5,  carry: 5,  label: 'Halves Stamina used while reeling' },
+    mega_dash_juice: { group: 'stamina',   dash: 2,             unlock: 9,  carry: 2,  label: 'Halves Stamina used while reeling, for twice as long' },
     // Defence, the same currency the Alcohol fresh bonus pays in: a fraction off
     // what small monsters and the two big ones take from you.
     // One slot doing two jobs: a Well-done Steak's Stamina AND a drink's
     // resistance. That is the whole reason they are G Rank+ and dearer than the
     // two things they replace put together.
-    hot_meat:        { group: 'misc', stamina: 50, protects: 'cold', unlock: 13, carry: 5, label: '+50 Stamina and cold resistance' },
-    chilled_meat:    { group: 'misc', stamina: 50, protects: 'hot',  unlock: 13, carry: 5, label: '+50 Stamina and heat resistance' },
+    hot_meat:        { group: 'climate', stamina: 50, protects: 'cold', unlock: 13, carry: 5, label: '+50 Stamina and cold resistance' },
+    chilled_meat:    { group: 'climate', stamina: 50, protects: 'hot',  unlock: 13, carry: 5, label: '+50 Stamina and heat resistance' },
     // ── Bombs ────────────────────────────────────────────────────────────
     // `bomb` is the blast RADIUS as a fraction of the pond, and it is the only
     // thing separating the three — so they share one line, Raven's, rather than
@@ -646,15 +646,15 @@
     // It used to be a count, back when a bomb rolled a school and took the first
     // N of it. It is aimed at the real pool now, so what it catches is whatever
     // happens to be inside the circle.
-    barrel_bomb_s:   { group: 'misc',      bomb: 0.15,          unlock: 3,  carry: 10, label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
-    barrel_bomb_l:   { group: 'misc',      bomb: 0.22,          unlock: 6,  carry: 3,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
-    barrel_bomb_lp:  { group: 'misc',      bomb: 0.30,          unlock: 9,  carry: 2,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
+    barrel_bomb_s:   { group: 'bombs',     bomb: 0.15,          unlock: 3,  carry: 10, label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
+    barrel_bomb_l:   { group: 'bombs',     bomb: 0.22,          unlock: 6,  carry: 3,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
+    barrel_bomb_lp:  { group: 'bombs',     bomb: 0.30,          unlock: 9,  carry: 2,  label: 'Explodes and any fish caught in the radius are caught at a reduced value' },
     // ── Traps ────────────────────────────────────────────────────────────
     // Set in the water and left there. A bomb is one loud moment; a trap is the
     // opposite — you place it, walk away, and fish it never asked for wander in.
     // `trap` is the kind; the numbers live in TRAP.
-    net:             { group: 'misc',      trap: 'net',         unlock: 2,  carry: 5,  label: 'Set in the water. Catches fish that wander into it' },
-    shock_trap:      { group: 'misc',      trap: 'shock',       unlock: 5,  carry: 3,  label: 'Set in the water. Catches fish that wander into it' },
+    net:             { group: 'traps',     trap: 'net',         unlock: 2,  carry: 5,  label: 'Set in the water. Catches fish that wander into it' },
+    shock_trap:      { group: 'traps',     trap: 'shock',       unlock: 5,  carry: 3,  label: 'Set in the water. Catches fish that wander into it' },
     armorskin:       { group: 'misc',      def: 0.15, secs: 1,  unlock: 5,  carry: 5,  label: '+15% DEF for a short time' },
     mega_armorskin:  { group: 'misc',      def: 0.25, secs: 2,  unlock: 9,  carry: 2,  label: '+25% DEF, for twice as long' },
   };
@@ -710,11 +710,23 @@
   // A group with an explicit order lists its items that way; the rest sort by
   // price. Misc is spelled out because price order buries Ancient Potion at the
   // bottom, when it is the one people are looking for.
+  // Misc had become the drawer everything went into: drinks, meats, juices,
+  // skins, bombs and traps in one heap. Things that do the same job now sit
+  // together, and Misc keeps only what genuinely belongs nowhere else.
+  //
+  // Where a group has an order, that order is the one it reads in; without one
+  // the shop sorts by price.
   const ITEM_GROUPS = [
     ['hp', 'HP Items'],
-    ['stamina', 'Stamina Items'],
-    ['misc', 'Misc', ['ancient_potion', 'cool_drink', 'hot_drink', 'dash_juice', 'mega_dash_juice',
-                      'armorskin', 'mega_armorskin', 'hot_meat', 'chilled_meat']],
+    // The juices belong here: what they do is spend less Stamina.
+    ['stamina', 'Stamina Items', ['ration', 'energy_drink', 'rare_steak', 'well_done_steak',
+                                  'dash_juice', 'mega_dash_juice']],
+    // Everything about the weather, including the meats — a Hot Meat is a Hot
+    // Drink that also feeds you, and the drink half is why you carry it.
+    ['climate', 'Climate', ['cool_drink', 'hot_drink', 'chilled_meat', 'hot_meat']],
+    ['bombs', 'Bombs', ['barrel_bomb_s', 'barrel_bomb_l', 'barrel_bomb_lp']],
+    ['traps', 'Traps', ['net', 'shock_trap']],
+    ['misc', 'Misc', ['ancient_potion', 'armorskin', 'mega_armorskin']],
     ['mats', 'Combo Mats'],
     ['books', 'Books'],
   ];

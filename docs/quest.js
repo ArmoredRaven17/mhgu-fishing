@@ -245,7 +245,11 @@
   function renderPouch() {
     const list = window.MF_FISH.prep
       .filter(p => trip.carried[p.id] > 0)
-      .sort((a, b) => G.effectOf(a.id).group.localeCompare(G.effectOf(b.id).group)
+      // By the shop's own order, not alphabetically. The groups have a deliberate
+      // sequence — HP, Stamina, Climate, Bombs, Traps, Misc — and sorting their
+      // NAMES put Bombs first and Stamina last for no reason a player could see.
+      .sort((a, b) => G.ITEM_GROUPS.findIndex(([g]) => g === G.effectOf(a.id).group)
+                    - G.ITEM_GROUPS.findIndex(([g]) => g === G.effectOf(b.id).group)
         || a.name.localeCompare(b.name));
 
     el('questPouch').innerHTML = list.length ? list.map(p => {
