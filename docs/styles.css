@@ -1242,8 +1242,13 @@ select{
 /* The pond is a sibling of #reel now rather than a child, so it keeps its own
    size whether or not a cast is running. */
 #pond{position:relative}
-.swimmer.pooled{transition:opacity .6s ease,transform .6s ease}
-.swimmer.pooled.arriving,.swimmer.pooled.leaving{opacity:0;transform:translate(-50%,-50%) scale(.6)}
+/* `entering` is the same fade the pool's own fish use, lent to a cast's school so
+   the swap in either direction is the water resettling rather than a cut. It is
+   taken off again once it has played: `gone`, at the end of a fight, wants to be
+   instant. */
+.swimmer.pooled,.swimmer.entering{transition:opacity .6s ease,transform .6s ease}
+.swimmer.pooled.arriving,.swimmer.pooled.leaving,
+.swimmer.entering.arriving,.swimmer.entering.leaving{opacity:0;transform:translate(-50%,-50%) scale(.6)}
 
 /* ── A bomb ───────────────────────────────────────────────────────────────
    Aimed like the bobber, then dropped: it sinks, holds, and goes up. The ring is
@@ -1272,7 +1277,7 @@ select{
                  opacity:0;transform:translate(-50%,-50%) scale(1.5) rotate(20deg)}
 @media (prefers-reduced-motion:reduce){
   .bomb-marker,.bomb-marker img,.bomb-marker .ring,
-  .swimmer.pooled,.swimmer.blasted{transition:none}
+  .swimmer.pooled,.swimmer.entering,.swimmer.blasted{transition:none}
 }
 
 /* ── A trap ───────────────────────────────────────────────────────────────

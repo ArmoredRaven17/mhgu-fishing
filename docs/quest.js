@@ -593,7 +593,12 @@
   function equipBait(id) {
     if (!trip || trip.busy) return;
     if (id !== 'no_bait' && !(trip.tackle[id] > 0)) return;
+    if (trip.bait.id === id) return;
     trip.bait = A.baitBy.get(id);
+    // The bait is what drew the water's current occupants, so changing it lets
+    // them go and fills the pond again. poolRoll already reads trip.bait, so what
+    // comes back is the new bait's water without the pond being told anything.
+    window.MF_FISHING.refreshPool();
     render();
   }
 

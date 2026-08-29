@@ -41,7 +41,14 @@
     raf = null;
     window.onkeydown = window.onkeyup = null;
     const pond = el('pond');
-    if (pond) pond.innerHTML = '';
+    // The way back out, and the mirror of what start() does coming in: the cast's
+    // school is faded rather than wiped, because releaseCast() opens the pool the
+    // instant this returns and the two are really one transition.
+    if (pond) {
+      pond.querySelectorAll('.swimmer').forEach(letGo);
+      pond.querySelectorAll('.bubbles,.bobber,.trap-marker,.bomb-marker,.wake')
+          .forEach(function (n) { n.remove(); });
+    }
     el('reel')?.classList.add('hidden');
     el('castArea')?.classList.remove('hidden');
     el('tensionWrap')?.classList.add('hidden');
@@ -63,21 +70,31 @@
       // The pond as your armor leaves it. fishing.js never learns what a skill
       // is — it reads the same plain fields it always did.
       const P = G().pondFor(spec.armor || null);
-      // The pool and a cast cannot both own the pond, and the cast empties it.
-      stopPool();
+      // The pool and a cast cannot both own the pond. The pool's fish are LET GO
+      // rather than deleted, so they drift out over the same beat the cast's
+      // school drifts in.
+      releasePool();
       const MARGIN = spec.monster ? { x: 0.10, y: 0.16 } : { x: 0.04, y: 0.06 };
       el('castArea').classList.add('hidden');
       el('reel').classList.remove('hidden');
 
       const pond = el('pond');
-      pond.innerHTML = '';
+      // NOT innerHTML = ''. That took the fading fish with it and made the swap a
+      // blink. Everything the pool owned besides its fish goes at once: the
+      // bubbles are rebuilt below, and the trap markers are put back by openPool
+      // when the cast is over — their data survives in keptTraps either way.
+      pond.querySelectorAll('.bubbles,.bobber,.wake,.trap-marker,.bomb-marker,.swimmer:not(.pooled)')
+          .forEach(function (n) { n.remove(); });
       const box = pond.getBoundingClientRect();
       const aspect = box.width > 0 ? box.width / Math.max(1, box.height) : 1.6;
 
       // ── Stock the water ─────────────────────────────────────────────────
       const swimmers = (spec.monster ? [spec.monster] : spec.school).map(c => {
         const node = document.createElement('div');
-        node.className = 'swimmer' + (spec.monster ? ' monster' : '');
+        // `entering` is the pool's own arrival fade, borrowed. Dropped again once
+        // it has played so the class cannot colour anything later — `gone` at the
+        // end of a cast wants to be instant.
+        node.className = 'swimmer entering arriving' + (spec.monster ? ' monster' : '');
         node.innerHTML = spec.monster
           ? `<img src="assets/MonsterIcons/${c.icon}" alt="${c.name}">`
           : window.MF_GUIDE.fishImg(c.ore, 30, c.name);
@@ -92,6 +109,15 @@
           nibbleIn: 0,
         };
       });
+
+      // One forced style pass for the whole school, then let them in together —
+      // see fadeOut for why this is a layout read and not a timer.
+      for (const sw of swimmers) {
+        fadeIn(sw.node);
+        // `entering` comes off once it has played, so it cannot colour anything
+        // later — `gone`, at the end of a fight, wants to be instant.
+        setTimeout(function () { sw.node.classList.remove('entering'); }, 700);
+      }
 
       // A drift of bubbles, so the water has something of its own going on that
       // is not the fish. Each is given its own size, lane, pace and phase, which
@@ -522,6 +548,30 @@
   // for the cast to own the pond; this is what survives that.
   let keptTraps = [];
 
+  // A transition needs a value to move FROM, and it only has one if the browser
+  // has already computed a style without the end-state class on it. Reading a
+  // layout property forces exactly that, in this tick. A timer or a rAF would
+  // usually deliver it too, and 'usually' is how a fade turns into a snap.
+  //
+  // EVERY fade in this file goes through one of these two. They were written by
+  // hand at four call sites and three of them snapped.
+  const forceStyle = node => { void node.offsetWidth; };
+
+  // Show a node that was built wearing `arriving`.
+  function fadeIn(node) {
+    forceStyle(node);
+    node.classList.remove('arriving');
+  }
+
+  // Fade a node out and then take it away. `pooled` carries its own fade; a
+  // cast's school does not, so it is lent `entering` on the way out.
+  function letGo(node) {
+    if (!node.classList.contains('pooled')) node.classList.add('entering');
+    forceStyle(node);
+    node.classList.add('leaving');
+    setTimeout(function () { node.remove(); }, G().POOL.fadeMs);
+  }
+
   function stopPool(forget) {
     if (poolRaf) cancelAnimationFrame(poolRaf);
     poolRaf = null;
@@ -535,6 +585,40 @@
     if (forget) keptTraps = [];
     else if (pool) keptTraps = pool.traps;
     pool = null;
+  }
+
+  // Let the water go rather than deleting it. Every fish currently in the pool
+  // drifts out on the same fade it would have used had its own time run out, and
+  // the caller stocks the pond behind it — so the swap between watching the water
+  // and fishing it reads as the water resettling rather than a cut.
+  //
+  // The nodes outlive the pool object by design: `pool` is gone the moment this
+  // returns, and the fade finishes on a timer that no longer needs it.
+  function releasePool() {
+    const POOL = G().POOL;
+    if (pool) {
+      for (const f of pool.fish) letGo(f.node);
+      pool.fish = [];
+    }
+    stopPool();
+  }
+
+  // Changing bait changes what is IN the water, not only what the next cast
+  // rolls. The fish already swimming were drawn by the bait you just put away,
+  // so they are let go and the pond fills again — and it fills through the same
+  // `roll` it always used, which is reading the new bait by the time these come
+  // back. The pond still never learns what a bait is.
+  function refreshPool() {
+    if (!pool) return;
+    const POOL = G().POOL;
+    for (const f of pool.fish) letGo(f.node);
+    pool.fish = [];
+    // Hold the spawner off until the water is actually empty, so the new school
+    // arrives AFTER the old one has gone rather than through it. Then put back
+    // the same handful openPool starts with, so a bait change leaves the water
+    // as full as it found it instead of trickling for the next ten seconds.
+    pool.spawnIn = POOL.fadeMs / 1000;
+    pool.reseed = 3;
   }
 
   const pondAspect = () => {
@@ -567,7 +651,10 @@
     stopPool();
     const pondEl = el('pond');
     if (!pondEl) return;
-    pondEl.innerHTML = '';
+    // Leave whatever is mid-fade alone — cleanup() has just set the cast's school
+    // on its way out and wiping here would delete it a frame later, which is the
+    // blink this is meant to remove. Only what the pool itself owns is rebuilt.
+    pondEl.querySelectorAll('.bubbles,.bobber').forEach(function (n) { n.remove(); });
     pondEl.appendChild(makeBubbles());
     el('castArea') && el('castArea').classList.remove('hidden');
     el('reel') && el('reel').classList.add('hidden');
@@ -582,8 +669,9 @@
     for (const t of pool.traps) { t.node.remove(); el('pond').appendChild(t.node); }
     keptTraps = [];
     // Open with a few already in the water rather than an empty pond that fills
-    // itself over the first ten seconds.
-    for (let i = 0; i < 3; i++) spawnOne(true);
+    // itself over the first ten seconds. They ARRIVE — `quiet` put them there
+    // fully drawn, which read as a cut every time a cast let go.
+    for (let i = 0; i < 3; i++) spawnOne(false);
     poolRaf = requestAnimationFrame(poolFrame);
   }
 
@@ -595,7 +683,7 @@
     node.className = 'swimmer pooled' + (quiet ? '' : ' arriving');
     node.innerHTML = window.MF_GUIDE.fishImg(c.ore, 30, c.name);
     el('pond').appendChild(node);
-    if (!quiet) setTimeout(function () { node.classList.remove('arriving'); }, 20);
+    if (!quiet) fadeIn(node);
     const a = Math.random() * Math.PI * 2;
     const life = G().POOL.lifeSec;
     pool.fish.push({
@@ -615,16 +703,21 @@
     const P = G().POND, POOL = G().POOL;
 
     pool.spawnIn -= dt;
-    if (pool.spawnIn <= 0) { spawnOne(false); pool.spawnIn = POOL.spawnEverySec; }
+    if (pool.spawnIn <= 0) {
+      // Normally one at a time. `reseed` is the bait swap refilling the water in
+      // one go — see refreshPool.
+      const n = pool.reseed || 1;
+      for (let i = 0; i < n; i++) spawnOne(false);
+      pool.reseed = 0;
+      pool.spawnIn = POOL.spawnEverySec;
+    }
     trapFrame(dt);
 
     for (let i = pool.fish.length - 1; i >= 0; i--) {
       const f = pool.fish[i];
       f.life -= dt;
       if (f.life <= 0) {
-        f.node.classList.add('leaving');
-        const node = f.node;
-        setTimeout(function () { node.remove(); }, POOL.fadeMs);
+        letGo(f.node);
         pool.fish.splice(i, 1);
         continue;
       }
@@ -849,6 +942,7 @@
   // cancel() is the TRIP ending — retiring, carting, setting out again — so it
   // is the one that forgets what was set in the water.
   window.MF_FISHING = { start: start, cancel: () => cleanup(true), openPool: openPool,
-                        stopPool: stopPool, throwBomb: throwBomb, setTrap: setTrap };
+                        stopPool: stopPool, refreshPool: refreshPool,
+                        throwBomb: throwBomb, setTrap: setTrap };
 
 })();
