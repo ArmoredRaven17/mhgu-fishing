@@ -6,7 +6,7 @@
 <title>MHGU Fishing</title>
 <!-- Whetfish: the first thing almost anyone catches here. -->
 <link rel="icon" type="image/png" href="assets/FishIcons/MH4G-Fish_Icon_Yellow.png">
-<link rel="stylesheet" href="styles.css?v=346">
+<link rel="stylesheet" href="styles.css?v=348">
 </head>
 <body>
 
@@ -176,8 +176,9 @@
 
       <div class="quest-body">
         <div class="water" id="water">
+          <!-- Only the button up here. The message moved to the foot, beside the
+               bars, so the pond has the same thing above it in every state. -->
           <div id="castArea" class="cast-area">
-            <p id="castPrompt" class="cast-prompt">The water is still.</p>
             <button id="castBtn" class="btn accent big">Cast</button>
           </div>
 
@@ -186,6 +187,10 @@
                into a hidden 0x0 box. The reel is the tension gear only now. -->
           <div id="pond" class="pond"></div>
 
+          <!-- The foot. Everything that talks to you lives here — the bars while
+               you are reeling, the result when you are not — and the two share one
+               grid cell so neither can push the pond around. -->
+          <div class="water-foot">
           <div id="reel" class="reel hidden">
             <div id="tensionWrap" class="tension hidden">
               <div id="strikeBar" class="strike-bar"><i id="strikeFill"></i></div>
@@ -198,6 +203,8 @@
             </div>
             <b id="reelName" class="reel-name"></b>
             <p id="reelHint" class="reel-hint"></p>
+          </div>
+          <p id="castPrompt" class="cast-prompt"></p>
           </div>
         </div>
 
@@ -461,24 +468,24 @@
   </div>
 </div>
 
-<script src="data/ores.js?v=346"></script>
-<script src="data/fish.js?v=346"></script>
-<script src="data/locales.js?v=346"></script>
-<script src="data/meals.js?v=346"></script>
-<script src="data/canteen.js?v=346"></script>
-<script src="data/armorlines.js?v=346"></script>
-<script src="data/monsterparts.js?v=346"></script>
-<script src="data/armorstats.js?v=346"></script>
-<script src="data/themes.js?v=346"></script>
-<script src="theme.js?v=346"></script>
-<script src="game.js?v=346"></script>
-<script src="roll.js?v=346"></script>
-<script src="app.js?v=346"></script>
-<script src="guide.js?v=346"></script>
-<script src="prep.js?v=346"></script>
-<script src="fishing.js?v=346"></script>
-<script src="quest.js?v=346"></script>
-<script src="ui.js?v=346"></script>
-<script src="savefile.js?v=346"></script>
+<script src="data/ores.js?v=348"></script>
+<script src="data/fish.js?v=348"></script>
+<script src="data/locales.js?v=348"></script>
+<script src="data/meals.js?v=348"></script>
+<script src="data/canteen.js?v=348"></script>
+<script src="data/armorlines.js?v=348"></script>
+<script src="data/monsterparts.js?v=348"></script>
+<script src="data/armorstats.js?v=348"></script>
+<script src="data/themes.js?v=348"></script>
+<script src="theme.js?v=348"></script>
+<script src="game.js?v=348"></script>
+<script src="roll.js?v=348"></script>
+<script src="app.js?v=348"></script>
+<script src="guide.js?v=348"></script>
+<script src="prep.js?v=348"></script>
+<script src="fishing.js?v=348"></script>
+<script src="quest.js?v=348"></script>
+<script src="ui.js?v=348"></script>
+<script src="savefile.js?v=348"></script>
 </body>
 </html>
