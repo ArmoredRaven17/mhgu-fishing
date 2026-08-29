@@ -743,10 +743,13 @@
         A.save();
         render();
       },
-      onFull: () => {
-        trip.notes.push('A trap is full.');
-        flushNotes();
-      },
+      // SET, not push-and-flush. flushNotes appends, and a trap filling is not an
+      // action — nothing clears the line before it, so ten traps filling over a
+      // trip wrote "A trap is full." ten times in a row across the water.
+      //
+      // One line however many fill: the marker greying out is the per-trap
+      // signal, and this is only here so you notice without watching the pond.
+      onFull: () => { el('castPrompt').textContent = 'A trap is full.'; },
     });
     trip.busy = false;
     // Backing out has to hand the item back — it was taken before the placing,
