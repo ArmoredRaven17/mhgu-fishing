@@ -653,8 +653,11 @@
     // `carry` is deliberately UNDER what MHGU allows — the game lets you take ten
     // Barrel Bomb S and ten Nets. Here a bomb replaces a cast and a trap fishes
     // while you do, so ten of either is not a decision about where to put one, it
-    // is a way to stop casting. Shock Trap's 1 is the real figure; the rest are
-    // cut to keep them a choice rather than a rhythm.
+    // is a way to stop casting. All four are cut to keep them a choice rather than
+    // a rhythm.
+    //
+    // Shock Trap sat at MHGU's own 1 and Raven raised it to 2: one is a single
+    // decision with no way back from placing it badly, and two is a plan.
     //
     // `bomb` is the blast RADIUS as a fraction of the pond, and it is the only
     // thing separating the three — so they share one line, Raven's, rather than
@@ -672,7 +675,7 @@
     // opposite — you place it, walk away, and fish it never asked for wander in.
     // `trap` is the kind; the numbers live in TRAP.
     net:             { group: 'traps',     trap: 'net',         unlock: 2,  carry: 3,  label: 'Set in the water. Catches fish that wander into it' },
-    shock_trap:      { group: 'traps',     trap: 'shock',       unlock: 5,  carry: 1,  label: 'Set in the water. Catches fish that wander into it' },
+    shock_trap:      { group: 'traps',     trap: 'shock',       unlock: 5,  carry: 2,  label: 'Set in the water. Catches fish that wander into it' },
     armorskin:       { group: 'misc',      def: 0.15, secs: 1,  unlock: 5,  carry: 5,  label: '+15% DEF for a short time' },
     mega_armorskin:  { group: 'misc',      def: 0.25, secs: 2,  unlock: 9,  carry: 2,  label: '+25% DEF, for twice as long' },
   };
