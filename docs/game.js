@@ -563,9 +563,17 @@
   //
   // Same counting rule as a bomb, and for the same reason: trapped fish would
   // otherwise be the cheapest possible way to fill a forty-fish basket.
+  // Setting one COSTS STAMINA, and that is the most important number here.
+  // Without it a trap was free money: a set built for trapping made 14,000z a
+  // trip on top of whatever it cast for, against a whole rod trip's 16,000z, and
+  // nothing about the rod could compete with something that cost nothing.
+  //
+  // Twice a cast, paid on PLACEMENT. Stamina is what bounds a trip, so spending
+  // it is what makes a trap a trade rather than an addition.
+  const TRAP_STAMINA_MULT = 2;
   const TRAP = {
-    net:   { radius: 0.13, chance: 0.16, hold: 3, valueMult: 1.00 },
-    shock: { radius: 0.17, chance: 0.42, hold: 5, valueMult: 0.60 },
+    net:   { radius: 0.13, chance: 0.16, hold: 2, valueMult: 1.00 },
+    shock: { radius: 0.17, chance: 0.42, hold: 3, valueMult: 0.60 },
   };
   const trapOf = id => TRAP[(ITEM_EFFECT[id] || {}).trap] || null;
   // Trapping is how readily it takes; Capacity is how much it holds before it is
@@ -585,8 +593,12 @@
   // Capped: a blast that covers the whole pond stops being a placement decision.
   const bombRadius = (id, gear) =>
     Math.min(0.45, ((ITEM_EFFECT[id] || {}).bomb || 0.15) * (1 + effectPower(gear, 'blast')));
+  // Capped WELL under 1. Bruising at level 5 was returning 96% of the value,
+  // which does not soften the drawback so much as delete it — and a bombed fish
+  // being worth less is the whole reason a bomb is not simply a better rod.
+  const BRUISE_CEILING = 0.75;
   const bombValueMult = gear =>
-    Math.min(1, BOMB.valueMult * (1 + effectPower(gear, 'bruising')));
+    Math.min(BRUISE_CEILING, BOMB.valueMult * (1 + effectPower(gear, 'bruising')));
 
   const CLIMATE_RATES = {
     temperate: { staminaMult: 1,    hpPerTick: 0 },
@@ -3060,7 +3072,7 @@
     CLIMATE_RATES, CLIMATE_TICK_MS, DRINK_SECONDS,
     DASH_SECONDS, DASH_MULT, ARMOR_SECONDS,
     POOL, BOMB, bombRadius, bombValueMult,
-    TRAP, trapOf, trapChance, trapHold, trapValueMult, trapRadius,
+    TRAP, TRAP_STAMINA_MULT, trapOf, trapChance, trapHold, trapValueMult, trapRadius,
     BASE_MAX_HP, BASE_MAX_STAMINA, STAMINA_COST,
     MEALS, mealCost, MEAL_SCALE, ITEM_PRICE, priceOf,
     RETIRED_UPGRADES, refundUpgrades,

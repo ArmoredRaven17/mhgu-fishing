@@ -690,11 +690,14 @@
       // reading whatever you were reading. It is wrong once the bomb has gone off:
       // quest.js appends the result with flushNotes, so putting the previous
       // blast's line back first chained every message onto the last.
+      // `restore` doubles as "you backed out": the only path that puts the old
+      // line back is Escape, and the caller needs to know so it can hand the bomb
+      // back rather than charging you for one you never threw.
       const finish = function (caught, restore) {
         window.onkeydown = prevDown; window.onkeyup = prevUp;
         if (pool) pool.bomb = null;
         if (prompt) prompt.textContent = restore ? wasPrompt : '';
-        resolve({ caught: caught });
+        resolve({ caught: caught, cancelled: !!restore });
       };
 
       window.onkeyup = null;

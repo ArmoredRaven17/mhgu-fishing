@@ -582,7 +582,8 @@
     if (e.bomb) return trip.sta >= G.STAMINA_COST.cast * G.BOMB.staminaMult;
     // A trap costs nothing to set and fishes while you do something else, so it
     // is always worth setting.
-    if (e.trap) return true;
+    // Setting one costs stamina now, so it is worth doing only while you can pay.
+    if (e.trap) return trip.sta >= G.STAMINA_COST.cast * G.TRAP_STAMINA_MULT;
     if (e.dash || e.def) return true;              // always worth refreshing
     const helpsHp = e.hp && trip.hp < trip.maxHP;
     const helpsSta = e.stamina && trip.sta < trip.maxSta;
@@ -683,6 +684,13 @@
       icon: (G.pouchItemById.get(id) || {}).icon || 'MH4G-Bomb_Icon_Red.png',
     });
     trip.busy = false;
+    // Same for a bomb you decide not to throw: Escape should cost you nothing.
+    if (res.cancelled) {
+      trip.carried[id]++;
+      trip.sta += G.STAMINA_COST.cast * G.BOMB.staminaMult;
+      A.save(); render();
+      return;
+    }
     const took = res.caught || [];
     if (!took.length) {
       trip.notes.push('The bomb goes off and nothing floats up.');
@@ -724,7 +732,6 @@
   // are busy doing something else.
   async function setTrap(id) {
     const S = A.state;
-    const kept = trip.carried[id];
     trip.busy = true; render();
     const res = await window.MF_FISHING.setTrap({
       icon: (G.pouchItemById.get(id) || {}).icon || 'MH4G-Trap_Icon_Green.png',
@@ -752,11 +759,17 @@
       onFull: () => { el('castPrompt').textContent = 'A trap is full.'; },
     });
     trip.busy = false;
-    // Backing out has to hand the item back — it was taken before the placing,
-    // the same way a bomb's is, and a trap you never set is a trap you still have.
-    if (!res.placed) trip.carried[id] = kept;
+    // Backing out hands the item back. It was taken by useItem BEFORE the placing
+    // began, so restoring it means putting one back — an earlier version snapshot
+    // the count after the decrement and "restored" it to the number it already
+    // was, which quietly ate the trap you changed your mind about.
+    //
+    // The stamina is only spent if it actually went in the water.
+    if (!res.placed) trip.carried[id]++;
+    else trip.sta -= G.STAMINA_COST.cast * G.TRAP_STAMINA_MULT;
     A.save();
     render();
+    if (trip.sta <= 0) finish('out of stamina');
   }
 
   // ── Ending the trip ───────────────────────────────────────────────────────
