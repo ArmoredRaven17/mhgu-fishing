@@ -965,14 +965,8 @@ select{
 
 /* ── Modals ────────────────────────────────────────────────────────────── */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:grid;place-items:center;z-index:50;padding:16px}
-.modal-box{
-  background:var(--bg2);border:1px solid var(--line);border-radius:8px;
-  padding:18px;max-width:470px;width:100%;display:grid;gap:10px;
-  background-image:
-    linear-gradient(color-mix(in srgb,var(--bg1) 70%,transparent),color-mix(in srgb,var(--bg1) 70%,transparent)),
-    url('assets/panel-body-bg.png');
-  background-size:contain 100%;background-position:left center;background-repeat:repeat;
-}
+.modal-box{background:var(--bg2);border:1px solid var(--line);border-radius:10px;
+  padding:20px;max-width:560px;width:100%;max-height:82vh;overflow-y:auto;display:grid;gap:10px}
 .modal-box h2{margin:0;font-size:18px}
 .modal-list{list-style:none;margin:0;padding:0;display:grid;gap:3px;max-height:40vh;overflow-y:auto;font-size:13px}
 .modal-list li{display:flex;justify-content:space-between;gap:8px;background:var(--card);padding:4px 7px;border-radius:5px}
@@ -991,7 +985,7 @@ select{
   background-size:contain 100%;background-position:left center;background-repeat:repeat;
 }
 .modal-card h2{margin:0 0 12px;font-size:18px}
-.modal-card a{color:var(--accent-hover)}
+.modal-card a{color:color-mix(in srgb, hsl(from var(--accent) calc(h + 180) 75% 60%) 50%, var(--text))}
 .modal-card .muted{color:var(--text-dim);font-size:13px;opacity:.75}
 #linksModal .row{display:flex;align-items:center}
 #linksModal .row.gap{gap:8px}
@@ -1003,7 +997,6 @@ select{
 .app-here{font-weight:400;font-size:11px;opacity:.7;border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin-left:7px}
 .app-desc{display:block;margin-top:3px;font-size:12px;opacity:.8;line-height:1.4}
 
-.theme-box{width:min(460px,90vw);max-width:none;max-height:85vh;overflow-y:auto}
 /* Theme modal — the family swatch grid, copied verbatim from the other apps. */
 .swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:15px}
 .swatch{aspect-ratio:1;border-radius:8px;border:2px solid transparent;cursor:pointer;position:relative;overflow:hidden;padding:0}
